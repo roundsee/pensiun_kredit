@@ -1,0 +1,1191 @@
+/*
+SQLyog Community
+MySQL - 8.4.6 : Database - pensiun_kredit
+*********************************************************************
+*/
+
+/*!40101 SET NAMES utf8 */;
+
+/*!40101 SET SQL_MODE=''*/;
+
+/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
+/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
+/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
+/*Table structure for table `account_groups` */
+
+CREATE TABLE `account_groups` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `account_groups_name_unique` (`name`)
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+/*Data for the table `account_groups` */
+
+insert  into `account_groups`(`id`,`name`,`created_at`,`updated_at`) values 
+(1,'Pendapatan',NULL,NULL),
+(2,'Piutang',NULL,NULL),
+(3,'Kewajiban',NULL,NULL),
+(4,'Kas/Bank',NULL,NULL),
+(5,'Lain-lain',NULL,NULL),
+(6,'Biaya',NULL,NULL);
+
+/*Table structure for table `accounts` */
+
+CREATE TABLE `accounts` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `code` varchar(255) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `type` varchar(255) NOT NULL,
+  `account_group_id` bigint unsigned DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `accounts_code_unique` (`code`),
+  KEY `accounts_account_group_id_foreign` (`account_group_id`),
+  CONSTRAINT `accounts_account_group_id_foreign` FOREIGN KEY (`account_group_id`) REFERENCES `account_groups` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB AUTO_INCREMENT=34 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+/*Data for the table `accounts` */
+
+insert  into `accounts`(`id`,`code`,`name`,`type`,`account_group_id`,`created_at`,`updated_at`) values 
+(1,'1101','Kas Besar','asset',4,NULL,NULL),
+(2,'1102','Bank','asset',4,NULL,NULL),
+(3,'1201','Piutang Pokok','asset',2,NULL,NULL),
+(4,'1202','Piutang Bunga','asset',2,NULL,NULL),
+(5,'1301','Persediaan Barang','asset',NULL,NULL,NULL),
+(6,'1401','Aset Tetap','asset',NULL,NULL,NULL),
+(7,'2101','Hutang Asuransi','liability',3,NULL,NULL),
+(8,'2102','Hutang Usaha','liability',NULL,NULL,NULL),
+(9,'2103','Hutang Pajak','liability',NULL,NULL,NULL),
+(10,'3101','Modal Disetor','equity',NULL,NULL,NULL),
+(11,'3102','Laba Ditahan','equity',NULL,NULL,NULL),
+(12,'4101','Pendapatan Provisi','income',1,NULL,NULL),
+(13,'4102','Pendapatan Administrasi','income',1,NULL,NULL),
+(14,'4103','Pendapatan Lain-lain','income',NULL,NULL,NULL),
+(15,'5101','Biaya Administrasi','expense',6,NULL,NULL),
+(16,'5102','Biaya Gaji','expense',NULL,NULL,NULL),
+(17,'5103','Biaya Operasional','expense',NULL,NULL,NULL),
+(18,'6001','Plafond','asset',5,NULL,NULL),
+(19,'6002','Angsuran','income',1,NULL,NULL),
+(20,'6003','Biaya Adm Angs','expense',6,NULL,NULL),
+(21,'6004','Total Angsuran','income',1,NULL,NULL),
+(22,'6005','Provisi','income',1,NULL,NULL),
+(23,'6006','Administrasi','income',1,NULL,NULL),
+(24,'6007','Asuransi','expense',6,NULL,NULL),
+(25,'6008','Extra Premi','expense',6,NULL,NULL),
+(26,'6009','Blokir Angsuran','asset',5,NULL,NULL),
+(27,'6010','Pelunasan','income',1,NULL,NULL),
+(28,'6011','Tata Laksana','expense',6,NULL,NULL),
+(29,'1204','Piutang Plafond Nasabah','asset',2,'2026-06-02 05:55:02','2026-06-02 05:55:02'),
+(30,'1205','Piutang Reimburse Pendana','asset',2,'2026-06-02 05:55:02','2026-06-02 05:55:02'),
+(31,'2104','Hutang Pokok Pendana','liability',3,'2026-06-02 05:55:02','2026-06-02 05:55:02'),
+(32,'2105','Hutang Bunga Pendana','liability',3,'2026-06-02 05:55:02','2026-06-02 05:55:02'),
+(33,'4104','Pendapatan Sharing Bunga KSP','income',1,'2026-06-02 05:55:02','2026-06-02 05:55:02');
+
+/*Table structure for table `cache` */
+
+CREATE TABLE `cache` (
+  `key` varchar(255) NOT NULL,
+  `value` mediumtext NOT NULL,
+  `expiration` int NOT NULL,
+  PRIMARY KEY (`key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+/*Data for the table `cache` */
+
+/*Table structure for table `cache_locks` */
+
+CREATE TABLE `cache_locks` (
+  `key` varchar(255) NOT NULL,
+  `owner` varchar(255) NOT NULL,
+  `expiration` int NOT NULL,
+  PRIMARY KEY (`key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+/*Data for the table `cache_locks` */
+
+/*Table structure for table `data_simulasi` */
+
+CREATE TABLE `data_simulasi` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `jenis_pensiun` text,
+  `nama_debitur` text,
+  `tanggal_lahir` text,
+  `umur` text,
+  `nomor_pensiun` text,
+  `instansi` text,
+  `gaji_pensiun` text,
+  `sisa_gaji_saat_pengajuan` text,
+  `produk` text,
+  `rate_percent_override` decimal(10,6) DEFAULT NULL,
+  `admin_angsuran_percent_override` decimal(10,6) DEFAULT NULL,
+  `mutasi` text,
+  `bank_asal` text,
+  `bank_tujuan` text,
+  `tenor_max` text,
+  `plafond_max` text,
+  `tenor` text,
+  `nama_marketing` text,
+  `kode_area` text,
+  `usia_lunas` text,
+  `tgl_permohonan` text,
+  `tgl_lunas` text,
+  `blokir_angsuran` text,
+  `plafond` text,
+  `angsuran` text,
+  `biaya_adm_angs` text,
+  `total_angsuran` text,
+  `provisi` text,
+  `administrasi` text,
+  `asuransi` text,
+  `extra_premi` text,
+  `amount_blokir_angsuran` text,
+  `pelunasan` text,
+  `tata_laksana` text,
+  `total_biaya` text,
+  `sisa_gaji_akhir` text,
+  `terima_bersih` text,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+/*Data for the table `data_simulasi` */
+
+insert  into `data_simulasi`(`id`,`jenis_pensiun`,`nama_debitur`,`tanggal_lahir`,`umur`,`nomor_pensiun`,`instansi`,`gaji_pensiun`,`sisa_gaji_saat_pengajuan`,`produk`,`rate_percent_override`,`admin_angsuran_percent_override`,`mutasi`,`bank_asal`,`bank_tujuan`,`tenor_max`,`plafond_max`,`tenor`,`nama_marketing`,`kode_area`,`usia_lunas`,`tgl_permohonan`,`tgl_lunas`,`blokir_angsuran`,`plafond`,`angsuran`,`biaya_adm_angs`,`total_angsuran`,`provisi`,`administrasi`,`asuransi`,`extra_premi`,`amount_blokir_angsuran`,`pelunasan`,`tata_laksana`,`total_biaya`,`sisa_gaji_akhir`,`terima_bersih`,`created_at`,`updated_at`) values 
+(1,'Sendiri','Yayah Juariah','1954-01-04','72','51006736400','TASPEN','1425600','1425600','Platinum',NULL,NULL,'NON MUTASI','BANK BUKOPIN','BANK BUKOPIN','93','66884898','93','-','JAKARTA 1101 - JAKARTA','800','2026-04-15','2034-01-15','1','66850000','1191747','119175','1310921','668500','3342500','15730474',NULL,'1310921','33450332','896000','55398727','114679','11451273','2026-05-28 20:55:17','2026-05-28 20:55:17'),
+(2,'Sendiri','Yayah Juariah','1954-01-04','72','51006736400','TASPEN','1425600','1425600','Platinum',NULL,NULL,'NON MUTASI','BANK BUKOPIN','BANK BUKOPIN','93','66884898','93','-','JAKARTA 1101 - JAKARTA','800','2026-04-15','2034-01-15','1','66850000','1191747','119175','1310921','668500','3342500','15730474',NULL,'1310921','33450332','896000','55398727','114679','11451273','2026-05-28 22:29:40','2026-05-28 22:29:40'),
+(3,'Sendiri','Test Download','1954-04-19 00:00:00',NULL,'123456789','TASPEN','719400','719400','Platinum',NULL,NULL,'Non Mutasi',NULL,'BANK BUKOPIN','95','30668704.25','95',NULL,'101 - BANDUNG',NULL,'2026-06-02 00:00:00','2034-05-01 00:00:00','1','25000000','446779.27948337','44677.927948337','491457.20743171','250000','1250000','5882750','0','491457.20743171','0','896000','8770207.2074317','227942.79256829','16229792.792568','2026-06-02 09:27:12','2026-06-02 09:27:12'),
+(4,'Sendiri','Test with rate','1954-04-19 00:00:00',NULL,'101010101','TASPEN','719400','719400','Platinum',15.000000,10.000000,'Non Mutasi',NULL,'BANK BUKOPIN','95','29695647.74','95','Christiano Ronaldo','103 - SUBANG',NULL,'2026-06-03 00:00:00','2034-05-02 00:00:00','1','25000000','461091.50884875','46109.150884875','507200.65973362','250000','1250000','5882750','0','507200.65973362','0','896000','8785950.6597336','212199.34026638','16214049.340266','2026-06-03 05:59:23','2026-06-03 05:59:23'),
+(5,'Sendiri','Yayah Juariah','1954-01-04','72','51006736400','TASPEN','1425600','1425600','Platinum',NULL,NULL,'NON MUTASI','BANK BUKOPIN','BANK BUKOPIN','93','66884898','93','-','JAKARTA 1101 - JAKARTA','800','2026-04-15','2034-01-15','1','66850000','1191747','119175','1310921','668500','3342500','15730474',NULL,'1310921','33450332','896000','55398727','114679','11451273','2026-06-08 02:44:44','2026-06-08 02:44:44'),
+(6,'Janda','SRI RUSTINI','1953-12-18','72','13041216800','TASPEN','4731800','4731800','Platinum',NULL,NULL,'NON MUTASI','BANK BUKOPIN','BANK BUKOPIN','91','234045444','91','-','JAKARTA 1101 - JAKARTA','800','2026-06-09','2034-01-09','1','156000000','2801458','280146','3081604','1560000','7800000','36708360',NULL,'3081604','95500000','896000','145545964','1650196','10454036','2026-06-09 03:29:48','2026-06-09 03:29:48'),
+(7,'Janda','SRI RUSTINI','1953-12-18','72','13041216800','TASPEN','4731800','4731800','Platinum',NULL,NULL,'NON MUTASI','BANK BUKOPIN','BANK BUKOPIN','91','234045444','91','-','JAKARTA 1101 - JAKARTA','800','2026-06-09','2034-01-09','1','156000000','2801458','280146','3081604','1560000','7800000','36708360',NULL,'3081604','95500000','896000','145545964','1650196','10454036','2026-06-09 03:34:33','2026-06-09 03:34:33'),
+(8,'Janda','SRI RUSTINI','1953-12-18','72','13041216800','TASPEN','4731800','4731800','Platinum',NULL,NULL,'NON MUTASI','BANK BUKOPIN','BANK BUKOPIN','91','234045444','91','-','JAKARTA 1101 - JAKARTA','800','2026-06-09','2034-01-09','1','156000000','2801458','280146','3081604','1560000','7800000','36708360',NULL,'3081604','95500000','896000','145545964','1650196','10454036','2026-06-09 03:39:42','2026-06-09 03:39:42'),
+(9,'Janda','SRI RUSTINI','1953-12-18','72','13041216800','TASPEN','4731800','4731800','Platinum',NULL,NULL,'NON MUTASI','BANK BUKOPIN','BANK BUKOPIN','91','234045444','91','-','JAKARTA 1101 - JAKARTA','800','2026-06-09','2034-01-09','1','156000000','2801458','280146','3081604','1560000','7800000','36708360',NULL,'3081604','95500000','896000','145545964','1650196','10454036','2026-06-09 03:43:28','2026-06-09 03:43:28'),
+(10,'Janda','SRI RUSTINI','1953-12-18','72','13041216800','TASPEN','4731800','4731800','Platinum',NULL,NULL,'NON MUTASI','BANK BUKOPIN','BANK BUKOPIN','91','234045444','91','-','JAKARTA 1101 - JAKARTA','800','2026-06-09','2034-01-09','1','156000000','2801458','280146','3081604','1560000','7800000','36708360',NULL,'3081604','95500000','896000','145545964','1650196','10454036','2026-06-09 03:47:38','2026-06-09 03:47:38'),
+(11,'Janda','SRI RUSTINI','1953-12-18','72','13041216800','TASPEN','4731800','4731800','Platinum',NULL,NULL,'NON MUTASI','BANK BUKOPIN','BANK BUKOPIN','91','234045444','91','-','JAKARTA 1101 - JAKARTA','800','2026-06-09','2034-01-09','1','156000000','2801458','280146','3081604','1560000','7800000','36708360',NULL,'3081604','95500000','896000','145545964','1650196','10454036','2026-06-09 03:53:03','2026-06-09 03:53:03'),
+(12,'Janda','SRI RUSTINI','1953-12-18','72','13041216800','TASPEN','4731800','4731800','Platinum',NULL,NULL,'NON MUTASI','BANK BUKOPIN','BANK BUKOPIN','91','234045444','91','-','JAKARTA 1101 - JAKARTA','800','2026-06-09','2034-01-09','1','156000000','2801458','280146','3081604','1560000','7800000','36708360',NULL,'3081604','95500000','896000','145545964','1650196','10454036','2026-06-09 04:35:49','2026-06-09 04:35:49'),
+(13,'Janda','SRI RUSTINI','1953-12-18','72','13041216800','TASPEN','4731800','4731800','Platinum',NULL,NULL,'NON MUTASI','BANK BUKOPIN','BANK BUKOPIN','91','234045444','91','-','JAKARTA 1101 - JAKARTA','800','2026-06-09','2034-01-09','1','156000000','2801458','280146','3081604','1560000','7800000','36708360',NULL,'3081604','95500000','896000','145545964','1650196','10454036','2026-06-09 04:43:01','2026-06-09 04:43:01'),
+(14,'Janda','SRI RUSTINI','1953-12-18','72','13041216800','TASPEN','4731800','4731800','Platinum',NULL,NULL,'NON MUTASI','BANK BUKOPIN','BANK BUKOPIN','91','234045444','91','-','JAKARTA 1101 - JAKARTA','800','2026-06-09','2034-01-09','1','156000000','2801458','280146','3081604','1560000','7800000','36708360',NULL,'3081604','95500000','896000','145545964','1650196','10454036','2026-06-09 05:29:51','2026-06-09 05:29:51'),
+(15,'Janda','SRI RUSTINI','1953-12-18','72','13041216800','TASPEN','4731800','4731800','Platinum',NULL,NULL,'NON MUTASI','BANK BUKOPIN','BANK BUKOPIN','91','234045444','91','-','JAKARTA 1101 - JAKARTA','800','2026-06-09','2034-01-09','1','156000000','2801458','280146','3081604','1560000','7800000','36708360',NULL,'3081604','95500000','896000','145545964','1650196','10454036','2026-06-09 05:38:18','2026-06-09 05:38:18'),
+(16,'Janda','SRI RUSTINI','1953-12-18','72','13041216800','TASPEN','4731800','4731800','Platinum',NULL,NULL,'NON MUTASI','BANK BUKOPIN','BANK BUKOPIN','91','234045444','91','-','JAKARTA 1101 - JAKARTA','800','2026-06-09','2034-01-09','1','156000000','2801458','280146','3081604','1560000','7800000','36708360',NULL,'3081604','95500000','896000','145545964','1650196','10454036','2026-06-09 05:42:08','2026-06-09 05:42:08');
+
+/*Table structure for table `data_simulasi_pelengkap` */
+
+CREATE TABLE `data_simulasi_pelengkap` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `data_simulasi_id` bigint unsigned NOT NULL,
+  `no` text,
+  `no_pk` text,
+  `perjanjian_kredit_template_version` enum('standard','kb') NOT NULL DEFAULT 'standard' COMMENT 'PK template version: standard or kb',
+  `dibuat_di` text,
+  `hari` text,
+  `tanggal` date DEFAULT NULL,
+  `nama` text,
+  `no_ktp` text,
+  `alamat` text,
+  `rt` text,
+  `rw` text,
+  `kel` text,
+  `kec` text,
+  `kota_kab` text,
+  `kode_pos` text,
+  `nama_petugas_nbp` text,
+  `jabatan_petugas` text,
+  `nomor_substitusi_pic` text,
+  `tanggal_substitusi` date DEFAULT NULL,
+  `tgl_sppk` date DEFAULT NULL,
+  `plafond` double DEFAULT NULL,
+  `jw` text,
+  `suku_bunga` double DEFAULT NULL,
+  `biaya_provisi` double DEFAULT NULL,
+  `biaya_administrasi_kredit` double DEFAULT NULL,
+  `asuransi_jiwa_kredit` double DEFAULT NULL,
+  `materai` double DEFAULT NULL,
+  `biaya_flagging` double DEFAULT NULL,
+  `total_biaya` double DEFAULT NULL,
+  `angsuran_dibayar_dimuka` double DEFAULT NULL,
+  `total_penerimaan` double DEFAULT NULL,
+  `angsuran_pokok_bunga_perbulan` double DEFAULT NULL,
+  `biaya_administrasi_angsuran_perbulan_baa` double DEFAULT NULL,
+  `jangka_waktu` text,
+  `tgl_awal_kredit` date DEFAULT NULL,
+  `tgl_akhir_kredit` date DEFAULT NULL,
+  `angsuran_bank_baa` double DEFAULT NULL,
+  `terbilang_angsuran` text,
+  `kali_angsuran` text,
+  `tgl_akhir_kredit_penarikan` date DEFAULT NULL,
+  `nominal_penarikan` double DEFAULT NULL,
+  `terbilang_penarikan` text,
+  `no_skep` text,
+  `status_rumah` varchar(255) DEFAULT NULL,
+  `pendidikan` varchar(255) DEFAULT NULL,
+  `agama` varchar(255) DEFAULT NULL,
+  `status_kawin` varchar(255) DEFAULT NULL,
+  `tanggal_skep` date DEFAULT NULL,
+  `atas_nama_sk` text,
+  `tgl_kuasa_potong_gaji` date DEFAULT NULL,
+  `atas_nama_kuasa_potong_gaji` text,
+  `nama_kepesertaan_ajk` text,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `no_sppk` text,
+  `npwp` text,
+  `nama_ibu_kandung` text,
+  `tanggal_dropping` date DEFAULT NULL,
+  `due_date_pertama` date DEFAULT NULL,
+  `jenis_kredit` varchar(255) DEFAULT NULL,
+  `kantor_bayar` varchar(255) DEFAULT NULL,
+  `kota` text,
+  `alamat_2` text,
+  `jenis_fasilitas` text,
+  `bentuk_fasilitas` text,
+  `prosentase_provisi` double DEFAULT NULL,
+  `prosentase_administrasi` double DEFAULT NULL,
+  `asuransi` double DEFAULT NULL,
+  `tgl_surat_pernyataan_kuasa_potong_gaji` date DEFAULT NULL,
+  `tanggal_pk` date DEFAULT NULL,
+  `nama_perwakilan_kb` text,
+  `jabatan` text,
+  `no_surat_kuasa_substitusi` text,
+  `tanggal_surat_kuasa_substitusi` date DEFAULT NULL,
+  `no_hp` text,
+  `prosentase_admin_bank` double DEFAULT NULL,
+  `norek` text,
+  `cabang_kb` text,
+  `nama_ao` text,
+  `kode_ao` text,
+  `ket` text,
+  `nama_pasangan` text,
+  `ktp_pasangan` text,
+  `tgl_lahir_pasangan` date DEFAULT NULL,
+  `cabang` text,
+  `no_si` text,
+  `idpb_file` varchar(255) DEFAULT NULL,
+  `permohonan_cif_file` varchar(255) DEFAULT NULL,
+  `pelunasan_to_kb_file` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `data_simulasi_pelengkap_data_simulasi_id_foreign` (`data_simulasi_id`),
+  CONSTRAINT `data_simulasi_pelengkap_data_simulasi_id_foreign` FOREIGN KEY (`data_simulasi_id`) REFERENCES `data_simulasi` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+/*Data for the table `data_simulasi_pelengkap` */
+
+insert  into `data_simulasi_pelengkap`(`id`,`data_simulasi_id`,`no`,`no_pk`,`perjanjian_kredit_template_version`,`dibuat_di`,`hari`,`tanggal`,`nama`,`no_ktp`,`alamat`,`rt`,`rw`,`kel`,`kec`,`kota_kab`,`kode_pos`,`nama_petugas_nbp`,`jabatan_petugas`,`nomor_substitusi_pic`,`tanggal_substitusi`,`tgl_sppk`,`plafond`,`jw`,`suku_bunga`,`biaya_provisi`,`biaya_administrasi_kredit`,`asuransi_jiwa_kredit`,`materai`,`biaya_flagging`,`total_biaya`,`angsuran_dibayar_dimuka`,`total_penerimaan`,`angsuran_pokok_bunga_perbulan`,`biaya_administrasi_angsuran_perbulan_baa`,`jangka_waktu`,`tgl_awal_kredit`,`tgl_akhir_kredit`,`angsuran_bank_baa`,`terbilang_angsuran`,`kali_angsuran`,`tgl_akhir_kredit_penarikan`,`nominal_penarikan`,`terbilang_penarikan`,`no_skep`,`status_rumah`,`pendidikan`,`agama`,`status_kawin`,`tanggal_skep`,`atas_nama_sk`,`tgl_kuasa_potong_gaji`,`atas_nama_kuasa_potong_gaji`,`nama_kepesertaan_ajk`,`created_at`,`updated_at`,`no_sppk`,`npwp`,`nama_ibu_kandung`,`tanggal_dropping`,`due_date_pertama`,`jenis_kredit`,`kantor_bayar`,`kota`,`alamat_2`,`jenis_fasilitas`,`bentuk_fasilitas`,`prosentase_provisi`,`prosentase_administrasi`,`asuransi`,`tgl_surat_pernyataan_kuasa_potong_gaji`,`tanggal_pk`,`nama_perwakilan_kb`,`jabatan`,`no_surat_kuasa_substitusi`,`tanggal_surat_kuasa_substitusi`,`no_hp`,`prosentase_admin_bank`,`norek`,`cabang_kb`,`nama_ao`,`kode_ao`,`ket`,`nama_pasangan`,`ktp_pasangan`,`tgl_lahir_pasangan`,`cabang`,`no_si`,`idpb_file`,`permohonan_cif_file`,`pelunasan_to_kb_file`) values 
+(1,1,NULL,'2020202020202','standard',NULL,NULL,NULL,NULL,'233534534565464','Jl. Infantri B-127 No. 47 RT.004 RW.019',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'2026-04-22',NULL,NULL,10,NULL,NULL,NULL,80000,816000,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'SKEP/59-T-03/I/2004',NULL,NULL,NULL,NULL,'2004-01-07',NULL,NULL,NULL,NULL,'2026-05-28 21:11:10','2026-06-08 02:10:57','004/SPPK/KNBP-KB/IV/2026','344654','Sri','2026-05-10','2026-05-02',NULL,'KB 0011','Kab. Bandung','Kel. Cilame Kec. Ngamprah Kab. Bandung Barat',NULL,NULL,NULL,NULL,12345456,'2026-04-22',NULL,NULL,NULL,'5353453454',NULL,'55675675675',NULL,'4756756756','bandung','Siapa','0025','TO',NULL,NULL,NULL,NULL,'SI0003232',NULL,NULL,NULL),
+(2,2,NULL,NULL,'standard',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,816000,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'2026-05-28 22:29:40','2026-05-28 22:29:40',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),
+(3,3,NULL,NULL,'standard',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,80000,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'2026-06-08 02:07:42','2026-06-08 02:07:42',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),
+(4,5,NULL,'PK00504545','standard',NULL,NULL,NULL,NULL,'KTP546546546',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'2026-06-05',NULL,NULL,10,NULL,NULL,NULL,80000,816000,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'SKEP2343243',NULL,NULL,NULL,NULL,'2000-05-05',NULL,NULL,NULL,NULL,'2026-06-08 02:44:45','2026-06-08 03:44:06','1234567989','NPWP','IBU','2026-04-05','2026-05-05','To','KB 0011',NULL,NULL,'IFASi','installment',0.5,0.5,NULL,'2025-05-04',NULL,'Ricky','PIC Area Bandung','SKSUBS00405454','2026-05-04','0888888',NULL,'REK3453454354','bandung','Siapa','0022','TAKE OVER','Psangan','KTPPAS','1960-05-05','Cabang xxx','SI0304343',NULL,NULL,NULL),
+(10,11,NULL,NULL,'standard',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,816000,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'2026-06-09 03:53:03','2026-06-09 03:53:03',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),
+(11,12,NULL,NULL,'standard',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,816000,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'2026-06-09 04:35:49','2026-06-09 04:35:49',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),
+(12,13,NULL,NULL,'standard',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,816000,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'2026-06-09 04:43:01','2026-06-09 04:43:01',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL),
+(13,16,NULL,'PK.504546/NBP_CH.KB/VI/2026','standard',NULL,NULL,NULL,NULL,'ktpdebitur','Alamat','rt','rw',NULL,NULL,NULL,'kodepos',NULL,NULL,NULL,NULL,'2026-06-05',NULL,NULL,10,NULL,NULL,NULL,80000,816000,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'NO SKEP',NULL,'TKI III','ABCD','pacaran',NULL,NULL,NULL,NULL,NULL,'2026-06-09 05:42:08','2026-06-11 02:58:04','1234567990/SPPK/KNBP-KB/VI/2026','npwp','ibu kandung',NULL,'2026-06-05','jenis','kantor bayar','Kota PK',NULL,'jenis fas','bentuk fas',0.5,0.5,NULL,NULL,'2026-05-02','Perwakilan KB','Jabatan','Nosurat subt','2026-05-02','nohp',10,'norek','cabang kb','nama ao','kode ao','ket','nama pas','ktp pas','1954-02-05','cabang','SI-TO.304344/NBP_CH.KB/VI/2026',NULL,NULL,NULL);
+
+/*Table structure for table `failed_jobs` */
+
+CREATE TABLE `failed_jobs` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `uuid` varchar(255) NOT NULL,
+  `connection` text NOT NULL,
+  `queue` text NOT NULL,
+  `payload` longtext NOT NULL,
+  `exception` longtext NOT NULL,
+  `failed_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `failed_jobs_uuid_unique` (`uuid`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+/*Data for the table `failed_jobs` */
+
+/*Table structure for table `idpb` */
+
+CREATE TABLE `idpb` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `nama_petugas` varchar(255) NOT NULL,
+  `jabatan` varchar(255) DEFAULT NULL,
+  `nomor_substitusi` varchar(255) DEFAULT NULL,
+  `tanggal_substitusi` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+/*Data for the table `idpb` */
+
+/*Table structure for table `insurance_rates` */
+
+CREATE TABLE `insurance_rates` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `product` varchar(255) NOT NULL,
+  `tenor` int NOT NULL,
+  `premium_per_million` decimal(12,4) NOT NULL DEFAULT '0.0000',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `insurance_rates_product_index` (`product`),
+  KEY `insurance_rates_tenor_index` (`tenor`)
+) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+/*Data for the table `insurance_rates` */
+
+insert  into `insurance_rates`(`id`,`product`,`tenor`,`premium_per_million`,`created_at`,`updated_at`) values 
+(1,'Platinum',144,378.9800,'2026-06-02 02:11:46','2026-06-02 02:11:46'),
+(2,'Platinum',132,335.2900,'2026-06-02 02:11:46','2026-06-02 02:11:46'),
+(3,'Platinum',120,296.6400,'2026-06-02 02:11:46','2026-06-02 02:11:46'),
+(4,'Platinum',108,265.9700,'2026-06-02 02:11:46','2026-06-02 02:11:46'),
+(5,'Platinum',96,235.3100,'2026-06-02 02:11:46','2026-06-02 02:11:46'),
+(6,'Platinum',84,204.6500,'2026-06-02 02:11:46','2026-06-02 02:11:46'),
+(7,'Platinum',72,173.9800,'2026-06-02 02:11:46','2026-06-02 02:11:46'),
+(8,'Platinum',60,143.3200,'2026-06-02 02:11:46','2026-06-02 02:11:46'),
+(9,'Platinum',48,112.6600,'2026-06-02 02:11:46','2026-06-02 02:11:46'),
+(10,'Platinum',36,81.9900,'2026-06-02 02:11:46','2026-06-02 02:11:46'),
+(11,'Platinum',24,51.3300,'2026-06-02 02:11:46','2026-06-02 02:11:46'),
+(12,'Platinum',12,28.5800,'2026-06-02 02:11:46','2026-06-02 02:11:46');
+
+/*Table structure for table `job_batches` */
+
+CREATE TABLE `job_batches` (
+  `id` varchar(255) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `total_jobs` int NOT NULL,
+  `pending_jobs` int NOT NULL,
+  `failed_jobs` int NOT NULL,
+  `failed_job_ids` longtext NOT NULL,
+  `options` mediumtext,
+  `cancelled_at` int DEFAULT NULL,
+  `created_at` int NOT NULL,
+  `finished_at` int DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+/*Data for the table `job_batches` */
+
+/*Table structure for table `jobs` */
+
+CREATE TABLE `jobs` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `queue` varchar(255) NOT NULL,
+  `payload` longtext NOT NULL,
+  `attempts` tinyint unsigned NOT NULL,
+  `reserved_at` int unsigned DEFAULT NULL,
+  `available_at` int unsigned NOT NULL,
+  `created_at` int unsigned NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `jobs_queue_index` (`queue`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+/*Data for the table `jobs` */
+
+/*Table structure for table `journal_entries` */
+
+CREATE TABLE `journal_entries` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `transaction_date` date NOT NULL,
+  `account_id` bigint unsigned NOT NULL,
+  `debit` decimal(15,2) NOT NULL DEFAULT '0.00',
+  `credit` decimal(15,2) NOT NULL DEFAULT '0.00',
+  `nasabah_id` bigint unsigned DEFAULT NULL,
+  `loan_id` bigint unsigned DEFAULT NULL,
+  `lender_id` bigint unsigned DEFAULT NULL,
+  `reference` varchar(255) DEFAULT NULL,
+  `posting_status` enum('posted','reversed') NOT NULL DEFAULT 'posted',
+  `reversed_from_id` bigint unsigned DEFAULT NULL,
+  `void_reason` varchar(255) DEFAULT NULL,
+  `description` varchar(255) NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `journal_entries_account_id_foreign` (`account_id`),
+  KEY `journal_entries_nasabah_id_foreign` (`nasabah_id`),
+  KEY `journal_entries_reversed_from_id_foreign` (`reversed_from_id`),
+  KEY `journal_entries_transaction_date_account_id_index` (`transaction_date`,`account_id`),
+  KEY `journal_entries_lender_id_transaction_date_index` (`lender_id`,`transaction_date`),
+  KEY `journal_entries_loan_id_transaction_date_index` (`loan_id`,`transaction_date`),
+  CONSTRAINT `journal_entries_account_id_foreign` FOREIGN KEY (`account_id`) REFERENCES `accounts` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT `journal_entries_lender_id_foreign` FOREIGN KEY (`lender_id`) REFERENCES `lenders` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `journal_entries_loan_id_foreign` FOREIGN KEY (`loan_id`) REFERENCES `loans` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `journal_entries_nasabah_id_foreign` FOREIGN KEY (`nasabah_id`) REFERENCES `users` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `journal_entries_reversed_from_id_foreign` FOREIGN KEY (`reversed_from_id`) REFERENCES `journal_entries` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+/*Data for the table `journal_entries` */
+
+insert  into `journal_entries`(`id`,`transaction_date`,`account_id`,`debit`,`credit`,`nasabah_id`,`loan_id`,`lender_id`,`reference`,`posting_status`,`reversed_from_id`,`void_reason`,`description`,`created_at`,`updated_at`) values 
+(1,'2026-05-20',29,50000000.00,0.00,7,1,1,'DEMO-CHN-DISB-001','posted',NULL,NULL,'Pencairan pinjaman channeling','2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(2,'2026-05-20',2,0.00,49350000.00,7,1,1,'DEMO-CHN-DISB-001','posted',NULL,NULL,'Transfer pencairan ke nasabah','2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(3,'2026-05-20',12,0.00,500000.00,7,1,1,'DEMO-CHN-DISB-001','posted',NULL,NULL,'Pendapatan provisi pinjaman','2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(4,'2026-05-20',13,0.00,150000.00,7,1,1,'DEMO-CHN-DISB-001','posted',NULL,NULL,'Pendapatan administrasi pinjaman','2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(5,'2026-05-21',30,49350000.00,0.00,7,1,1,'DEMO-CHN-RMB-001','posted',NULL,NULL,'Pengakuan piutang reimburse pendana','2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(6,'2026-05-22',2,49350000.00,0.00,7,1,1,'DEMO-CHN-RMB-001','posted',NULL,NULL,'Dana reimburse dari pendana','2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(7,'2026-05-22',30,0.00,49350000.00,7,1,1,'DEMO-CHN-RMB-001','posted',NULL,NULL,'Pelunasan piutang reimburse pendana','2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(8,'2026-05-26',2,1100000.00,0.00,7,1,1,'DEMO-CHN-ANGS-001','posted',NULL,NULL,'Penerimaan angsuran nasabah','2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(9,'2026-05-26',29,0.00,1000000.00,7,1,1,'DEMO-CHN-ANGS-001','posted',NULL,NULL,'Pengurangan piutang pokok nasabah','2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(10,'2026-05-26',32,0.00,70000.00,7,1,1,'DEMO-CHN-ANGS-001','posted',NULL,NULL,'Bagian bunga milik pendana','2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(11,'2026-05-26',33,0.00,30000.00,7,1,1,'DEMO-CHN-ANGS-001','posted',NULL,NULL,'Bagian bunga milik koperasi','2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(12,'2026-05-28',31,1000000.00,0.00,7,1,1,'DEMO-CHN-STL-001','posted',NULL,NULL,'Setoran pokok ke pendana','2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(13,'2026-05-28',32,70000.00,0.00,7,1,1,'DEMO-CHN-STL-001','posted',NULL,NULL,'Setoran bunga ke pendana','2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(14,'2026-05-28',2,0.00,1070000.00,7,1,1,'DEMO-CHN-STL-001','posted',NULL,NULL,'Pembayaran ke pendana','2026-05-28 06:26:47','2026-05-28 06:26:47');
+
+/*Table structure for table `kb_reference_options` */
+
+CREATE TABLE `kb_reference_options` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `category` varchar(50) NOT NULL,
+  `value` varchar(255) NOT NULL,
+  `sort_order` int unsigned NOT NULL DEFAULT '0',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `kb_reference_options_category_value_unique` (`category`,`value`),
+  KEY `kb_reference_options_category_sort_order_index` (`category`,`sort_order`)
+) ENGINE=InnoDB AUTO_INCREMENT=141 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+/*Data for the table `kb_reference_options` */
+
+insert  into `kb_reference_options`(`id`,`category`,`value`,`sort_order`,`created_at`,`updated_at`) values 
+(1,'area','101 - BANDUNG',1,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(2,'area','102 - SUMEDANG',2,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(3,'area','103 - SUBANG',3,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(4,'area','104 - TASIKMALAYA',4,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(5,'area','105 - CIANJUR',5,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(6,'area','106 - CIREBON',6,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(7,'area','107 - MAJALENGKA',7,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(8,'area','108 - INDRAMAYU',8,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(9,'area','109 - SUKABUMI',9,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(10,'area','110 - KARAWANG',10,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(11,'area','111 - BOGOR',11,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(12,'area','112 - GARUT',12,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(13,'area','113 - PURWAKARTA',13,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(14,'area','201 - SEMARANG',14,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(15,'area','202 - TEGAL',15,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(16,'area','203 - SOLO / SURAKARTA',16,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(17,'area','204 - SALATIGA',17,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(18,'area','205 - KENDAL',18,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(19,'area','206 - SRAGEN',19,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(20,'area','207 - WONOGIRI',20,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(21,'area','301 - SURABAYA',21,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(22,'area','302 - KEDIRI',22,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(23,'area','303 - MADIUN',23,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(24,'area','304 - JEMBER',24,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(25,'area','305 - MALANG',25,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(26,'area','306 - MOJOKERTO',26,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(27,'area','307 - SIDOARJO',27,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(28,'area','401 - SERANG',28,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(29,'area','402 - TANGERANG',29,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(30,'area','403 - CILEGON',30,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(31,'area','501 - JAMBI',31,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(32,'area','502 - PALEMBANG',32,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(33,'area','503 - METRO',33,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(34,'area','504 - BANDAR LAMPUNG',34,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(35,'area','505 - KOTA BUMI',35,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(36,'area','506 - PRINGSEWU',36,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(37,'area','601 - PONTIANAK',37,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(38,'area','602 - BANJARMASIN',38,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(39,'area','603 - MARTAPURA',39,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(40,'area','604 - HULU SUNGAI SELATAN',40,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(41,'area','605 - KALIMANTAN TENGAH',41,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(42,'area','701 - KUPANG',42,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(43,'area','702 - SOE',43,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(44,'area','703 - ATAMBUA',44,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(45,'area','704 - SBW DOMPU',45,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(46,'area','705 - BIMA',46,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(47,'area','706 - FLORES',47,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(48,'area','707 - SELONG',48,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(49,'area','708 - TABANAN',49,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(50,'area','709 - MATARAM',50,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(51,'area','710 - SUMBA',51,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(52,'area','711 - ALOR',52,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(53,'area','712 - ENDE',53,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(54,'area','713 - KOMODO',54,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(55,'area','714 - BALI',55,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(56,'area','801 - MAKASSAR',56,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(57,'area','802 - PALU',57,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(58,'area','803 - MANADO',58,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(59,'area','804 - MAKASAR',59,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(60,'area','805 - PAREPARE',60,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(61,'area','806 - KENDARI',61,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(62,'area','901 - MERAUKE',62,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(63,'area','902 - JAYAPURA',63,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(64,'area','903 - SORONG',64,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(65,'area','1001 - YOGYAKARTA',65,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(66,'area','1101 - JAKARTA',66,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(67,'bank_tujuan','BANK BUKOPIN',1,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(68,'bank_tujuan','BANK MNC',2,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(69,'bank_tujuan','BANK MANTAP',3,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(70,'bank_tujuan','PT POS INDONESIA',4,'2026-05-28 06:26:47','2026-06-02 05:55:02');
+
+/*Table structure for table `lenders` */
+
+CREATE TABLE `lenders` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
+  `share_lender` decimal(5,2) NOT NULL,
+  `share_koperasi` decimal(5,2) NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `lenders_name_unique` (`name`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+/*Data for the table `lenders` */
+
+insert  into `lenders`(`id`,`name`,`share_lender`,`share_koperasi`,`created_at`,`updated_at`) values 
+(1,'Bank Sahabat UKM',70.00,30.00,'2026-05-28 06:26:46','2026-05-28 06:26:46'),
+(2,'Bank Mandiri',80.00,20.00,'2026-05-28 06:26:46','2026-05-28 06:26:46');
+
+/*Table structure for table `loans` */
+
+CREATE TABLE `loans` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `loan_number` varchar(255) NOT NULL,
+  `product_id` bigint unsigned DEFAULT NULL,
+  `nasabah_id` bigint unsigned NOT NULL,
+  `lender_id` bigint unsigned NOT NULL,
+  `amount_plafond` decimal(15,2) NOT NULL,
+  `interest_rate` decimal(5,2) NOT NULL,
+  `provision_fee` decimal(15,2) NOT NULL DEFAULT '0.00',
+  `admin_fee` decimal(15,2) NOT NULL DEFAULT '0.00',
+  `status` varchar(255) NOT NULL DEFAULT 'active',
+  `disbursed_at` date DEFAULT NULL,
+  `debtor_data` json DEFAULT NULL,
+  `submission_data` json DEFAULT NULL,
+  `financial_data` json DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `loans_loan_number_unique` (`loan_number`),
+  KEY `loans_nasabah_id_foreign` (`nasabah_id`),
+  KEY `loans_lender_id_status_index` (`lender_id`,`status`),
+  KEY `loans_product_id_foreign` (`product_id`),
+  CONSTRAINT `loans_lender_id_foreign` FOREIGN KEY (`lender_id`) REFERENCES `lenders` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT `loans_nasabah_id_foreign` FOREIGN KEY (`nasabah_id`) REFERENCES `users` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT `loans_product_id_foreign` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+/*Data for the table `loans` */
+
+insert  into `loans`(`id`,`loan_number`,`product_id`,`nasabah_id`,`lender_id`,`amount_plafond`,`interest_rate`,`provision_fee`,`admin_fee`,`status`,`disbursed_at`,`debtor_data`,`submission_data`,`financial_data`,`created_at`,`updated_at`) values 
+(1,'CHN-2026-0001',1,7,1,50000000.00,12.00,500000.00,150000.00,'active','2026-06-02','{\"nama\": \"Nasabah Demo\", \"nopen\": \"NP-0001\", \"tgl_lahir\": \"1970-01-01\", \"gaji_bersih\": 7000000, \"instansi_pensiun\": \"Taspen\", \"status_perkawinan\": \"kawin\"}','{\"bank\": \"Bank Demo\", \"tenor\": 60, \"blokir\": 1}','{\"provisi\": {\"value\": 500000}, \"administrasi\": {\"value\": 150000}}','2026-05-28 06:26:47','2026-06-02 05:55:02');
+
+/*Table structure for table `mail_merge_templates` */
+
+CREATE TABLE `mail_merge_templates` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
+  `document_type` varchar(50) NOT NULL,
+  `source_pdf_path` varchar(255) DEFAULT NULL,
+  `generated_view_path` varchar(255) DEFAULT NULL,
+  `existing_blade_view` varchar(255) DEFAULT NULL,
+  `template_html` longtext,
+  `slot_definitions` json DEFAULT NULL,
+  `mappings` json DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+/*Data for the table `mail_merge_templates` */
+
+/*Table structure for table `migrations` */
+
+CREATE TABLE `migrations` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `migration` varchar(255) NOT NULL,
+  `batch` int NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=43 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+/*Data for the table `migrations` */
+
+insert  into `migrations`(`id`,`migration`,`batch`) values 
+(1,'0001_01_01_000000_create_users_table',1),
+(2,'0001_01_01_000001_create_cache_table',1),
+(3,'0001_01_01_000002_create_jobs_table',1),
+(4,'2026_05_04_000001_create_account_groups_table',1),
+(5,'2026_05_04_000001_create_accounts_table',1),
+(6,'2026_05_04_000001_create_products_table',1),
+(7,'2026_05_04_000002_create_product_templates_table',1),
+(8,'2026_05_04_000003_create_template_accounts_table',1),
+(9,'2026_05_07_000001_create_lenders_table',1),
+(10,'2026_05_07_000002_create_loans_table',1),
+(11,'2026_05_07_000003_create_journal_entries_table',1),
+(12,'2026_05_07_000004_create_product_fields_table',1),
+(13,'2026_05_07_000005_create_product_financials_table',1),
+(14,'2026_05_07_000006_alter_loans_add_product_engine_columns',1),
+(15,'2026_05_07_000007_drop_product_template_id_from_products_table',1),
+(16,'2026_05_08_000001_create_simulation_fields_table',1),
+(17,'2026_05_08_000003_create_template_fields_table',1),
+(18,'2026_05_08_000004_create_data_simulasi_table',1),
+(19,'2026_05_08_000005_create_data_simulasi_pelengkap_table',1),
+(20,'2026_05_08_000006_create_mail_merge_templates_table',1),
+(21,'2026_05_08_000007_add_existing_blade_view_to_mail_merge_templates',1),
+(22,'2026_05_15_000010_add_new_format_columns_to_data_simulasi_pelengkap_table',1),
+(23,'2026_05_19_000001_create_pic_nbp_table',1),
+(24,'2026_05_20_000001_add_tanggal_skep_to_data_simulasi_pelengkap_table',1),
+(25,'2026_05_20_000002_rename_pic_nbp_to_idpb_table',1),
+(26,'2026_05_20_000003_add_idpb_file_to_data_simulasi_pelengkap_table',1),
+(27,'2026_05_20_000004_add_document_files_to_data_simulasi_pelengkap_table',1),
+(28,'2026_05_20_000005_add_perjanjian_kredit_template_version_to_data_simulasi_pelengkap_table',1),
+(29,'2026_05_21_000001_add_npwp_to_data_simulasi_pelengkap_table',1),
+(30,'2026_05_21_000002_add_nama_ibu_kandung_to_data_simulasi_pelengkap_table',1),
+(31,'2026_05_22_000001_add_jenis_kredit_and_kantor_bayar_to_data_simulasi_pelengkap_table',1),
+(32,'2026_05_22_000002_add_repayment_fields_to_data_simulasi_pelengkap_table',1),
+(33,'2026_05_25_000001_update_data_simulasi_pelengkap_column_types',1),
+(34,'2026_05_27_120000_create_kb_reference_options_table',1),
+(35,'2026_05_27_130000_create_product_struct_table',1),
+(36,'2026_05_28_000100_add_role_to_users_table',1),
+(37,'2026_05_28_000200_create_roles_table_and_add_role_id_to_users_table',1),
+(38,'2026_06_02_000001_create_insurance_rates_table',2),
+(39,'2026_06_02_000300_make_role_nullable_in_users_table',3),
+(40,'2026_06_02_000301_drop_role_from_users_table',3),
+(41,'2026_06_03_000001_add_rate_and_admin_angsuran_to_data_simulasi_table',4),
+(42,'2026_06_08_000001_add_status_kawin_to_data_simulasi_pelengkap_table',5);
+
+/*Table structure for table `password_reset_tokens` */
+
+CREATE TABLE `password_reset_tokens` (
+  `email` varchar(255) NOT NULL,
+  `token` varchar(255) NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`email`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+/*Data for the table `password_reset_tokens` */
+
+/*Table structure for table `product_fields` */
+
+CREATE TABLE `product_fields` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `product_id` bigint unsigned NOT NULL,
+  `field_name` varchar(255) NOT NULL,
+  `field_label` varchar(255) NOT NULL,
+  `field_type` varchar(255) NOT NULL,
+  `is_required` tinyint(1) NOT NULL DEFAULT '1',
+  `group` enum('informasi_debitur','data_pengajuan') NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `product_fields_unique` (`product_id`,`field_name`,`group`),
+  CONSTRAINT `product_fields_product_id_foreign` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+/*Data for the table `product_fields` */
+
+insert  into `product_fields`(`id`,`product_id`,`field_name`,`field_label`,`field_type`,`is_required`,`group`,`created_at`,`updated_at`) values 
+(1,3,'tgl_lahir','Tanggal Lahir','date',1,'informasi_debitur','2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(2,3,'nama','Nama Debitur','text',1,'informasi_debitur','2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(3,3,'status_perkawinan','Status Perkawinan','dropdown',1,'informasi_debitur','2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(4,3,'instansi_pensiun','Instansi Pensiun','text',1,'informasi_debitur','2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(5,3,'nopen','No. Pensiun','text',1,'informasi_debitur','2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(6,3,'gaji_bersih','Gaji Bersih','number',1,'informasi_debitur','2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(7,3,'tenor','Tenor','number',1,'data_pengajuan','2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(8,3,'blokir','Blokir','number',1,'data_pengajuan','2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(9,3,'bank','Bank','dropdown',1,'data_pengajuan','2026-05-28 06:26:47','2026-05-28 06:26:47');
+
+/*Table structure for table `product_financials` */
+
+CREATE TABLE `product_financials` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `product_id` bigint unsigned NOT NULL,
+  `item_name` varchar(255) NOT NULL,
+  `account_id` bigint unsigned NOT NULL,
+  `calculation_type` enum('percentage','fixed') NOT NULL,
+  `default_value` decimal(15,2) NOT NULL,
+  `transaction_type` enum('debit','credit') NOT NULL,
+  `is_deducted_at_disbursement` tinyint(1) NOT NULL DEFAULT '1',
+  `is_included_in_simulation` tinyint(1) NOT NULL DEFAULT '1',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `product_financials_unique` (`product_id`,`item_name`),
+  KEY `product_financials_account_id_foreign` (`account_id`),
+  CONSTRAINT `product_financials_account_id_foreign` FOREIGN KEY (`account_id`) REFERENCES `accounts` (`id`) ON DELETE RESTRICT,
+  CONSTRAINT `product_financials_product_id_foreign` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+/*Data for the table `product_financials` */
+
+insert  into `product_financials`(`id`,`product_id`,`item_name`,`account_id`,`calculation_type`,`default_value`,`transaction_type`,`is_deducted_at_disbursement`,`is_included_in_simulation`,`created_at`,`updated_at`) values 
+(1,3,'administrasi',13,'percentage',1.00,'credit',1,1,'2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(2,3,'provisi',12,'percentage',1.50,'credit',1,1,'2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(3,3,'asuransi',15,'percentage',0.75,'debit',1,1,'2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(4,3,'angsuran',19,'fixed',0.00,'credit',0,1,'2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(5,3,'plafon',18,'fixed',0.00,'debit',0,1,'2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(6,3,'admin_angsuran',20,'fixed',0.00,'credit',0,1,'2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(7,3,'pelunasan',27,'fixed',0.00,'credit',0,1,'2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(8,3,'tatalaksana',28,'fixed',0.00,'debit',0,1,'2026-05-28 06:26:47','2026-05-28 06:26:47');
+
+/*Table structure for table `product_struct` */
+
+CREATE TABLE `product_struct` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `kantor_bayar` varchar(30) DEFAULT NULL,
+  `produk` varchar(100) NOT NULL,
+  `plafond_min` decimal(18,2) DEFAULT NULL,
+  `plafond_max` decimal(18,2) DEFAULT NULL,
+  `tenor_max` int unsigned DEFAULT NULL,
+  `rate_percent` decimal(10,6) DEFAULT NULL,
+  `provisi_percent` decimal(10,6) DEFAULT NULL,
+  `usia_masuk_min` int unsigned DEFAULT NULL,
+  `usia_max` int unsigned DEFAULT NULL,
+  `admin_percent` decimal(10,6) DEFAULT NULL,
+  `blokir_angsuran` int unsigned DEFAULT NULL,
+  `taspen` decimal(18,2) DEFAULT NULL,
+  `tata_laksana` decimal(18,2) DEFAULT NULL,
+  `tata_laksana_plus_percent` decimal(10,6) DEFAULT NULL,
+  `admin_angsuran_percent` decimal(10,6) DEFAULT NULL,
+  `dbr_percent` decimal(10,6) DEFAULT NULL,
+  `asabri` decimal(18,2) DEFAULT NULL,
+  `usia_masuk_max` int unsigned DEFAULT NULL,
+  `sort_order` int unsigned NOT NULL DEFAULT '0',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `product_struct_produk_unique` (`produk`),
+  KEY `kantor_bayar` (`kantor_bayar`)
+) ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+/*Data for the table `product_struct` */
+
+insert  into `product_struct`(`id`,`kantor_bayar`,`produk`,`plafond_min`,`plafond_max`,`tenor_max`,`rate_percent`,`provisi_percent`,`usia_masuk_min`,`usia_max`,`admin_percent`,`blokir_angsuran`,`taspen`,`tata_laksana`,`tata_laksana_plus_percent`,`admin_angsuran_percent`,`dbr_percent`,`asabri`,`usia_masuk_max`,`sort_order`,`created_at`,`updated_at`) values 
+(1,NULL,'Platinum-Sendiri',1000000.00,300000000.00,144,0.160000,0.010000,68,80,0.050000,2,850000.00,1750000.00,0.010000,0.100000,0.900000,350000.00,80,1,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(2,NULL,'Platinum-Janda',1000000.00,200000000.00,144,0.160000,0.010000,68,80,0.050000,2,850000.00,1750000.00,0.010000,0.100000,0.900000,350000.00,80,2,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(3,NULL,'Platinum-Duda',1000000.00,200000000.00,144,0.160000,0.010000,68,80,0.050000,2,850000.00,1750000.00,0.010000,0.100000,0.900000,350000.00,80,3,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(4,NULL,'Regular-Sendiri',1000000.00,500000000.00,180,0.160000,0.010000,55,75,0.050000,2,850000.00,1750000.00,0.010000,0.100000,0.900000,350000.00,80,4,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(5,NULL,'Regular-Janda',1000000.00,200000000.00,180,0.160000,0.010000,45,75,0.050000,2,850000.00,1750000.00,0.010000,0.100000,0.900000,350000.00,80,5,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(6,NULL,'Regular-Duda',1000000.00,200000000.00,180,0.160000,0.010000,55,75,0.050000,2,850000.00,1750000.00,0.010000,0.100000,0.900000,350000.00,80,6,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(7,NULL,'SG-Sendiri',1500000.00,30000000.00,36,0.300000,0.020000,55,85,0.060000,1,850000.00,0.00,0.050000,0.000000,0.950000,350000.00,NULL,7,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(8,NULL,'SG-Janda',1500000.00,30000000.00,36,0.300000,0.020000,40,85,0.060000,1,850000.00,0.00,0.050000,0.000000,0.950000,350000.00,NULL,8,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(9,NULL,'SG-Duda',1500000.00,30000000.00,36,0.300000,0.020000,40,85,0.060000,1,850000.00,0.00,0.050000,0.000000,0.950000,350000.00,NULL,9,'2026-05-28 06:26:47','2026-06-02 05:55:02'),
+(10,NULL,'SG-Yatim',1500000.00,30000000.00,36,0.300000,0.020000,17,25,0.060000,1,850000.00,0.00,0.050000,0.000000,0.950000,350000.00,NULL,10,'2026-05-28 06:26:47','2026-06-02 05:55:02');
+
+/*Table structure for table `product_templates` */
+
+CREATE TABLE `product_templates` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `template_name` varchar(255) NOT NULL,
+  `template_description` varchar(255) NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+/*Data for the table `product_templates` */
+
+insert  into `product_templates`(`id`,`template_name`,`template_description`,`created_at`,`updated_at`) values 
+(1,'PLATINUM-MANTAP-Sendiri','Template default PLATINUM-MANTAP-Sendiri','2026-05-28 06:26:47','2026-05-28 06:26:47');
+
+/*Table structure for table `products` */
+
+CREATE TABLE `products` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
+  `description` text,
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+/*Data for the table `products` */
+
+insert  into `products`(`id`,`name`,`description`,`is_active`,`created_at`,`updated_at`) values 
+(1,'Kredit Pensiun','Produk pinjaman untuk pensiunan',1,'2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(2,'Kredit Mikro','Produk pinjaman mikro untuk UMKM',1,'2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(3,'Pinjaman Pensiun Reguler','Produk channeling berbasis konfigurasi dinamis',1,'2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(4,'Kredit Pensiun','Produk pinjaman untuk pensiunan',1,'2026-06-02 05:55:02','2026-06-02 05:55:02'),
+(5,'Kredit Mikro','Produk pinjaman mikro untuk UMKM',1,'2026-06-02 05:55:02','2026-06-02 05:55:02');
+
+/*Table structure for table `roles` */
+
+CREATE TABLE `roles` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
+  `slug` varchar(255) NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `roles_slug_unique` (`slug`)
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+/*Data for the table `roles` */
+
+insert  into `roles`(`id`,`name`,`slug`,`created_at`,`updated_at`) values 
+(1,'Marketing','marketing','2026-05-28 06:25:02','2026-06-02 05:55:01'),
+(2,'Supervisor','supervisor','2026-05-28 06:25:02','2026-06-02 05:55:01'),
+(3,'Support Bisnis','support_bisnis','2026-05-28 06:25:02','2026-06-02 05:55:01');
+
+/*Table structure for table `sessions` */
+
+CREATE TABLE `sessions` (
+  `id` varchar(255) NOT NULL,
+  `user_id` bigint unsigned DEFAULT NULL,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `user_agent` text,
+  `payload` longtext NOT NULL,
+  `last_activity` int NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `sessions_user_id_index` (`user_id`),
+  KEY `sessions_last_activity_index` (`last_activity`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+/*Data for the table `sessions` */
+
+insert  into `sessions`(`id`,`user_id`,`ip_address`,`user_agent`,`payload`,`last_activity`) values 
+('3Anyyywui58ATcAZIqigomDGwlCqXosLNVmnnpS3',4,'127.0.0.1','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36','YTo1OntzOjY6Il90b2tlbiI7czo0MDoiTkp6SElKTG9sU0Z1cU5BZFhTMnRzOE1tMWdUU2NSbFRBaWlqdjJ6OSI7czozOiJ1cmwiO2E6MDp7fXM6OToiX3ByZXZpb3VzIjthOjE6e3M6MzoidXJsIjtzOjQ2OiJodHRwOi8va3JlZGl0Lm5hdGFidWFuYXBhc3VuZGFuLmNvbS9tYWlsLW1lcmdlIjt9czo2OiJfZmxhc2giO2E6Mjp7czozOiJvbGQiO2E6MDp7fXM6MzoibmV3IjthOjA6e319czo1MDoibG9naW5fd2ViXzU5YmEzNmFkZGMyYjJmOTQwMTU4MGYwMTRjN2Y1OGVhNGUzMDk4OWQiO2k6NDt9',1781140542),
+('3rmrQbtBOCSH5PkYdqLNTHMJ3dX0RpZgOSE8P7Ev',4,'127.0.0.1','Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:151.0) Gecko/20100101 Firefox/151.0','YTo1OntzOjY6Il90b2tlbiI7czo0MDoiWkI5Z3NncktiaVRjUm5pZ1U4cWltRm0yMGVNU3o0cjRBVWVNZEQ5VCI7czozOiJ1cmwiO2E6MDp7fXM6OToiX3ByZXZpb3VzIjthOjE6e3M6MzoidXJsIjtzOjQ4OiJodHRwOi8vbG9jYWxob3N0OjgwMDAvZGF0YS1zaW11bGFzaS8xNi9wZWxlbmdrYXAiO31zOjY6Il9mbGFzaCI7YToyOntzOjM6Im9sZCI7YTowOnt9czozOiJuZXciO2E6MDp7fX1zOjUwOiJsb2dpbl93ZWJfNTliYTM2YWRkYzJiMmY5NDAxNTgwZjAxNGM3ZjU4ZWE0ZTMwOTg5ZCI7aTo0O30=',1781146689),
+('k5s97GvhrTiss8Tih7jrjkJIw8XBgpUDxeskRTbU',NULL,'127.0.0.1','Mozilla/5.0 (compatible; proximic; +https://www.comscore.com/Web-Crawler)','YTo0OntzOjY6Il90b2tlbiI7czo0MDoiVldUR0dNeXlndEpuMndHMzZQdkNJREtXMm5RaG9lOW9DdTZ2c0pZbyI7czozOiJ1cmwiO2E6MTp7czo4OiJpbnRlbmRlZCI7czo0NToiaHR0cDovL2tyZWRpdC5uYXRhYnVhbmFwYXN1bmRhbi5jb20vZGFzaGJvYXJkIjt9czo5OiJfcHJldmlvdXMiO2E6MTp7czozOiJ1cmwiO3M6NDE6Imh0dHA6Ly9rcmVkaXQubmF0YWJ1YW5hcGFzdW5kYW4uY29tL2xvZ2luIjt9czo2OiJfZmxhc2giO2E6Mjp7czozOiJvbGQiO2E6MDp7fXM6MzoibmV3IjthOjA6e319fQ==',1781140617);
+
+/*Table structure for table `simulation_fields` */
+
+CREATE TABLE `simulation_fields` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `simulation_batch_id` char(36) NOT NULL,
+  `source_filename` varchar(255) DEFAULT NULL,
+  `product_id` bigint unsigned DEFAULT NULL,
+  `loan_id` bigint unsigned DEFAULT NULL,
+  `field_key` varchar(255) NOT NULL,
+  `field_label` varchar(255) NOT NULL,
+  `field_value` text,
+  `section` varchar(255) DEFAULT NULL,
+  `line_order` int unsigned NOT NULL DEFAULT '0',
+  `raw_line` text,
+  `extracted_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `simulation_fields_product_id_foreign` (`product_id`),
+  KEY `simulation_fields_loan_id_foreign` (`loan_id`),
+  KEY `simulation_fields_simulation_batch_id_line_order_index` (`simulation_batch_id`,`line_order`),
+  KEY `simulation_fields_field_key_index` (`field_key`),
+  KEY `simulation_fields_simulation_batch_id_index` (`simulation_batch_id`),
+  CONSTRAINT `simulation_fields_loan_id_foreign` FOREIGN KEY (`loan_id`) REFERENCES `loans` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `simulation_fields_product_id_foreign` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB AUTO_INCREMENT=71 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+/*Data for the table `simulation_fields` */
+
+insert  into `simulation_fields`(`id`,`simulation_batch_id`,`source_filename`,`product_id`,`loan_id`,`field_key`,`field_label`,`field_value`,`section`,`line_order`,`raw_line`,`extracted_at`,`created_at`,`updated_at`) values 
+(1,'8b6e709f-4e0f-462e-b09d-937a18925701','sample-simulation-ocr.pdf',NULL,NULL,'produk','Produk','Platinum','header',1,'Produk Platinum','2026-05-28 06:26:47','2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(2,'8b6e709f-4e0f-462e-b09d-937a18925701','sample-simulation-ocr.pdf',NULL,NULL,'jenis_pensiun','Jenis Pensiun','Sendiri','header',2,'Jenis Pensiun Sendiri','2026-05-28 06:26:47','2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(3,'8b6e709f-4e0f-462e-b09d-937a18925701','sample-simulation-ocr.pdf',NULL,NULL,'mutasi','Mutasi','NON MUTASI','header',3,'Mutasi NON MUTASI','2026-05-28 06:26:47','2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(4,'8b6e709f-4e0f-462e-b09d-937a18925701','sample-simulation-ocr.pdf',NULL,NULL,'bank_asal','Bank Asal','BANK BUKOPIN','header',4,'Bank Asal BANK BUKOPIN','2026-05-28 06:26:47','2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(5,'8b6e709f-4e0f-462e-b09d-937a18925701','sample-simulation-ocr.pdf',NULL,NULL,'bank_tujuan','Bank Tujuan','BANK BUKOPIN','header',5,'Bank Tujuan BANK BUKOPIN','2026-05-28 06:26:47','2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(6,'8b6e709f-4e0f-462e-b09d-937a18925701','sample-simulation-ocr.pdf',NULL,NULL,'nama_debitur','Nama Debitur','SORYANTO','debitur',6,'Nama Debitur SORYANTO','2026-05-28 06:26:47','2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(7,'8b6e709f-4e0f-462e-b09d-937a18925701','sample-simulation-ocr.pdf',NULL,NULL,'tanggal_lahir','Tanggal Lahir','19 Agustus 1956','debitur',7,'Tanggal Lahir 19 Agustus 1956','2026-05-28 06:26:47','2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(8,'8b6e709f-4e0f-462e-b09d-937a18925701','sample-simulation-ocr.pdf',NULL,NULL,'umur','Umur','69thn 8bulan','debitur',8,'Umur 69thn 8bulan','2026-05-28 06:26:47','2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(9,'8b6e709f-4e0f-462e-b09d-937a18925701','sample-simulation-ocr.pdf',NULL,NULL,'nomor_pensiun','Nomor Pensiun','51006736400','debitur',9,'Nomor Pensiun 51006736400','2026-05-28 06:26:47','2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(10,'8b6e709f-4e0f-462e-b09d-937a18925701','sample-simulation-ocr.pdf',NULL,NULL,'instansi','Instansi','TASPEN','debitur',10,'Instansi TASPEN','2026-05-28 06:26:47','2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(11,'8b6e709f-4e0f-462e-b09d-937a18925701','sample-simulation-ocr.pdf',NULL,NULL,'gaji_pensiun','Gaji Pensiun','Rp1,730,970','debitur',11,'Gaji Pensiun Rp1,730,970','2026-05-28 06:26:47','2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(12,'8b6e709f-4e0f-462e-b09d-937a18925701','sample-simulation-ocr.pdf',NULL,NULL,'sisa_gaji_saat_pengajuan','Sisa Gaji saat pengajuan','Rp1,730,970','debitur',12,'Sisa Gaji saat pengajuan Rp1,730,970','2026-05-28 06:26:47','2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(13,'8b6e709f-4e0f-462e-b09d-937a18925701','sample-simulation-ocr.pdf',NULL,NULL,'tenor_max','Tenor Max','124','pengajuan',13,'Tenor Max 124','2026-05-28 06:26:47','2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(14,'8b6e709f-4e0f-462e-b09d-937a18925701','sample-simulation-ocr.pdf',NULL,NULL,'plafond_max','Plafond Max','Rp89,923,173','pengajuan',14,'Plafond Max Rp89,923,173','2026-05-28 06:26:47','2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(15,'8b6e709f-4e0f-462e-b09d-937a18925701','sample-simulation-ocr.pdf',NULL,NULL,'tenor','Tenor','110','pengajuan',15,'Tenor 110','2026-05-28 06:26:47','2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(16,'8b6e709f-4e0f-462e-b09d-937a18925701','sample-simulation-ocr.pdf',NULL,NULL,'plafond','Plafond','Rp95,143,000','pengajuan',16,'Plafond Rp95,143,000','2026-05-28 06:26:47','2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(17,'8b6e709f-4e0f-462e-b09d-937a18925701','sample-simulation-ocr.pdf',NULL,NULL,'blokir_angsuran','Blokir Angsuran','1','pengajuan',17,'Blokir Angsuran 1','2026-05-28 06:26:47','2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(18,'8b6e709f-4e0f-462e-b09d-937a18925701','sample-simulation-ocr.pdf',NULL,NULL,'angsuran','ANGSURAN','1,549,911','pengajuan',18,'ANGSURAN 1,549,911','2026-05-28 06:26:47','2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(19,'8b6e709f-4e0f-462e-b09d-937a18925701','sample-simulation-ocr.pdf',NULL,NULL,'biaya_adm_angs','Biaya Adm Angs','154,991','pengajuan',19,'Biaya Adm Angs 154,991','2026-05-28 06:26:47','2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(20,'8b6e709f-4e0f-462e-b09d-937a18925701','sample-simulation-ocr.pdf',NULL,NULL,'total_angsuran','Total Angsuran','1,704,903','pengajuan',20,'Total Angsuran 1,704,903','2026-05-28 06:26:47','2026-05-28 06:26:47','2026-05-28 06:26:47'),
+(21,'8b6e709f-4e0f-462e-b09d-937a18925701','sample-simulation-ocr.pdf',NULL,NULL,'provisi','PROVISI','Rp951,430','rincian_pembiayaan',21,'PROVISI Rp951,430','2026-05-28 06:26:47','2026-05-28 06:26:48','2026-05-28 06:26:48'),
+(22,'8b6e709f-4e0f-462e-b09d-937a18925701','sample-simulation-ocr.pdf',NULL,NULL,'administrasi','ADMINISTRASI','Rp4,757,150','rincian_pembiayaan',22,'ADMINISTRASI Rp4,757,150','2026-05-28 06:26:48','2026-05-28 06:26:48','2026-05-28 06:26:48'),
+(23,'8b6e709f-4e0f-462e-b09d-937a18925701','sample-simulation-ocr.pdf',NULL,NULL,'asuransi','ASURANSI','Rp28,223,220','rincian_pembiayaan',23,'ASURANSI Rp28,223,220','2026-05-28 06:26:48','2026-05-28 06:26:48','2026-05-28 06:26:48'),
+(24,'8b6e709f-4e0f-462e-b09d-937a18925701','sample-simulation-ocr.pdf',NULL,NULL,'extra_premi','Extra Premi',NULL,'rincian_pembiayaan',24,'Extra Premi','2026-05-28 06:26:48','2026-05-28 06:26:48','2026-05-28 06:26:48'),
+(25,'8b6e709f-4e0f-462e-b09d-937a18925701','sample-simulation-ocr.pdf',NULL,NULL,'blokir_angsuran_biaya','BLOKIR ANGSURAN','Rp1,704,903','rincian_pembiayaan',25,'BLOKIR ANGSURAN Rp1,704,903','2026-05-28 06:26:48','2026-05-28 06:26:48','2026-05-28 06:26:48'),
+(26,'8b6e709f-4e0f-462e-b09d-937a18925701','sample-simulation-ocr.pdf',NULL,NULL,'pelunasan','PELUNASAN',NULL,'rincian_pembiayaan',26,'PELUNASAN','2026-05-28 06:26:48','2026-05-28 06:26:48','2026-05-28 06:26:48'),
+(27,'8b6e709f-4e0f-462e-b09d-937a18925701','sample-simulation-ocr.pdf',NULL,NULL,'tata_laksana','TATA LAKSANA','Rp896,000','rincian_pembiayaan',27,'TATA LAKSANA Rp896,000','2026-05-28 06:26:48','2026-05-28 06:26:48','2026-05-28 06:26:48'),
+(28,'8b6e709f-4e0f-462e-b09d-937a18925701','sample-simulation-ocr.pdf',NULL,NULL,'nama_marketing','Nama Marketing','-','informasi_tambahan',28,'Nama Marketing -','2026-05-28 06:26:48','2026-05-28 06:26:48','2026-05-28 06:26:48'),
+(29,'8b6e709f-4e0f-462e-b09d-937a18925701','sample-simulation-ocr.pdf',NULL,NULL,'kode_area','Kode Area','JAKARTA 1101 - JAKARTA','informasi_tambahan',29,'Kode Area JAKARTA 1101 - JAKARTA','2026-05-28 06:26:48','2026-05-28 06:26:48','2026-05-28 06:26:48'),
+(30,'8b6e709f-4e0f-462e-b09d-937a18925701','sample-simulation-ocr.pdf',NULL,NULL,'usia_lunas','USIA LUNAS','78thn 10bulan','informasi_tambahan',30,'USIA LUNAS 78thn 10bulan','2026-05-28 06:26:48','2026-05-28 06:26:48','2026-05-28 06:26:48'),
+(31,'8b6e709f-4e0f-462e-b09d-937a18925701','sample-simulation-ocr.pdf',NULL,NULL,'tgl_permohonan','TGL PERMOHONAN','08 Mei 2026','informasi_tambahan',31,'TGL PERMOHONAN 08 Mei 2026','2026-05-28 06:26:48','2026-05-28 06:26:48','2026-05-28 06:26:48'),
+(32,'8b6e709f-4e0f-462e-b09d-937a18925701','sample-simulation-ocr.pdf',NULL,NULL,'tgl_lunas','TGL LUNAS','08 Juli 2035','informasi_tambahan',32,'TGL LUNAS 08 Juli 2035','2026-05-28 06:26:48','2026-05-28 06:26:48','2026-05-28 06:26:48'),
+(33,'8b6e709f-4e0f-462e-b09d-937a18925701','sample-simulation-ocr.pdf',NULL,NULL,'total_biaya','TOTAL BIAYA','Rp36,532,702','informasi_tambahan',33,'TOTAL BIAYA Rp36,532,702','2026-05-28 06:26:48','2026-05-28 06:26:48','2026-05-28 06:26:48'),
+(34,'8b6e709f-4e0f-462e-b09d-937a18925701','sample-simulation-ocr.pdf',NULL,NULL,'sisa_gaji_akhir','SISA GAJI AKHIR','Rp26,067','informasi_tambahan',34,'SISA GAJI AKHIR Rp26,067','2026-05-28 06:26:48','2026-05-28 06:26:48','2026-05-28 06:26:48'),
+(35,'8b6e709f-4e0f-462e-b09d-937a18925701','sample-simulation-ocr.pdf',NULL,NULL,'terima_bersih','TERIMA BERSIH','Rp58,610,298','informasi_tambahan',35,'TERIMA BERSIH Rp58,610,298','2026-05-28 06:26:48','2026-05-28 06:26:48','2026-05-28 06:26:48'),
+(36,'a86952c0-1f04-41c5-b9ab-e3283e670d10','sample-simulation-ocr.pdf',NULL,NULL,'produk','Produk','Platinum','header',1,'Produk Platinum','2026-06-02 05:55:03','2026-06-02 05:55:03','2026-06-02 05:55:03'),
+(37,'a86952c0-1f04-41c5-b9ab-e3283e670d10','sample-simulation-ocr.pdf',NULL,NULL,'jenis_pensiun','Jenis Pensiun','Sendiri','header',2,'Jenis Pensiun Sendiri','2026-06-02 05:55:03','2026-06-02 05:55:03','2026-06-02 05:55:03'),
+(38,'a86952c0-1f04-41c5-b9ab-e3283e670d10','sample-simulation-ocr.pdf',NULL,NULL,'mutasi','Mutasi','NON MUTASI','header',3,'Mutasi NON MUTASI','2026-06-02 05:55:03','2026-06-02 05:55:03','2026-06-02 05:55:03'),
+(39,'a86952c0-1f04-41c5-b9ab-e3283e670d10','sample-simulation-ocr.pdf',NULL,NULL,'bank_asal','Bank Asal','BANK BUKOPIN','header',4,'Bank Asal BANK BUKOPIN','2026-06-02 05:55:03','2026-06-02 05:55:03','2026-06-02 05:55:03'),
+(40,'a86952c0-1f04-41c5-b9ab-e3283e670d10','sample-simulation-ocr.pdf',NULL,NULL,'bank_tujuan','Bank Tujuan','BANK BUKOPIN','header',5,'Bank Tujuan BANK BUKOPIN','2026-06-02 05:55:03','2026-06-02 05:55:03','2026-06-02 05:55:03'),
+(41,'a86952c0-1f04-41c5-b9ab-e3283e670d10','sample-simulation-ocr.pdf',NULL,NULL,'nama_debitur','Nama Debitur','SORYANTO','debitur',6,'Nama Debitur SORYANTO','2026-06-02 05:55:03','2026-06-02 05:55:03','2026-06-02 05:55:03'),
+(42,'a86952c0-1f04-41c5-b9ab-e3283e670d10','sample-simulation-ocr.pdf',NULL,NULL,'tanggal_lahir','Tanggal Lahir','19 Agustus 1956','debitur',7,'Tanggal Lahir 19 Agustus 1956','2026-06-02 05:55:03','2026-06-02 05:55:03','2026-06-02 05:55:03'),
+(43,'a86952c0-1f04-41c5-b9ab-e3283e670d10','sample-simulation-ocr.pdf',NULL,NULL,'umur','Umur','69thn 8bulan','debitur',8,'Umur 69thn 8bulan','2026-06-02 05:55:03','2026-06-02 05:55:03','2026-06-02 05:55:03'),
+(44,'a86952c0-1f04-41c5-b9ab-e3283e670d10','sample-simulation-ocr.pdf',NULL,NULL,'nomor_pensiun','Nomor Pensiun','51006736400','debitur',9,'Nomor Pensiun 51006736400','2026-06-02 05:55:03','2026-06-02 05:55:03','2026-06-02 05:55:03'),
+(45,'a86952c0-1f04-41c5-b9ab-e3283e670d10','sample-simulation-ocr.pdf',NULL,NULL,'instansi','Instansi','TASPEN','debitur',10,'Instansi TASPEN','2026-06-02 05:55:03','2026-06-02 05:55:03','2026-06-02 05:55:03'),
+(46,'a86952c0-1f04-41c5-b9ab-e3283e670d10','sample-simulation-ocr.pdf',NULL,NULL,'gaji_pensiun','Gaji Pensiun','Rp1,730,970','debitur',11,'Gaji Pensiun Rp1,730,970','2026-06-02 05:55:03','2026-06-02 05:55:03','2026-06-02 05:55:03'),
+(47,'a86952c0-1f04-41c5-b9ab-e3283e670d10','sample-simulation-ocr.pdf',NULL,NULL,'sisa_gaji_saat_pengajuan','Sisa Gaji saat pengajuan','Rp1,730,970','debitur',12,'Sisa Gaji saat pengajuan Rp1,730,970','2026-06-02 05:55:03','2026-06-02 05:55:03','2026-06-02 05:55:03'),
+(48,'a86952c0-1f04-41c5-b9ab-e3283e670d10','sample-simulation-ocr.pdf',NULL,NULL,'tenor_max','Tenor Max','124','pengajuan',13,'Tenor Max 124','2026-06-02 05:55:03','2026-06-02 05:55:03','2026-06-02 05:55:03'),
+(49,'a86952c0-1f04-41c5-b9ab-e3283e670d10','sample-simulation-ocr.pdf',NULL,NULL,'plafond_max','Plafond Max','Rp89,923,173','pengajuan',14,'Plafond Max Rp89,923,173','2026-06-02 05:55:03','2026-06-02 05:55:03','2026-06-02 05:55:03'),
+(50,'a86952c0-1f04-41c5-b9ab-e3283e670d10','sample-simulation-ocr.pdf',NULL,NULL,'tenor','Tenor','110','pengajuan',15,'Tenor 110','2026-06-02 05:55:03','2026-06-02 05:55:03','2026-06-02 05:55:03'),
+(51,'a86952c0-1f04-41c5-b9ab-e3283e670d10','sample-simulation-ocr.pdf',NULL,NULL,'plafond','Plafond','Rp95,143,000','pengajuan',16,'Plafond Rp95,143,000','2026-06-02 05:55:03','2026-06-02 05:55:03','2026-06-02 05:55:03'),
+(52,'a86952c0-1f04-41c5-b9ab-e3283e670d10','sample-simulation-ocr.pdf',NULL,NULL,'blokir_angsuran','Blokir Angsuran','1','pengajuan',17,'Blokir Angsuran 1','2026-06-02 05:55:03','2026-06-02 05:55:03','2026-06-02 05:55:03'),
+(53,'a86952c0-1f04-41c5-b9ab-e3283e670d10','sample-simulation-ocr.pdf',NULL,NULL,'angsuran','ANGSURAN','1,549,911','pengajuan',18,'ANGSURAN 1,549,911','2026-06-02 05:55:03','2026-06-02 05:55:03','2026-06-02 05:55:03'),
+(54,'a86952c0-1f04-41c5-b9ab-e3283e670d10','sample-simulation-ocr.pdf',NULL,NULL,'biaya_adm_angs','Biaya Adm Angs','154,991','pengajuan',19,'Biaya Adm Angs 154,991','2026-06-02 05:55:03','2026-06-02 05:55:03','2026-06-02 05:55:03'),
+(55,'a86952c0-1f04-41c5-b9ab-e3283e670d10','sample-simulation-ocr.pdf',NULL,NULL,'total_angsuran','Total Angsuran','1,704,903','pengajuan',20,'Total Angsuran 1,704,903','2026-06-02 05:55:03','2026-06-02 05:55:03','2026-06-02 05:55:03'),
+(56,'a86952c0-1f04-41c5-b9ab-e3283e670d10','sample-simulation-ocr.pdf',NULL,NULL,'provisi','PROVISI','Rp951,430','rincian_pembiayaan',21,'PROVISI Rp951,430','2026-06-02 05:55:03','2026-06-02 05:55:03','2026-06-02 05:55:03'),
+(57,'a86952c0-1f04-41c5-b9ab-e3283e670d10','sample-simulation-ocr.pdf',NULL,NULL,'administrasi','ADMINISTRASI','Rp4,757,150','rincian_pembiayaan',22,'ADMINISTRASI Rp4,757,150','2026-06-02 05:55:03','2026-06-02 05:55:03','2026-06-02 05:55:03'),
+(58,'a86952c0-1f04-41c5-b9ab-e3283e670d10','sample-simulation-ocr.pdf',NULL,NULL,'asuransi','ASURANSI','Rp28,223,220','rincian_pembiayaan',23,'ASURANSI Rp28,223,220','2026-06-02 05:55:03','2026-06-02 05:55:03','2026-06-02 05:55:03'),
+(59,'a86952c0-1f04-41c5-b9ab-e3283e670d10','sample-simulation-ocr.pdf',NULL,NULL,'extra_premi','Extra Premi',NULL,'rincian_pembiayaan',24,'Extra Premi','2026-06-02 05:55:03','2026-06-02 05:55:03','2026-06-02 05:55:03'),
+(60,'a86952c0-1f04-41c5-b9ab-e3283e670d10','sample-simulation-ocr.pdf',NULL,NULL,'blokir_angsuran_biaya','BLOKIR ANGSURAN','Rp1,704,903','rincian_pembiayaan',25,'BLOKIR ANGSURAN Rp1,704,903','2026-06-02 05:55:03','2026-06-02 05:55:03','2026-06-02 05:55:03'),
+(61,'a86952c0-1f04-41c5-b9ab-e3283e670d10','sample-simulation-ocr.pdf',NULL,NULL,'pelunasan','PELUNASAN',NULL,'rincian_pembiayaan',26,'PELUNASAN','2026-06-02 05:55:03','2026-06-02 05:55:03','2026-06-02 05:55:03'),
+(62,'a86952c0-1f04-41c5-b9ab-e3283e670d10','sample-simulation-ocr.pdf',NULL,NULL,'tata_laksana','TATA LAKSANA','Rp896,000','rincian_pembiayaan',27,'TATA LAKSANA Rp896,000','2026-06-02 05:55:03','2026-06-02 05:55:03','2026-06-02 05:55:03'),
+(63,'a86952c0-1f04-41c5-b9ab-e3283e670d10','sample-simulation-ocr.pdf',NULL,NULL,'nama_marketing','Nama Marketing','-','informasi_tambahan',28,'Nama Marketing -','2026-06-02 05:55:03','2026-06-02 05:55:03','2026-06-02 05:55:03'),
+(64,'a86952c0-1f04-41c5-b9ab-e3283e670d10','sample-simulation-ocr.pdf',NULL,NULL,'kode_area','Kode Area','JAKARTA 1101 - JAKARTA','informasi_tambahan',29,'Kode Area JAKARTA 1101 - JAKARTA','2026-06-02 05:55:03','2026-06-02 05:55:03','2026-06-02 05:55:03'),
+(65,'a86952c0-1f04-41c5-b9ab-e3283e670d10','sample-simulation-ocr.pdf',NULL,NULL,'usia_lunas','USIA LUNAS','78thn 10bulan','informasi_tambahan',30,'USIA LUNAS 78thn 10bulan','2026-06-02 05:55:03','2026-06-02 05:55:03','2026-06-02 05:55:03'),
+(66,'a86952c0-1f04-41c5-b9ab-e3283e670d10','sample-simulation-ocr.pdf',NULL,NULL,'tgl_permohonan','TGL PERMOHONAN','08 Mei 2026','informasi_tambahan',31,'TGL PERMOHONAN 08 Mei 2026','2026-06-02 05:55:03','2026-06-02 05:55:03','2026-06-02 05:55:03'),
+(67,'a86952c0-1f04-41c5-b9ab-e3283e670d10','sample-simulation-ocr.pdf',NULL,NULL,'tgl_lunas','TGL LUNAS','08 Juli 2035','informasi_tambahan',32,'TGL LUNAS 08 Juli 2035','2026-06-02 05:55:03','2026-06-02 05:55:03','2026-06-02 05:55:03'),
+(68,'a86952c0-1f04-41c5-b9ab-e3283e670d10','sample-simulation-ocr.pdf',NULL,NULL,'total_biaya','TOTAL BIAYA','Rp36,532,702','informasi_tambahan',33,'TOTAL BIAYA Rp36,532,702','2026-06-02 05:55:03','2026-06-02 05:55:03','2026-06-02 05:55:03'),
+(69,'a86952c0-1f04-41c5-b9ab-e3283e670d10','sample-simulation-ocr.pdf',NULL,NULL,'sisa_gaji_akhir','SISA GAJI AKHIR','Rp26,067','informasi_tambahan',34,'SISA GAJI AKHIR Rp26,067','2026-06-02 05:55:03','2026-06-02 05:55:03','2026-06-02 05:55:03'),
+(70,'a86952c0-1f04-41c5-b9ab-e3283e670d10','sample-simulation-ocr.pdf',NULL,NULL,'terima_bersih','TERIMA BERSIH','Rp58,610,298','informasi_tambahan',35,'TERIMA BERSIH Rp58,610,298','2026-06-02 05:55:03','2026-06-02 05:55:03','2026-06-02 05:55:03');
+
+/*Table structure for table `template_accounts` */
+
+CREATE TABLE `template_accounts` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `product_template_id` bigint unsigned NOT NULL,
+  `account_group_id` bigint unsigned NOT NULL,
+  `coa_code` varchar(255) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `percentage` decimal(5,2) DEFAULT NULL,
+  `formula_type` enum('percentage','fixed','custom') NOT NULL,
+  `min_value` decimal(15,2) DEFAULT NULL,
+  `max_value` decimal(15,2) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `template_accounts_product_template_id_foreign` (`product_template_id`),
+  KEY `template_accounts_account_group_id_foreign` (`account_group_id`),
+  CONSTRAINT `template_accounts_account_group_id_foreign` FOREIGN KEY (`account_group_id`) REFERENCES `account_groups` (`id`),
+  CONSTRAINT `template_accounts_product_template_id_foreign` FOREIGN KEY (`product_template_id`) REFERENCES `product_templates` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+/*Data for the table `template_accounts` */
+
+/*Table structure for table `template_fields` */
+
+CREATE TABLE `template_fields` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `product_template_id` bigint unsigned NOT NULL,
+  `field_name` varchar(255) NOT NULL,
+  `field_label` varchar(255) NOT NULL,
+  `field_type` varchar(255) NOT NULL DEFAULT 'text',
+  `is_required` tinyint(1) NOT NULL DEFAULT '0',
+  `section` enum('informasi_debitur','data_pengajuan','data_financial') NOT NULL,
+  `account_code` varchar(255) DEFAULT NULL,
+  `calculation_type` enum('percentage','fixed') DEFAULT NULL,
+  `default_value` decimal(15,4) DEFAULT NULL,
+  `field_order` smallint unsigned NOT NULL DEFAULT '0',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `template_fields_product_template_id_foreign` (`product_template_id`),
+  CONSTRAINT `template_fields_product_template_id_foreign` FOREIGN KEY (`product_template_id`) REFERENCES `product_templates` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=71 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+/*Data for the table `template_fields` */
+
+insert  into `template_fields`(`id`,`product_template_id`,`field_name`,`field_label`,`field_type`,`is_required`,`section`,`account_code`,`calculation_type`,`default_value`,`field_order`,`created_at`,`updated_at`) values 
+(36,1,'jenis_pensiun','Jenis Pensiun','text',0,'informasi_debitur',NULL,NULL,NULL,0,'2026-06-02 05:55:02','2026-06-02 05:55:02'),
+(37,1,'nama_debitur','Nama Debitur','text',0,'informasi_debitur',NULL,NULL,NULL,1,'2026-06-02 05:55:02','2026-06-02 05:55:02'),
+(38,1,'tanggal_lahir','Tanggal Lahir','date',0,'informasi_debitur',NULL,NULL,NULL,2,'2026-06-02 05:55:02','2026-06-02 05:55:02'),
+(39,1,'umur','Umur','text',0,'informasi_debitur',NULL,NULL,NULL,3,'2026-06-02 05:55:02','2026-06-02 05:55:02'),
+(40,1,'nomor_pensiun','Nomor Pensiun','text',0,'informasi_debitur',NULL,NULL,NULL,4,'2026-06-02 05:55:02','2026-06-02 05:55:02'),
+(41,1,'instansi','Instansi','text',0,'informasi_debitur',NULL,NULL,NULL,5,'2026-06-02 05:55:02','2026-06-02 05:55:02'),
+(42,1,'gaji_pensiun','Gaji Pensiun','number',0,'informasi_debitur',NULL,NULL,NULL,6,'2026-06-02 05:55:02','2026-06-02 05:55:02'),
+(43,1,'sisa_gaji_saat_pengajuan','Sisa Gaji saat pengajuan','number',0,'informasi_debitur',NULL,NULL,NULL,7,'2026-06-02 05:55:02','2026-06-02 05:55:02'),
+(44,1,'produk','Produk','text',0,'data_pengajuan',NULL,NULL,NULL,8,'2026-06-02 05:55:02','2026-06-02 05:55:02'),
+(45,1,'mutasi','Mutasi','text',0,'data_pengajuan',NULL,NULL,NULL,9,'2026-06-02 05:55:02','2026-06-02 05:55:02'),
+(46,1,'bank_asal','Bank Asal','text',0,'data_pengajuan',NULL,NULL,NULL,10,'2026-06-02 05:55:02','2026-06-02 05:55:02'),
+(47,1,'bank_tujuan','Bank Tujuan','text',0,'data_pengajuan',NULL,NULL,NULL,11,'2026-06-02 05:55:02','2026-06-02 05:55:02'),
+(48,1,'tenor_max','Tenor Max','number',0,'data_pengajuan',NULL,NULL,NULL,12,'2026-06-02 05:55:02','2026-06-02 05:55:02'),
+(49,1,'plafond_max','Plafond Max','number',0,'data_pengajuan',NULL,NULL,NULL,13,'2026-06-02 05:55:02','2026-06-02 05:55:02'),
+(50,1,'tenor','Tenor','number',0,'data_pengajuan',NULL,NULL,NULL,14,'2026-06-02 05:55:02','2026-06-02 05:55:02'),
+(51,1,'nama_marketing','Nama Marketing','text',0,'data_pengajuan',NULL,NULL,NULL,15,'2026-06-02 05:55:02','2026-06-02 05:55:02'),
+(52,1,'kode_area','Kode Area','text',0,'data_pengajuan',NULL,NULL,NULL,16,'2026-06-02 05:55:02','2026-06-02 05:55:02'),
+(53,1,'usia_lunas','USIA LUNAS','text',0,'data_pengajuan',NULL,NULL,NULL,17,'2026-06-02 05:55:02','2026-06-02 05:55:02'),
+(54,1,'tgl_permohonan','TGL PERMOHONAN','date',0,'data_pengajuan',NULL,NULL,NULL,18,'2026-06-02 05:55:02','2026-06-02 05:55:02'),
+(55,1,'tgl_lunas','TGL LUNAS','date',0,'data_pengajuan',NULL,NULL,NULL,19,'2026-06-02 05:55:02','2026-06-02 05:55:02'),
+(56,1,'blokir_angsuran','Blokir Angsuran','number',0,'data_pengajuan',NULL,NULL,NULL,20,'2026-06-02 05:55:02','2026-06-02 05:55:02'),
+(57,1,'plafond','Plafond','number',0,'data_financial',NULL,'fixed',NULL,21,'2026-06-02 05:55:02','2026-06-02 05:55:02'),
+(58,1,'angsuran','ANGSURAN','number',0,'data_financial',NULL,'fixed',NULL,22,'2026-06-02 05:55:02','2026-06-02 05:55:02'),
+(59,1,'biaya_adm_angs','Biaya Adm Angs','number',0,'data_financial',NULL,'fixed',NULL,23,'2026-06-02 05:55:02','2026-06-02 05:55:02'),
+(60,1,'total_angsuran','Total Angsuran','number',0,'data_financial',NULL,'fixed',NULL,24,'2026-06-02 05:55:02','2026-06-02 05:55:02'),
+(61,1,'provisi','PROVISI','number',0,'data_financial',NULL,'percentage',1.5000,25,'2026-06-02 05:55:02','2026-06-02 05:55:02'),
+(62,1,'administrasi','ADMINISTRASI','number',0,'data_financial',NULL,'percentage',5.0000,26,'2026-06-02 05:55:02','2026-06-02 05:55:02'),
+(63,1,'asuransi','ASURANSI','number',0,'data_financial',NULL,'percentage',10.1900,27,'2026-06-02 05:55:02','2026-06-02 05:55:02'),
+(64,1,'extra_premi','Extra Premi','number',0,'data_financial',NULL,'fixed',NULL,28,'2026-06-02 05:55:02','2026-06-02 05:55:02'),
+(65,1,'blokir_angsuran','BLOKIR ANGSURAN','number',0,'data_financial',NULL,'fixed',NULL,29,'2026-06-02 05:55:02','2026-06-02 05:55:02'),
+(66,1,'pelunasan','PELUNASAN','number',0,'data_financial',NULL,'fixed',NULL,30,'2026-06-02 05:55:02','2026-06-02 05:55:02'),
+(67,1,'tata_laksana','TATA LAKSANA','number',0,'data_financial',NULL,'fixed',NULL,31,'2026-06-02 05:55:02','2026-06-02 05:55:02'),
+(68,1,'total_biaya','TOTAL BIAYA','number',0,'data_financial',NULL,'fixed',NULL,32,'2026-06-02 05:55:02','2026-06-02 05:55:02'),
+(69,1,'sisa_gaji_akhir','SISA GAJI AKHIR','number',0,'data_financial',NULL,'fixed',NULL,33,'2026-06-02 05:55:02','2026-06-02 05:55:02'),
+(70,1,'terima_bersih','TERIMA BERSIH','number',0,'data_financial',NULL,'fixed',NULL,34,'2026-06-02 05:55:02','2026-06-02 05:55:02');
+
+/*Table structure for table `users` */
+
+CREATE TABLE `users` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) NOT NULL,
+  `email` varchar(255) NOT NULL,
+  `role_id` bigint unsigned DEFAULT NULL,
+  `email_verified_at` timestamp NULL DEFAULT NULL,
+  `password` varchar(255) NOT NULL,
+  `remember_token` varchar(100) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `users_email_unique` (`email`),
+  KEY `users_role_id_foreign` (`role_id`),
+  CONSTRAINT `users_role_id_foreign` FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+/*Data for the table `users` */
+
+insert  into `users`(`id`,`name`,`email`,`role_id`,`email_verified_at`,`password`,`remember_token`,`created_at`,`updated_at`) values 
+(4,'Test Marketing','test@example.com',1,NULL,'$2y$12$Ot.DDvabn.k9C3qCUYMqV.nqtIpyh60n0r7t/b41QEio2cCf.VoYS',NULL,'2026-05-28 06:26:45','2026-06-02 05:55:01'),
+(5,'Test Supervisor','supervisor@example.com',2,NULL,'$2y$12$.4SXewcrw/pzgb8LZAyxwuvfwlbHpPMLUOtekSXFdkmHNtwmdd.12',NULL,'2026-05-28 06:26:46','2026-06-02 05:55:01'),
+(6,'Test Support Bisnis','support.bisnis@example.com',3,NULL,'$2y$12$ZpSmuH5kSyuU9kn1Dzlr8uiMzXLA7WkHHnkKTVba.XZPN0YkAkqdi',NULL,'2026-05-28 06:26:46','2026-06-02 05:55:02'),
+(7,'Nasabah Demo','nasabah.demo@example.com',1,NULL,'$2y$12$ovJkE4frv7XsXD0Jlkd19er7NCBHh9jBgshbxIFcH81wgYz7iFT9G',NULL,'2026-05-28 06:26:47','2026-05-28 06:26:47');
+
+/* Procedure structure for procedure `sp_update_mutasi_stok` */
+
+DELIMITER $$
+
+/*!50003 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_update_mutasi_stok`(IN p_kd_brg VARCHAR(50),
+    IN p_kd_cus VARCHAR(50),
+    IN p_tanggal DATE,
+    IN p_username VARCHAR(100),
+    IN p_qty INT)
+BEGIN
+-- Deklarasi Variabel Internal
+    DECLARE v_harga DECIMAL(15,2) DEFAULT 0;
+    DECLARE v_exists_inv INT DEFAULT 0;
+    DECLARE v_exists_mutasi INT DEFAULT 0;
+    
+    -- Variabel untuk penampung record mutasi sebelumnya
+    DECLARE v_nilai_awal DECIMAL(15,2) DEFAULT 0;
+    DECLARE v_qty_awal INT DEFAULT 0;
+    DECLARE v_stok_opname INT DEFAULT 0;
+    DECLARE v_nilai_opname_prev DECIMAL(15,2) DEFAULT 0;
+    
+    -- Variabel untuk kalkulasi insert mutasi baru
+    DECLARE v_qt_tersedia INT DEFAULT 0;
+    DECLARE v_nilai_tersedia DECIMAL(15,2) DEFAULT 0;
+    DECLARE v_qty_opname INT DEFAULT 0;
+    DECLARE v_nilai_opname DECIMAL(15,2) DEFAULT 0;
+    DECLARE v_harga_rata_sebelumnya DECIMAL(15,2) DEFAULT 0;
+    DECLARE v_nilai_total_opname DECIMAL(15,2) DEFAULT 0;
+
+    -- 1. UPDATE BARANG (Lock Status) BASED ON LOKASI
+    IF p_kd_cus = '1316' THEN
+        UPDATE barang SET Pcs = 1 WHERE kd_brg = p_kd_brg;
+    ELSE
+        UPDATE barang SET Renteng = 1 WHERE kd_brg = p_kd_brg;
+    END IF;
+
+    -- 2. GET HARGA BARANG
+    SELECT COALESCE(harga, 0) INTO v_harga 
+    FROM barang 
+    WHERE kd_brg = p_kd_brg 
+    LIMIT 1;
+
+    -- 3. UPSERT INVENTORY (Check if exists, then update or insert)
+	/*
+    SELECT COUNT(*) INTO v_exists_inv 
+    FROM inventory 
+    WHERE kd_brg = p_kd_brg AND kd_cus = p_kd_cus;
+
+    IF v_exists_inv > 0 THEN
+        UPDATE inventory 
+        SET stok = p_qty 
+        WHERE kd_brg = p_kd_brg AND kd_cus = p_kd_cus;
+    ELSE
+        INSERT INTO inventory (kd_brg, kd_cus, stok, satuan) 
+        VALUES (p_kd_brg, p_kd_cus, p_qty, 'Pcs');
+    END IF;
+*/
+
+    -- 4. PROCESS MUTASI STOK
+    SELECT COUNT(*) INTO v_exists_mutasi 
+    FROM mutasi_stok 
+    WHERE tgl = p_tanggal AND kd_cus = p_kd_cus AND kd_brg = p_kd_brg;
+
+    IF v_exists_mutasi > 0 THEN
+        -- Jika data mutasi hari ini sudah ada, lakukan UPDATE
+        UPDATE mutasi_stok 
+        SET 
+            qt_opname_hari    = qt_opname_hari + (p_qty - qt_akhir),
+            nilai_opname_hari = nilai_opname_hari + ((p_qty * v_harga) - nilai_akhir),
+            qt_akhir          = qt_akhir + (p_qty - qt_akhir),
+            qt_tersedia       = p_qty,
+            nilai_tersedia    = p_qty * v_harga,
+            harga_rata        = CASE WHEN p_qty > 0 THEN (p_qty * v_harga) / p_qty ELSE v_harga END,                                     
+            hpp_jual          = CASE WHEN p_qty > 0 THEN ((p_qty * v_harga) / p_qty) * qt_jual ELSE v_harga * qt_jual END,
+            nilai_akhir       = CASE WHEN p_qty > 0 THEN ((p_qty * v_harga) / p_qty) * qt_akhir ELSE v_harga * qt_akhir END
+        WHERE tgl = p_tanggal AND kd_cus = p_kd_cus AND kd_brg = p_kd_brg;
+        
+    ELSE
+        -- Jika belum ada, cari data dari tanggal terakhir sebelumnya
+        SELECT 
+            nilai_akhir, qt_akhir, stok_opname, nilai_opname 
+            INTO v_nilai_awal, v_qty_awal, v_stok_opname, v_nilai_opname_prev
+        FROM mutasi_stok 
+        WHERE kd_cus = p_kd_cus AND kd_brg = p_kd_brg 
+        ORDER BY tgl DESC 
+        LIMIT 1;
+        
+        -- Proteksi jika data historical tidak ditemukan sama sekali (NULL)
+        SET v_nilai_awal = COALESCE(v_nilai_awal, 0);
+        SET v_qty_awal = COALESCE(v_qty_awal, 0);
+        SET v_stok_opname = COALESCE(v_stok_opname, 0);
+        SET v_nilai_opname_prev = COALESCE(v_nilai_opname_prev, 0);
+
+        -- Logika penentuan nilai awal berdasarkan code PHP asli Anda
+        IF v_stok_opname != 0 THEN 
+            SET v_qty_awal = v_stok_opname; 
+        END IF;
+        
+        IF v_nilai_opname_prev != 0 THEN 
+            SET v_nilai_awal = v_nilai_opname_prev; 
+        END IF;
+
+        -- Kalkulasi nilai baru
+        SET v_qt_tersedia = p_qty;
+        SET v_nilai_tersedia = p_qty * v_harga;
+        SET v_qty_opname = p_qty - v_qty_awal;
+        SET v_nilai_opname = v_nilai_tersedia - v_nilai_awal;
+
+        IF v_qt_tersedia > 0 THEN
+            SET v_harga_rata_sebelumnya = v_nilai_tersedia / v_qt_tersedia;
+        ELSE
+            SET v_harga_rata_sebelumnya = v_harga;
+        END IF;
+
+        -- INSERT data baru ke mutasi_stok
+        INSERT INTO mutasi_stok (
+            tgl, qty_awal, nilai_awal, qt_opname_hari, nilai_opname_hari, 
+            qt_tersedia, nilai_tersedia, harga_rata, kd_cus, kd_brg, 
+            satuan, qt_akhir, nilai_akhir
+        ) VALUES (
+            p_tanggal, v_qty_awal, v_nilai_awal, v_qty_opname, v_nilai_opname,
+            v_qt_tersedia, v_nilai_tersedia, v_harga_rata_sebelumnya, p_kd_cus, p_kd_brg,
+            'Pcs', v_qt_tersedia, v_nilai_tersedia
+        );
+    END IF;
+
+    -- 5. INSERT LOG DETAIL OPNAME
+    SET v_nilai_total_opname = p_qty * v_harga;
+    
+    INSERT INTO opname_detail (
+        kd_cus, kd_brg, tgl, stok_opname, nilai_opname, user_input, waktu_buat
+    ) VALUES (
+        p_kd_cus, p_kd_brg, p_tanggal, p_qty, v_nilai_total_opname, p_username, NOW()
+    );
+	END */$$
+DELIMITER ;
+
+/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
