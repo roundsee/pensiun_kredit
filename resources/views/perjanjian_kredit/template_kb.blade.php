@@ -189,7 +189,7 @@
 
     <p>
         Perjanjian Kredit ini (selanjutnya disebut "<strong>Perjanjian</strong>") dibuat di
-        <span class="blank">{{ $kota_ttd }}</span> pada hari ini
+        <span class="blank">{{ $kota_kab }}</span> pada hari ini
         <span class="blank">{{ $hari_ttd }}</span>,
         tanggal {{ $tgl_ttd }} oleh dan antara :
     </p>
@@ -200,7 +200,8 @@
             pemegang Kartu Tanda Penduduk (KTP) No.
             <span class="blank">{{ $no_ktp }}</span>,
             bertempat tinggal di (Alamat <span class="blank">{{ $alamat }}</span>),
-            RT <span class="blank">{{ $rt_rw }}</span>,
+            RT <span class="blank">{{ $rt }}</span>,
+            RW <span class="blank">{{ $rw }}</span>,
             Desa/Kel. <span class="blank">{{ $desa_kel }}</span>,
             Kec. <span class="blank">{{ $kecamatan }}</span>,
             Kota/Kabupaten <span class="blank">{{ $kota_kab }}</span>,
@@ -267,8 +268,8 @@
                 <tr><td>c. Suku Bunga</td><td>: <strong>{{ $suku_bunga }}</strong>% Effectif p.a</td></tr>
                 <tr><td>d. Jenis Fasilitas</td><td>: Kredit Konsumtif</td></tr>
                 <tr><td>e. Bentuk Fasilitas</td><td>: Installment</td></tr>
-                <tr><td>f. Biaya Provisi</td><td>: <strong>{{ number_format((float) $biaya_provisi_raw * (float) $plafond_kredit_raw / 100, 0, ',', '.') }}</strong></td></tr>
-                <tr><td>g. Biaya Administrasi Kredit</td><td>: <strong>{{ number_format((float) $biaya_administrasi_raw * (float) $plafond_kredit_raw / 100, 0, ',', '.') }}</strong></td></tr>
+                <tr><td>f. Biaya Provisi</td><td>: <strong>{{ $biaya_provisi }}</strong></td></tr>
+                <tr><td>g. Biaya Administrasi Kredit</td><td>: <strong>{{ $biaya_administrasi}}</strong></td></tr>
                 <tr><td>h. Asuransi Jiwa Kredit</td><td>: <strong>{{ $asuransi_jiwa }}</strong></td></tr>
             </table>
         </li>
@@ -307,7 +308,7 @@
         <li>
             Tiap bulannya, Debitur wajib membayar biaya Angsuran per bulan (sebagaimana huruf n
             angka 1) ditambah dengan biaya administrasi angsuran per bulan (sebagaimana pada huruf
-            o angka 1), sehingga total sebesar <strong>{{ $angsuran_gabung }}</strong>
+            o angka 1), sehingga total sebesar <strong>{{ $angsuran_dimuka }}</strong>
             (<span class="blank">{{ $angsuran_terbilang }}</span>) / bulan sesuai dengan jadwal angsuran
             yang telah disepakati Para Pihak.
         </li>

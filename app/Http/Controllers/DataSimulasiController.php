@@ -78,12 +78,16 @@ class DataSimulasiController extends Controller
     {
         $validated = $request->validate($this->pelengkapRules());
 
-        // PERBAIKAN: Menggunakan update() murni langsung ke instance relasi pelengkap
-        $dataSimulasi->pelengkap->update($validated);
+        // PERBAIKAN: Cari berdasarkan data_simulasi_id!
+        $dataSimulasi->pelengkap()->updateOrCreate(
+            ['data_simulasi_id' => $dataSimulasi->id],
+            $validated
+         );
 
         return redirect()
-            ->route('data_simulasi.list')
-            ->with('success', 'Data pelengkap simulasi berhasil disimpan.');
+        ->route('data_simulasi.list')
+        ->with('success', 'Data pelengkap simulasi berhasil disimpan.');
+
     }
 
     public function showUploadIdpb(DataSimulasi $dataSimulasi)
@@ -120,8 +124,7 @@ class DataSimulasiController extends Controller
 
         $mapped['idpb_file'] = $storedPath;
 
-        // PERBAIKAN: Menggunakan update() murni
-        $dataSimulasi->pelengkap->update($mapped);
+        $dataSimulasi->pelengkap()->updateOrCreate([], $mapped);
 
         return redirect()
             ->route('data_simulasi.list')
@@ -146,8 +149,7 @@ class DataSimulasiController extends Controller
         $filename = now()->format('Ymd_His') . '_' . preg_replace('/\s+/', '_', (string) $file->getClientOriginalName());
         $storedPath = $file->storeAs($folder, $filename);
 
-        // PERBAIKAN: Menggunakan update() murni
-        $dataSimulasi->pelengkap->update(['permohonan_cif_file' => $storedPath]);
+        $dataSimulasi->pelengkap()->updateOrCreate([], ['permohonan_cif_file' => $storedPath]);
 
         return redirect()
             ->route('data_simulasi.list')
@@ -172,8 +174,7 @@ class DataSimulasiController extends Controller
         $filename = now()->format('Ymd_His') . '_' . preg_replace('/\s+/', '_', (string) $file->getClientOriginalName());
         $storedPath = $file->storeAs($folder, $filename);
 
-        // PERBAIKAN: Menggunakan update() murni
-        $dataSimulasi->pelengkap->update(['pelunasan_to_kb_file' => $storedPath]);
+        $dataSimulasi->pelengkap()->updateOrCreate([], ['pelunasan_to_kb_file' => $storedPath]);
 
         return redirect()
             ->route('data_simulasi.list')
@@ -209,8 +210,7 @@ class DataSimulasiController extends Controller
             ], 422);
         }
 
-        // PERBAIKAN: Menggunakan update() murni
-        $dataSimulasi->pelengkap->update($mapped);
+        $dataSimulasi->pelengkap()->updateOrCreate([], $mapped);
 
         return response()->json([
             'message' => 'OCR PDF pelengkap berhasil diproses dan disimpan (' . count($mapped) . ' field).',
@@ -371,8 +371,8 @@ class DataSimulasiController extends Controller
             'rt' => 'RT',
             'rw' => 'RW',
             'kode_pos' => 'KODE POS',
-            'kecamatan' => 'KECAMATAN',
-            'kelurahan' => 'KELURAHAN',
+            'kec' => 'KECAMATAN',
+            'kel' => 'KELURAHAN',
 
         ];
 
@@ -673,7 +673,7 @@ class DataSimulasiController extends Controller
 
         foreach ($lines as $index => $line) {
             if (!preg_match('/^ALAMAT\b\s*[:\-]?\s*(.*)$/iu', $line, $m)) {
-                $continue;
+                continue;
             }
 
             $parts = [];

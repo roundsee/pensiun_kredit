@@ -295,7 +295,7 @@ class DocumentDataBuilderService
         $provisiRaw          = self::pick([$p?->biaya_provisi, $p?->prosentase_provisi, $d->provisi], '');
         $administrasiRaw     = self::pick([$p?->biaya_administrasi_kredit, $p?->prosentase_administrasi, $d->administrasi], '');
         $asuransiRaw         = self::pick([$p?->asuransi_jiwa_kredit, $p?->asuransi, $d->asuransi], '');
-        $materaiRaw          = self::pick([$p?->materai], '10000');
+        $materaiRaw          = self::pick([$p?->materai], '80000');
         $biayaFlaggingRaw    = self::pick([$p?->biaya_flagging], '');
         $totalBiayaRaw       = self::pick([$p?->total_biaya, $d->total_biaya], '');
         $angsuranDimukaRaw   = self::pick([$p?->angsuran_dibayar_dimuka, $d->amount_blokir_angsuran], '');
@@ -325,6 +325,33 @@ class DocumentDataBuilderService
             $angsuranGabung = self::formatRp(self::toNumeric($angsuranPerbulanRaw) + self::toNumeric($biayaAdmAngsuranRaw));
         }
 
+            $plafond = $d->plafond ;
+            $prosentaseProvisi =0.5;// (float) ($this->asNumeric($pelengkap?->prosentase_provisi));
+            $prosentaseAdministrasi = 0.5; //(float) ($this->asNumeric($pelengkap?->prosentase_administrasi));
+          
+            $sukuBungaTahunan = $p?->suku_bunga;
+            if ($sukuBungaTahunan > 1) {
+                $sukuBungaTahunan /= 100;
+            }
+
+            $tenor = $d->tenor;
+            $angsuranPmt = self::pmt($sukuBungaTahunan / 12, $tenor, $plafond);
+
+            $flagging = 0; //(float) ($this->asNumeric($pelengkap?->biaya_flagging) ?? 0);
+            if ($d->instansi === 'TASPEN') {
+                $flagging = 816000.0;
+            }
+            if ($d->instansi === 'ASABRI') {
+                $flagging = 250000.0;
+            }
+
+            $asuransiJiwa = self::pick([$p?->asuransi_jiwa_kredit, $d->asuransi]); //(float) ($this->asNumeric($this->firstFilled($pelengkap?->asuransi_jiwa_kredit, $dataSimulasi->asuransi)) ?? 0);
+            $materai = self::pick([$p?->materai,80000]); //, (float) ($this->asNumeric($pelengkap->materai) ?? 0);
+            $totalAngsuran = $d->total_angsuran;
+
+            $totalBiayaBank = $plafond * ($prosentaseProvisi / 100) + $plafond * ($prosentaseAdministrasi / 100);
+            $totalBiayaMitra = $asuransiJiwa + $flagging + $plafond * (5 / 100) + $materai;
+            $totalPenerimaan = $plafond - $totalBiayaBank - $totalBiayaMitra;
         return [
             'no_pk'          => self::pick([$p?->no_pk], ''),
             // ── Identitas Debitur ────────────────────────────────────────────
@@ -332,9 +359,11 @@ class DocumentDataBuilderService
             'no_ktp'               => self::pick([$p?->no_ktp]),
             'alamat'               => $alamatLengkap,
             'rt_rw'                => $rtRw,
-            'desa_kel'             => self::pick([$p?->kel, $p?->cabang]),
+            'rt'                    => self::pick([$p?->rt]),
+            'rw'                    => self::pick([$p?->rw]),
+            'desa_kel'             => self::pick([$p?->kel, '']),
             'kecamatan'            => self::pick([$p?->kec, $p?->cabang_kb]),
-            'kota_kab'             => self::pick([$p?->kota_kab, $p?->dibuat_di, $p?->kota]),
+            'kota_kab'             => self::pick([$p?->kota, '']),
             'kode_pos'             => self::pick([$p?->kode_pos]),
 
             // ── Pasal 1 – Fasilitas Kredit ───────────────────────────────────
@@ -342,18 +371,18 @@ class DocumentDataBuilderService
             'plafond_kredit_raw'   => self::toNumeric($plafondRaw),
             'jangka_waktu'         => $jangkaWaktu,
             'suku_bunga'           => self::pick([$p?->suku_bunga], '___'),
-            'biaya_provisi'        => self::formatRp($provisiRaw),
+            'biaya_provisi'        => self::formatRp($provisiRaw/100 * $plafondRaw),
             'biaya_provisi_raw'    => self::toNumeric($provisiRaw),
-            'biaya_administrasi'   => self::formatRp($administrasiRaw),
+            'biaya_administrasi'   => self::formatRp($administrasiRaw/100 * $plafondRaw),
             'biaya_administrasi_raw' => self::toNumeric($administrasiRaw),
             'asuransi_jiwa'        => self::formatRp($asuransiRaw),
             'materai'              => self::formatRp($materaiRaw),
             'biaya_flagging'       => self::formatRp($biayaFlaggingRaw),
-            'total_biaya'          => self::formatRp($totalBiayaRaw),
+            'total_biaya'          => self::formatRp($totalBiayaMitra),
             'angsuran_dimuka'      => self::formatRp($angsuranDimukaRaw),
-            'total_penerimaan'     => self::formatRp($totalPenerimaanRaw),
-            'angsuran_perbulan'    => self::formatRp($angsuranPerbulanRaw),
-            'biaya_adm_angsuran'   => self::formatRp($biayaAdmAngsuranRaw),
+            'total_penerimaan'     => self::formatRp($totalPenerimaan),
+            'angsuran_perbulan'    => self::formatRp(floor($angsuranPmt)),
+            'biaya_adm_angsuran'   => self::formatRp(floor($angsuranPerbulanRaw) - floor($angsuranPmt)),
 
             // ── Pasal 2 – Jangka Waktu ───────────────────────────────────────
             'tgl_mulai'            => $tglMulai,
@@ -362,15 +391,12 @@ class DocumentDataBuilderService
             'angsuran_gabung'      => $angsuranGabung,
             'angsuran_terbilang'   => self::pick([
                 $p?->terbilang_angsuran,
-                self::terbilang($angsuranPerbulanRaw) . ' Rupiah',
+                self::terbilang($angsuranDimukaRaw) . ' Rupiah',
             ]),
 
             // ── Referensi SPPK ───────────────────────────────────────────────
             'nomor_sppk'           => self::pick([$p?->no_sppk, $p?->no_pk]),
-            'tanggal_sppk'         => self::pick([
-                self::formatDateDisplay($p?->tgl_sppk),
-                self::formatDateDisplay($p?->tanggal_pk),
-                self::formatDateDisplay($p?->tanggal),
+            'tanggal_sppk'         => self::pick([self::formatDateDisplay($p?->tgl_sppk),
             ]),
             'nomor_substitusi_pic' => self::pick([$p?->nomor_substitusi_pic, $p?->no_surat_kuasa_substitusi]),
             'tanggal_substitusi_pic' => self::pick([
@@ -393,18 +419,69 @@ class DocumentDataBuilderService
             'nama_ao'              => self::pick([$p?->nama_ao]),
             'kode_ao'              => self::pick([$p?->kode_ao]),
             // ── Tanda Tangan ─────────────────────────────────────────────────
-            'kota_ttd'             => self::pick([$p?->dibuat_di, $p?->kota_kab, $p?->kota]),
-            'hari_ttd'             => self::pick([$p?->hari]),
+            'kota_ttd'             => self::pick([$p?->kota]),
+            'hari_ttd'             => self::pick([self::getNamaHariIndonesia($p?->tanggal_pk)]),
             'tgl_ttd'              => self::pick([
-                self::formatDateDisplay($p?->tanggal),
                 self::formatDateDisplay($p?->tanggal_pk),
-                self::formatDateDisplay($p?->tgl_sppk),
                 now()->format('d/m/Y'),
             ]),
             'nama_ttd_debitur'     => self::pick([$p?->nama, $d->nama_debitur]),
         ];
     }
+    public static function getNamaHariIndonesia($tanggal) {
+        // 1. Ubah string tanggal menjadi objek DateTime
+        $date = new \DateTime($tanggal);
+        
+        // 2. Buat formatter dengan locale Indonesia (id_ID)
+        $formatter = new \IntlDateFormatter(
+            'id_ID',
+            \IntlDateFormatter::FULL, // Format tanggal penuh
+            \IntlDateFormatter::NONE, // Tidak menampilkan waktu
+            'Asia/Jakarta',
+            \IntlDateFormatter::GREGORIAN,
+            'EEEE' // Pola 'EEEE' artinya kita hanya mengambil nama hari lengkap
+        );
+        
+        // 3. Kembalikan hasil formatnya
+        return $formatter->format($date);
+    }
 
+static function  PMT($rate, $nper, $pv, $fv = 0, $type = 0)
+{
+
+    
+    if ($rate == 0) {
+        return -($pv + $fv) / $nper;
+    }
+
+    $pow = pow(1 + $rate, $nper);
+
+    $pmt = ($rate * ($fv + $pow * $pv)) / (($pow - 1) * (1 + $rate * $type));
+
+    return $pmt;
+}
+static function  hitungAngsuranAnuitas($pokok, $bungaTahunan, $tenorBulan)
+{
+    // bunga per bulan (misal 12% / tahun = 1% per bulan)
+    // $i = ($bungaTahunan*100 / 100) / 12;
+
+    // // kalau bunga 0 (edge case)
+    // if ($i == 0) {
+    //     return $pokok / $tenorBulan;
+    // }
+
+    // rumus anuitas
+    
+    $i=$bungaTahunan*100;
+   $angsuran = ($pokok*$bungaTahunan/12)/(1-pow(1+$bungaTahunan/12,-$tenorBulan)); // + 10000
+   //c32 : plafon
+   //c21 : rate
+   //C29 : tenor
+
+    //$angsuran = $pokok * ($i * pow(1 + $i, $tenorBulan)) / (pow(1 + $i, $tenorBulan) - 1);
+
+    return $angsuran;
+}    
     // ─── SI ─────────────────────────────────────────────────────────────────
 
     public static function buildSiTakeOverData(DataSimulasi $d): array
