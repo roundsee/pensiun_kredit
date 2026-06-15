@@ -241,12 +241,11 @@ function kbSimulasiForm() {
         calcInFlightSignature: '',
         calcLastCompletedSignature: '',
         calcAbortController: null,
-        enableAutoServerCalc: true, // Diubah menjadi true agar auto-calculate aktif
+        enableAutoServerCalc: false,
         isCalculating: false,
         isSaving: false,
         isDownloading: false,
         autoCalculateTimer: null,
-        plafondTimer: null, // Timer khusus untuk plafond
         message: '',
         errorMessage: '',
         limitWarning: '',
@@ -270,45 +269,8 @@ function kbSimulasiForm() {
                 this.$watch(path, () => { this.onFormChanged(); });
             });
 
-            // Watch khusus untuk plafond dengan debounce
-            this.$watch('form.plafond', (newValue, oldValue) => {
-                if (newValue && newValue > 0 && this.form.tenor && this.form.produk) {
-                    // Debounce untuk menghindari terlalu banyak request
-                    if (this.plafondTimer) clearTimeout(this.plafondTimer);
-                    this.plafondTimer = setTimeout(() => {
-                        this.hitung(true);
-                    }, 500);
-                }
-            });
-
-            // Watch untuk tenor dan produk juga memicu kalkulasi
-            this.$watch('form.tenor', () => {
-                if (this.form.plafond && this.form.plafond > 0 && this.form.produk) {
-                    if (this.plafondTimer) clearTimeout(this.plafondTimer);
-                    this.plafondTimer = setTimeout(() => {
-                        this.hitung(true);
-                    }, 500);
-                }
-            });
-
-            this.$watch('form.produk', () => { 
-                this.updateRateDefaults(); 
-                if (this.form.plafond && this.form.plafond > 0 && this.form.tenor) {
-                    if (this.plafondTimer) clearTimeout(this.plafondTimer);
-                    this.plafondTimer = setTimeout(() => {
-                        this.hitung(true);
-                    }, 500);
-                }
-            });
-            this.$watch('form.jenis_pensiun', () => { 
-                this.updateRateDefaults();
-                if (this.form.plafond && this.form.plafond > 0 && this.form.tenor && this.form.produk) {
-                    if (this.plafondTimer) clearTimeout(this.plafondTimer);
-                    this.plafondTimer = setTimeout(() => {
-                        this.hitung(true);
-                    }, 500);
-                }
-            });
+            this.$watch('form.produk', () => { this.updateRateDefaults(); });
+            this.$watch('form.jenis_pensiun', () => { this.updateRateDefaults(); });
 
             this.$nextTick(() => {
                 this.applyInitialData();
@@ -320,11 +282,7 @@ function kbSimulasiForm() {
                 setTimeout(() => {
                     this.updateRateDefaults();
                     this.syncAllSelectValues();
-                    // Jika ada plafond awal, langsung hitung
-                    if (this.form.plafond && this.form.plafond > 0 && this.form.tenor && this.form.produk) {
-                        this.hitung(true);
-                    }
-                }, 100);
+                }, 0);
             });
         },
 
@@ -335,6 +293,7 @@ function kbSimulasiForm() {
                 if (Object.prototype.hasOwnProperty.call(initialData, key) && initialData[key] !== null && initialData[key] !== undefined) {
                     const integerFields = ['gaji_pensiun', 'angsuran_lainnya', 'plafond', 'pelunasan', 'tenor', 'rate_percent_override', 'admin_angsuran_percent_override'];
                     if (integerFields.includes(key)) {
+                        // PAKSA BULAT: Menggunakan Math.round untuk menghilangkan .000000 saat load DB
                         this.form[key] = Math.round(Number(initialData[key]));
                     } else {
                         this.form[key] = initialData[key];
@@ -380,6 +339,7 @@ function kbSimulasiForm() {
             if (this.form.produk && this.productStructs[productKey]) {
                 const struct = this.productStructs[productKey];
                 
+                // FORCE ROUND: Pastikan dikonversi menjadi integer murni saat inisiasi awal komponen
                 if ((this.form.rate_percent_override === '' || this.form.rate_percent_override === null) && struct.rate_percent !== undefined) {
                     this.form.rate_percent_override = Math.round(Number(struct.rate_percent * 100));
                 }
@@ -411,33 +371,8 @@ function kbSimulasiForm() {
             this.recalculateRealtimeAge();
             this.recalculateRealtimeTenorMax();
             this.recalculateRealtimePlafondMax();
-            this.recalculateClientSide();
-            this.scheduleAutoCalculate();
-        },
-
-        recalculateClientSide() {
-            // Fungsi untuk kalkulasi client-side jika diperlukan
-            // Saat ini hanya trigger auto calculate ke server
-            if (this.enableAutoServerCalc && this.form.plafond && this.form.plafond > 0 && this.form.tenor && this.form.produk) {
-                this.scheduleAutoCalculate();
-            }
-        },
-
-        scheduleAutoCalculate() {
-            if (!this.enableAutoServerCalc) return;
-            
-            // Cek apakah semua field required sudah terisi
-            if (!this.form.produk || !this.form.tenor || !this.form.plafond) {
-                return;
-            }
-
-            if (this.autoCalculateTimer) {
-                clearTimeout(this.autoCalculateTimer);
-            }
-            
-            this.autoCalculateTimer = setTimeout(() => {
-                this.hitung(true);
-            }, 800);
+            if (typeof this.recalculateClientSide === 'function') this.recalculateClientSide();
+            if (typeof this.scheduleAutoCalculate === 'function') this.scheduleAutoCalculate();
         },
 
         normalizeOptionValue(value) {
@@ -457,6 +392,7 @@ function kbSimulasiForm() {
         },
 
         resolveInsuranceRatePercent(product, tenor) {
+            //console.log("Resolving insurance rate for product:", product, "tenor:", tenor);
             if (!product || tenor === null || tenor === undefined || tenor === '') {
                 return (this.insuranceConfigs.default_percent || 0) / 100;
             }
@@ -478,12 +414,13 @@ function kbSimulasiForm() {
 
         syncSelectValue(row) {
             if (!row || row.type !== 'select' || !row.key) return;
-           
+            console.log("Syncing select value for row key:", row.key);
             const optionsList = this.getRowOptions(row) || [];
             if (optionsList.length === 0) return;
 
             const current = this.form[row.key];
             const currentNormalized = this.normalizeOptionValue(current);
+            console.log("Current value:", current, "Normalized:", currentNormalized, "Options:", optionsList);
             const matched = optionsList.find((item) => this.normalizeOptionValue(item) === currentNormalized) ?? null;
 
             if (matched !== null) {
@@ -518,6 +455,7 @@ function kbSimulasiForm() {
         onInputLive(row, event) {
             if (!row || !row.key) return;
             if (row.type === 'integer' && event?.target?.value) {
+                // FORCE INTEGER: Potong langsung saat user mengetik
                 this.form[row.key] = Math.round(Number(event.target.value));
             } else {
                 this.form[row.key] = event?.target?.value ?? this.form[row.key];
@@ -647,196 +585,17 @@ function kbSimulasiForm() {
             const rateToUse = (this.form.rate_percent_override && this.form.rate_percent_override !== '')
               ? Number(this.form.rate_percent_override)
               : (struct.rate_percent ? struct.rate_percent * 100 : 0);
+            //console.log("rateTouse:",rateToUse, this.form.rate_percent_override, struct.rate_percent);  
             const rateBulanan = (rateToUse / 100) / 12;
             if (rateBulanan <= 0) return;
             const adm_ang = this.form.admin_angsuran_percent_override;
             const pmt = (sisaGaji-125000)/(1+adm_ang/100);
             const n = tenorInput;
             const pv = pmt * ((1 - Math.pow(1 + rateBulanan, -n)) / rateBulanan);
+            //console.log("pmt:", pmt, "rateBulanan:", rateBulanan, "n:", n, "pv:", pv);
+            //console.log("tenorInput:", tenorInput);
+            //console.log('Recalculate Plafond Max:', { sisaGaji, rateBulanan, tenorInput, pv });     
             this.plafondMaxText = Number.isFinite(pv) && pv > 0 ? Math.round(pv) : '-';
-        },
-
-        async hitung(silent = false) {
-            // Validasi input yang diperlukan untuk kalkulasi
-            if (!this.form.produk || !this.form.tenor || !this.form.plafond) {
-                if (!silent) {
-                    this.errorMessage = 'Produk, Tenor, dan Plafond harus diisi untuk menghitung';
-                    setTimeout(() => { this.errorMessage = ''; }, 3000);
-                }
-                return;
-            }
-            
-            // Validasi plafond tidak melebihi plafond max
-            const plafondMax = typeof this.plafondMaxText === 'number' ? this.plafondMaxText : Number(this.plafondMaxText);
-            if (plafondMax > 0 && Number(this.form.plafond) > plafondMax) {
-                if (!silent) {
-                    this.limitWarning = `Plafond melebihi plafond maksimal (Rp ${Math.round(plafondMax).toLocaleString('id-ID')})`;
-                    setTimeout(() => { this.limitWarning = ''; }, 5000);
-                }
-                return;
-            }
-            
-            // Abort request sebelumnya jika ada
-            if (this.calcAbortController) {
-                this.calcAbortController.abort();
-            }
-            
-            this.calcAbortController = new AbortController();
-            this.isCalculating = true;
-            
-            if (!silent) {
-                this.message = 'Menghitung...';
-            }
-            this.errorMessage = '';
-            this.limitWarning = '';
-            
-            try {
-                const response = await fetch(routes.calculate, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrf
-                    },
-                    body: JSON.stringify({
-                        produk: this.form.produk,
-                        jenis_pensiun: this.form.jenis_pensiun,
-                        mutasi: this.form.mutasi,
-                        plafond: this.form.plafond,
-                        tenor: this.form.tenor,
-                        rate_percent_override: this.form.rate_percent_override,
-                        admin_angsuran_percent_override: this.form.admin_angsuran_percent_override,
-                        tanggal_lahir: this.form.tanggal_lahir,
-                        tanggal_simulasi: this.form.tanggal_simulasi,
-                        gaji_pensiun: this.form.gaji_pensiun,
-                        angsuran_lainnya: this.form.angsuran_lainnya,
-                        blokir_angsuran: this.form.blokir_angsuran
-                    }),
-                    signal: this.calcAbortController.signal
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    this.hasil = data.data;
-                    this.hasilDisplay = Object.entries(data.data).map(([key, value]) => ({ key, value }));
-                    if (!silent) {
-                        this.message = 'Perhitungan berhasil';
-                        setTimeout(() => { this.message = ''; }, 3000);
-                    }
-                } else {
-                    this.errorMessage = data.message || 'Gagal menghitung';
-                    if (!silent) {
-                        setTimeout(() => { this.errorMessage = ''; }, 3000);
-                    }
-                }
-            } catch (error) {
-                if (error.name !== 'AbortError') {
-                    console.error('Error:', error);
-                    if (!silent) {
-                        this.errorMessage = 'Terjadi kesalahan saat menghitung';
-                        setTimeout(() => { this.errorMessage = ''; }, 3000);
-                    }
-                }
-            } finally {
-                this.isCalculating = false;
-                this.calcAbortController = null;
-            }
-        },
-
-        async simpan() {
-            if (!this.hasil) {
-                this.errorMessage = 'Tidak ada data hasil perhitungan untuk disimpan';
-                setTimeout(() => { this.errorMessage = ''; }, 3000);
-                return;
-            }
-            
-            this.isSaving = true;
-            this.message = 'Menyimpan data...';
-            
-            try {
-                const payload = {
-                    ...this.form,
-                    ...this.hasil,
-                    id: this.editDataSimulasiId || null
-                };
-                
-                const response = await fetch(routes.store, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrf
-                    },
-                    body: JSON.stringify(payload)
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    this.message = 'Data berhasil disimpan';
-                    setTimeout(() => { this.message = ''; }, 3000);
-                    
-                    if (data.id && !this.editDataSimulasiId) {
-                        this.editDataSimulasiId = data.id;
-                    }
-                } else {
-                    this.errorMessage = data.message || 'Gagal menyimpan data';
-                    setTimeout(() => { this.errorMessage = ''; }, 3000);
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                this.errorMessage = 'Terjadi kesalahan saat menyimpan data';
-                setTimeout(() => { this.errorMessage = ''; }, 3000);
-            } finally {
-                this.isSaving = false;
-            }
-        },
-
-        async downloadPdf() {
-            if (!this.hasil) {
-                this.errorMessage = 'Tidak ada data untuk diunduh sebagai PDF';
-                setTimeout(() => { this.errorMessage = ''; }, 3000);
-                return;
-            }
-            
-            this.isDownloading = true;
-            
-            try {
-                const response = await fetch(routes.downloadPdf, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrf
-                    },
-                    body: JSON.stringify({
-                        form: this.form,
-                        hasil: this.hasil
-                    })
-                });
-                
-                if (response.ok) {
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `simulasi_${this.form.nama_debitur || 'debitur'}_${new Date().toISOString().slice(0, 19)}.pdf`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    window.URL.revokeObjectURL(url);
-                    
-                    this.message = 'PDF berhasil diunduh';
-                    setTimeout(() => { this.message = ''; }, 3000);
-                } else {
-                    this.errorMessage = 'Gagal mengunduh PDF';
-                    setTimeout(() => { this.errorMessage = ''; }, 3000);
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                this.errorMessage = 'Terjadi kesalahan saat mengunduh PDF';
-                setTimeout(() => { this.errorMessage = ''; }, 3000);
-            } finally {
-                this.isDownloading = false;
-            }
         },
 
         getRowOptions(row) {
@@ -846,26 +605,10 @@ function kbSimulasiForm() {
             if (row.optionsKey === 'instansi') return this.instansiOptions;
             return Array.isArray(this.options[row.optionsKey]) ? this.options[row.optionsKey] : [];
         },
-        
-        getRenderableRows() { 
-            return this.excelRows; 
-        },
-        
-        isInputDisabled(row) { 
-            if (row.onlyRoleCanEditPricing && !this.permissions.can_edit_pricing) {
-                return true;
-            }
-            return false; 
-        },
-        
-        getFieldError(key) { 
-            return this.fieldMessages[key] || ''; 
-        },
-        
-        shouldShowMessages() { 
-            return true; 
-        },
-        
+        getRenderableRows() { return this.excelRows; },
+        isInputDisabled() { return false; },
+        getFieldError() { return ''; },
+        shouldShowMessages() { return true; },
         getRowDisplayValue(row) {
             if (row.key === 'umur_text') return this.umurRealtimeText;
             if (row.key === 'tenor_max') return this.tenorMaxText;
@@ -884,9 +627,6 @@ function kbSimulasiForm() {
                 if (row.format === 'currency' && typeof val === 'number') {
                     return 'Rp ' + Math.round(val).toLocaleString('id-ID');
                 }
-                if (row.format === 'date' && val) {
-                    return val;
-                }
                 return val;
             }
             return '-';
@@ -894,4 +634,3 @@ function kbSimulasiForm() {
     };
 }
 </script>
-@endsection
