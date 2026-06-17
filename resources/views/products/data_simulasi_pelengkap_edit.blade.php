@@ -136,40 +136,6 @@
 
         <div class="card">
             <div class="card-body">
-                <div class="alert alert-info">
-                    <div class="fw-semibold mb-1">Paste dari Excel / Google Sheet</div>
-                    <div class="small mb-2">
-                        Copy satu baris data dari Excel/Google Sheet, lalu paste di kotak berikut.
-                        Sistem akan mengisi field sesuai urutan kolom data pelengkap.
-                    </div>
-                    <textarea id="paste-row"
-                              class="form-control mb-2"
-                              rows="3"
-                              placeholder="Contoh: 2026-03-12<TAB>002/SPPK/...<TAB>Jember<TAB>Jl. ..."
-                              data-fields="{{ implode(',', array_keys($fields)) }}"></textarea>
-                    <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-sm btn-outline-primary" id="btn-apply-paste">Isi Otomatis dari Paste</button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" id="btn-clear-paste">Kosongkan Kotak Paste</button>
-                    </div>
-                    <div class="small mt-2 text-muted" id="paste-status"></div>
-                </div>
-
-                <div class="alert alert-warning">
-                    <div class="fw-semibold mb-1">OCR PDF Pelengkap (proses & simpan otomatis)</div>
-                    <div class="small mb-2">
-                        Upload PDF sumber (contoh: MAEMUNAH_TERFLAGGING.PDF). Sistem akan memetakan field pelengkap sebanyak mungkin, simpan ke database, dan mengisi form ini.
-                    </div>
-                    <div class="row g-2 align-items-end">
-                        <div class="col-md-8">
-                            <label for="ocr_pdf_file" class="form-label">File PDF</label>
-                            <input type="file" class="form-control" id="ocr_pdf_file" accept="application/pdf">
-                        </div>
-                        <div class="col-md-4 d-grid">
-                            <button type="button" class="btn btn-outline-dark" id="btn-ocr-pdf">Proses & Simpan OCR PDF</button>
-                        </div>
-                    </div>
-                    <div class="small mt-2 text-muted" id="ocr-status"></div>
-                </div>
 
                 <div class="row g-3">
                     @foreach($fields as $field => $label)
