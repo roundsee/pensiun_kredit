@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
+use Log;
 
 class KbSimulationController extends Controller
 {
@@ -161,17 +163,27 @@ class KbSimulationController extends Controller
     public function store(Request $request): JsonResponse
     {
         $this->ensurePricingOverridesAuthorized($request);
-
+        Log::info('Storing KB simulation data...');
         $isClientSide = $request->boolean('client_side_calculation');
-        $input = $request->validate($this->storeRules());
-
+        Log::info('Client side calculation: ' . ($isClientSide ? 'true' : 'false'));
+        //$input = $request->validate($this->storeRules());
+        $validator = Validator::make($request->all(), $this->storeRules());
+        if ($validator->fails()) {
+            Log::error('VALIDASI GAGAL DI FIELD: ' . json_encode($validator->errors()->toArray()));
+            return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
+        }
+        $input = $validator->validated();        
+        Log::info('Input data: ' . json_encode($input));
         if ($isClientSide) {
+            Log::info('Validating client result data...');
             $clientResult = $request->validate($this->clientResultRules());
             $result = array_merge($input, $clientResult);
         } else {
+            Log::info('Calculating KB simulation data...');
             try {
                 $result = $this->kbSimulationExcelService->calculate($input);
             } catch (\Throwable $e) {
+                Log::error('Error during KB simulation calculation: ' . $e->getMessage());
                 return response()->json([
                     'message' => $e->getMessage(),
                 ], 422);
@@ -179,7 +191,9 @@ class KbSimulationController extends Controller
         }
 
         $limitChecks = $this->buildLimitChecks($input, $result);
+        Log::info('Limit checks: ' . json_encode($limitChecks));
         if (!$limitChecks['is_valid']) {
+            Log::warning('Invalid limit checks detected.');
             return response()->json([
                 'message' => 'Pengajuan ditolak karena ada batasan kelayakan yang tidak terpenuhi.',
                 'limits' => $limitChecks,
@@ -189,6 +203,7 @@ class KbSimulationController extends Controller
         }
 
         $persistPayload = $result;
+
         unset($persistPayload['umur_text'], $persistPayload['usia_lunas_text'], $persistPayload['angsuran_lainnya']);
 
         $saved = DataSimulasi::query()->create($persistPayload);
@@ -203,77 +218,86 @@ class KbSimulationController extends Controller
     }
 
     public function downloadPdf(Request $request)
-    {
-        $this->ensurePricingOverridesAuthorized($request);
+{
+    // Gunakan validator manual agar jika ada field kurang tidak langsung melempar error HTML Redirect
+    $validator = \Illuminate\Support\Facades\Validator::make($request->all(), $this->calculateRules());
+    
+    // Ambil data yang lolos validasi, atau ambil langsung dari request jika ada yang miss
+    $input = $request->all();
 
-        $isClientSide = $request->boolean('client_side_calculation');
-        $input = $request->validate($this->calculateRules());
+    // Pastikan data personal dasar terisi aman sebagai fallback
+    $input = array_merge([
+        'produk' => 'Platinum',
+        'jenis_pensiun' => 'Sendiri',
+        'bank_tujuan' => 'BANK BUKOPIN',
+        'nama_debitur' => '-',
+        'tanggal_simulasi' => now()->toDateString(),
+        'tanggal_lahir' => null,
+        'nomor_pensiun' => '-',
+        'instansi' => 'TASPEN',
+        'gaji_pensiun' => 0,
+        'angsuran_lainnya' => 0,
+        'tenor' => 1,
+        'plafond' => 0,
+        'nama_marketing' => '-',
+        'kode_area' => '-',
+    ], $input);
 
-        $input = array_merge([
-            'produk' => 'Platinum',
-            'jenis_pensiun' => 'Sendiri',
-            'bank_tujuan' => 'BANK BUKOPIN',
-            'nama_debitur' => '-',
-            'tanggal_simulasi' => now()->toDateString(),
-            'tanggal_lahir' => null,
-            'nomor_pensiun' => '-',
-            'instansi' => 'TASPEN',
-            'gaji_pensiun' => 0,
-            'angsuran_lainnya' => 0,
-            'tenor' => null,
-            'plafond' => null,
-            'nama_marketing' => '-',
-            'kode_area' => '-',
-        ], $input);
+    $isClientSide = $request->boolean('client_side_calculation');
 
-        if ($isClientSide) {
-            $clientResult = $request->validate($this->clientResultRules());
-            $result = array_merge($input, $clientResult);
-        } else {
+    if ($isClientSide) {
+        $result = $input; // Jika client-side, gunakan langsung gabungan data dari frontend
+    } else {
+        try {
+            // Hitung ulang via excel service untuk memastikan kecocokan angka
             $result = $this->kbSimulationExcelService->calculate($input);
+        } catch (\Throwable $e) {
+            // Catat ke log file jika excel service mendadak error
+            \Illuminate\Support\Facades\Log::error('PDF Calculation Fail: ' . $e->getMessage());
+            return response()->json(['message' => 'Gagal menghitung ulang simulasi untuk PDF: ' . $e->getMessage()], 422);
         }
-
-        // Prepare objects expected by the legacy blade `simulasifordownload`
-        $simArray = $result;
-        $simArray['notas'] = $result['nomor_pensiun'] ?? ($input['nomor_pensiun'] ?? '-');
-        $simArray['created_at'] = \Illuminate\Support\Carbon::parse($input['tanggal_simulasi'] ?? now());
-        $simArray['usia'] = $result['umur'] ?? null;
-        $simArray['instansi'] = $input['instansi'] ?? ($result['instansi'] ?? null);
-        $simArray['product_kode'] = $input['product_kode'] ?? $input['produk'] ?? null;
-        $sim = (object) $simArray;
-
-        $tu = (object) [
-            'nama_penerima' => $input['nama_debitur'] ?? ($result['nama_debitur'] ?? '-'),
-            'tgl_lahir_penerima' => $input['tanggal_lahir'] ?? ($result['tanggal_lahir'] ?? null),
-            'bersih' => $result['gaji_pensiun'] ?? ($input['gaji_pensiun'] ?? 0),
-        ];
-
-        // try to load logo as base64 for data URI used by the blade; fallback to empty string
-        $logoPath = public_path('img/Logo_nata.jpeg');
-        $logo = '';
-        if (file_exists($logoPath)) {
-            $logo = base64_encode(file_get_contents($logoPath));
-        }
-
-        $user_name = optional(auth()->user())->name ?? ($input['nama_marketing'] ?? '-');
-
-        $pdf = Pdf::loadView('products.simulasifordownload', [
-            'sim' => $sim,
-            'tu' => $tu,
-            'logo' => $logo,
-            'user_name' => $user_name,
-            'generatedAt' => now(),
-        ])->setPaper('a4', 'portrait');
-
-        $filename = 'simulasi-kb-' . now()->format('Ymd-His') . '.pdf';
-
-        // Return explicit binary response so fetch receives correct PDF bytes and headers
-        $binary = $pdf->output();
-        return response($binary, 200)
-            ->header('Content-Type', 'application/pdf')
-            ->header('Content-Disposition', "attachment; filename=\"{$filename}\"")
-            ->header('Content-Length', strlen($binary));
     }
+
+    // Prepare objects expected by the legacy blade `simulasifordownload`
+    $simArray = array_merge($input, $result); // Merge agar semua field bersatu aman
+    $simArray['notas'] = $request->input('nomor_pensiun') ?? $result['nomor_pensiun'] ?? '-';
+    $simArray['created_at'] = \Illuminate\Support\Carbon::parse($input['tanggal_simulasi'] ?? now());
+    $simArray['usia'] = $result['umur'] ?? null;
+    $simArray['instansi'] = $input['instansi'] ?? ($result['instansi'] ?? null);
+    $simArray['product_kode'] = $input['product_kode'] ?? $input['produk'] ?? null;
+    $sim = (object) $simArray;
+
+    $tu = (object) [
+        'nama_penerima' => $request->input('nama_debitur') ?? $result['nama_debitur'] ?? '-',
+        'tgl_lahir_penerima' => $request->input('tanggal_lahir') ?? $result['tanggal_lahir'] ?? null,
+        'bersih' => $result['gaji_pensiun'] ?? ($input['gaji_pensiun'] ?? 0),
+    ];
+
+    // load logo
+    $logoPath = public_path('img/Logo_nata.jpeg');
+    $logo = '';
+    if (file_exists($logoPath)) {
+        $logo = base64_encode(file_get_contents($logoPath));
+    }
+
+    $user_name = optional(auth()->user())->name ?? ($input['nama_marketing'] ?? '-');
+
+    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('products.simulasifordownload', [
+        'sim' => $sim,
+        'tu' => $tu,
+        'logo' => $logo,
+        'user_name' => $user_name,
+        'generatedAt' => now(),
+    ])->setPaper('a4', 'portrait');
+
+    $filename = 'simulasi-kb-' . now()->format('Ymd-His') . '.pdf';
+
+    $binary = $pdf->output();
+    return response($binary, 200)
+        ->header('Content-Type', 'application/pdf')
+        ->header('Content-Disposition', "attachment; filename=\"{$filename}\"")
+        ->header('Content-Length', strlen($binary));
+}
 
     private function buildLimitChecks(array $input, array $result): array
     {
@@ -415,7 +439,7 @@ class KbSimulationController extends Controller
         return [
             'produk' => ['required', 'string', 'max:100'],
             'jenis_pensiun' => ['required', 'string', 'max:100'],
-            'mutasi' => ['nullable', 'string', 'in:Mutasi,Non Mutasi'],
+           'mutasi' => ['nullable', 'string', 'in:Mutasi,Non Mutasi,MUTASI,NON MUTASI,mutasi,non mutasi'],
             'bank_tujuan' => ['nullable', 'string', 'max:255'],
             'nama_debitur' => ['nullable', 'string', 'max:255'],
             'tanggal_simulasi' => ['required', 'date'],
@@ -438,7 +462,7 @@ class KbSimulationController extends Controller
     private function clientResultRules(): array
     {
         return [
-            'mutasi' => ['nullable', 'string', 'in:Mutasi,Non Mutasi'],
+            'mutasi' => ['nullable', 'string', 'in:Mutasi,Non Mutasi,MUTASI,NON MUTASI'],
             'umur_text' => ['nullable', 'string', 'max:100'],
             'tenor_max' => ['nullable', 'integer', 'min:0'],
             'plafond_max' => ['nullable', 'numeric', 'min:0'],

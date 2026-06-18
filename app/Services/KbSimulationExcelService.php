@@ -7,7 +7,7 @@ use App\Models\ProductStruct;
 use App\Models\TemplateField;
 use App\Models\InsuranceRate;
 use Carbon\Carbon;
-
+use Log;
 class KbSimulationExcelService
 {
     public function getSelectOptions(): array
@@ -53,131 +53,132 @@ class KbSimulationExcelService
             'kode_area' => '-',
         ], $input);
 
-        $ioFactoryClass = 'PhpOffice\\PhpSpreadsheet\\IOFactory';
+        //$ioFactoryClass = 'PhpOffice\\PhpSpreadsheet\\IOFactory';
+        Log::info('Starting calculation without spreadsheet...');
+        return $this->calculateWithoutSpreadsheet($input);
+        // if (!class_exists($ioFactoryClass)) {
+        //     return $this->calculateWithoutSpreadsheet($input);
+        // }
 
-        if (!class_exists($ioFactoryClass)) {
-            return $this->calculateWithoutSpreadsheet($input);
-        }
+        // $reader = $ioFactoryClass::createReader('Xlsx');
+        // if (method_exists($reader, 'setReadDataOnly')) {
+        //     $reader->setReadDataOnly(true);
+        // }
 
-        $reader = $ioFactoryClass::createReader('Xlsx');
-        if (method_exists($reader, 'setReadDataOnly')) {
-            $reader->setReadDataOnly(true);
-        }
+        // $spreadsheet = $reader->load(storage_path('upload/Simulasi_KB.xlsx'));
+        // $sheet = $spreadsheet->getSheetByName('SIMULASI');
 
-        $spreadsheet = $reader->load(storage_path('upload/Simulasi_KB.xlsx'));
-        $sheet = $spreadsheet->getSheetByName('SIMULASI');
+        // if ($sheet === null) {
+        //     $spreadsheet->disconnectWorksheets();
+        //     throw new \RuntimeException('Sheet SIMULASI tidak ditemukan.');
+        // }
 
-        if ($sheet === null) {
-            $spreadsheet->disconnectWorksheets();
-            throw new \RuntimeException('Sheet SIMULASI tidak ditemukan.');
-        }
+        // $excelDateClass = 'PhpOffice\\PhpSpreadsheet\\Shared\\Date';
+        // $tanggalSimulasi = Carbon::parse($input['tanggal_simulasi']);
+        // $tanggalSimulasiExcel = class_exists($excelDateClass)
+        //     ? $excelDateClass::PHPToExcel($tanggalSimulasi)
+        //     : $tanggalSimulasi->format('d/m/Y');
+        // $tanggalLahir = Carbon::parse($input['tanggal_lahir']);
+        // $tanggalLahirExcel = class_exists($excelDateClass)
+        //     ? $excelDateClass::PHPToExcel($tanggalLahir)
+        //     : $tanggalLahir->format('d/m/Y');
 
-        $excelDateClass = 'PhpOffice\\PhpSpreadsheet\\Shared\\Date';
-        $tanggalSimulasi = Carbon::parse($input['tanggal_simulasi']);
-        $tanggalSimulasiExcel = class_exists($excelDateClass)
-            ? $excelDateClass::PHPToExcel($tanggalSimulasi)
-            : $tanggalSimulasi->format('d/m/Y');
-        $tanggalLahir = Carbon::parse($input['tanggal_lahir']);
-        $tanggalLahirExcel = class_exists($excelDateClass)
-            ? $excelDateClass::PHPToExcel($tanggalLahir)
-            : $tanggalLahir->format('d/m/Y');
+        // $sheet->setCellValue('E10', (string) $input['produk']);
+        // $sheet->setCellValue('E11', (string) $input['jenis_pensiun']);
+        // $sheet->setCellValue('E14', (string) $input['bank_tujuan']);
+        // $sheet->setCellValue('E17', $tanggalSimulasiExcel);
+        // $sheet->setCellValue('E18', (string) $input['nama_debitur']);
+        // $sheet->setCellValue('E19', $tanggalLahirExcel);
+        // $sheet->setCellValue('E21', (string) $input['nomor_pensiun']);
+        // $sheet->setCellValue('E22', (string) $input['instansi']);
+        // $sheet->setCellValue('E23', (float) $input['gaji_pensiun']);
+        // $sheet->setCellValue('E24', (float) ($input['angsuran_lainnya'] ?? 0));
+        // if ($input['tenor'] !== null && $input['tenor'] !== '') {
+        //     $sheet->setCellValue('E28', (int) $input['tenor']);
+        // }
+        // if ($input['plafond'] !== null && $input['plafond'] !== '') {
+        //     $sheet->setCellValue('E29', (float) $input['plafond']);
+        // }
+        // if (($input['rate_percent_override'] ?? null) !== null && ($input['rate_percent_override'] ?? '') !== '') {
+        //     $sheet->setCellValue('E26A', (float) $input['rate_percent_override']);
+        // }
+        // if (($input['admin_angsuran_percent_override'] ?? null) !== null && ($input['admin_angsuran_percent_override'] ?? '') !== '') {
+        //     $sheet->setCellValue('E26B', (float) $input['admin_angsuran_percent_override']);
+        // }
+        // $sheet->setCellValue('E43', (string) $input['nama_marketing']);
+        // $sheet->setCellValue('E44', (string) $input['kode_area']);
 
-        $sheet->setCellValue('E10', (string) $input['produk']);
-        $sheet->setCellValue('E11', (string) $input['jenis_pensiun']);
-        $sheet->setCellValue('E14', (string) $input['bank_tujuan']);
-        $sheet->setCellValue('E17', $tanggalSimulasiExcel);
-        $sheet->setCellValue('E18', (string) $input['nama_debitur']);
-        $sheet->setCellValue('E19', $tanggalLahirExcel);
-        $sheet->setCellValue('E21', (string) $input['nomor_pensiun']);
-        $sheet->setCellValue('E22', (string) $input['instansi']);
-        $sheet->setCellValue('E23', (float) $input['gaji_pensiun']);
-        $sheet->setCellValue('E24', (float) ($input['angsuran_lainnya'] ?? 0));
-        if ($input['tenor'] !== null && $input['tenor'] !== '') {
-            $sheet->setCellValue('E28', (int) $input['tenor']);
-        }
-        if ($input['plafond'] !== null && $input['plafond'] !== '') {
-            $sheet->setCellValue('E29', (float) $input['plafond']);
-        }
-        if (($input['rate_percent_override'] ?? null) !== null && ($input['rate_percent_override'] ?? '') !== '') {
-            $sheet->setCellValue('E26A', (float) $input['rate_percent_override']);
-        }
-        if (($input['admin_angsuran_percent_override'] ?? null) !== null && ($input['admin_angsuran_percent_override'] ?? '') !== '') {
-            $sheet->setCellValue('E26B', (float) $input['admin_angsuran_percent_override']);
-        }
-        $sheet->setCellValue('E43', (string) $input['nama_marketing']);
-        $sheet->setCellValue('E44', (string) $input['kode_area']);
+        // $tenorMaxFromStruct = $this->calculateTenorMaxFromProductStruct(
+        //     (string) $input['produk'],
+        //     (string) $input['jenis_pensiun'],
+        //     (string) $input['tanggal_lahir'],
+        //     (string) $input['tanggal_simulasi']
+        // );
 
-        $tenorMaxFromStruct = $this->calculateTenorMaxFromProductStruct(
-            (string) $input['produk'],
-            (string) $input['jenis_pensiun'],
-            (string) $input['tanggal_lahir'],
-            (string) $input['tanggal_simulasi']
-        );
+        // $tenorMaxCalculated = (int) round((float) $this->cellCalculated($sheet, 'E26'));
+        // $tenorMaxFinal = $tenorMaxFromStruct ?? $tenorMaxCalculated;
 
-        $tenorMaxCalculated = (int) round((float) $this->cellCalculated($sheet, 'E26'));
-        $tenorMaxFinal = $tenorMaxFromStruct ?? $tenorMaxCalculated;
+        // $angsuranLainnya = (float) ($input['angsuran_lainnya'] ?? 0);
+        // $gajiPensiun = (float) ($input['gaji_pensiun'] ?? 0);
+        // $sisaGajiSaatPengajuan = max(0.0, $gajiPensiun - $angsuranLainnya);
+        // $tenorInput = ($input['tenor'] === null || $input['tenor'] === '') ? $tenorMaxFinal : (int) $input['tenor'];
 
-        $angsuranLainnya = (float) ($input['angsuran_lainnya'] ?? 0);
-        $gajiPensiun = (float) ($input['gaji_pensiun'] ?? 0);
-        $sisaGajiSaatPengajuan = max(0.0, $gajiPensiun - $angsuranLainnya);
-        $tenorInput = ($input['tenor'] === null || $input['tenor'] === '') ? $tenorMaxFinal : (int) $input['tenor'];
+        // $plafondMaxFromStruct = $this->calculatePlafondMaxFromProductStruct(
+        //     (string) $input['produk'],
+        //     (string) $input['jenis_pensiun'],
+        //     $tenorInput,
+        //     $sisaGajiSaatPengajuan,
+        //     ($input['rate_percent_override'] ?? null),
+        //     ($input['admin_angsuran_percent_override'] ?? null)
+        // );
 
-        $plafondMaxFromStruct = $this->calculatePlafondMaxFromProductStruct(
-            (string) $input['produk'],
-            (string) $input['jenis_pensiun'],
-            $tenorInput,
-            $sisaGajiSaatPengajuan,
-            ($input['rate_percent_override'] ?? null),
-            ($input['admin_angsuran_percent_override'] ?? null)
-        );
+        // $plafondMaxCalculated = (float) $this->cellCalculated($sheet, 'E27');
+        // $plafondMaxFinal = $plafondMaxFromStruct ?? $plafondMaxCalculated;
 
-        $plafondMaxCalculated = (float) $this->cellCalculated($sheet, 'E27');
-        $plafondMaxFinal = $plafondMaxFromStruct ?? $plafondMaxCalculated;
+        // $result = [
+        //     'produk' => (string) $input['produk'],
+        //     'jenis_pensiun' => (string) $input['jenis_pensiun'],
+        //     'mutasi' => 'NON MUTASI',
+        //     'bank_tujuan' => (string) $input['bank_tujuan'],
+        //     'nama_debitur' => (string) $input['nama_debitur'],
+        //     'tanggal_simulasi' => Carbon::parse($input['tanggal_simulasi'])->toDateString(),
+        //     'tanggal_lahir' => Carbon::parse($input['tanggal_lahir'])->toDateString(),
+        //     'nomor_pensiun' => (string) $input['nomor_pensiun'],
+        //     'instansi' => (string) $input['instansi'],
+        //     'gaji_pensiun' => $gajiPensiun,
+        //     'angsuran_lainnya' => $angsuranLainnya,
+        //     'tenor' => ($input['tenor'] === null || $input['tenor'] === '') ? 0 : (int) $input['tenor'],
+        //     'plafond' => ($input['plafond'] === null || $input['plafond'] === '') ? 0 : (float) $input['plafond'],
+        //     'nama_marketing' => (string) $input['nama_marketing'],
+        //     'kode_area' => (string) $input['kode_area'],
+        //     'umur_text' => (string) $this->cellCalculated($sheet, 'E20'),
+        //     'umur' => $this->parseAgeYear($this->cellCalculated($sheet, 'E20')),
+        //     'tenor_max' => $tenorMaxFinal,
+        //     'plafond_max' => $plafondMaxFinal,
+        //     'angsuran' => (float) $this->cellCalculated($sheet, 'E31'),
+        //     'biaya_adm_angs' => (float) $this->cellCalculated($sheet, 'E32'),
+        //     'total_angsuran' => (float) $this->cellCalculated($sheet, 'E33'),
+        //     'provisi' => (float) $this->cellCalculated($sheet, 'E35'),
+        //     'administrasi' => (float) $this->cellCalculated($sheet, 'E36'),
+        //     'asuransi' => (float) $this->cellCalculated($sheet, 'E37'),
+        //     'pelunasan' => (float) $this->cellCalculated($sheet, 'E39'),
+        //     'amount_blokir_angsuran' => (float) $this->cellCalculated($sheet, 'E41'),
+        //     'blokir_angsuran' => (float) $this->cellCalculated($sheet, 'E41'),
+        //     'total_biaya' => (float) $this->cellCalculated($sheet, 'E51'),
+        //     'sisa_gaji_saat_pengajuan' => $sisaGajiSaatPengajuan,
+        //     'sisa_gaji_akhir' => (float) $this->cellCalculated($sheet, 'E52'),
+        //     'extra_premi' => 0.0,
+        //     'tata_laksana' => '',
+        //     'terima_bersih' => (float) $this->cellCalculated($sheet, 'E54'),
+        //     'usia_lunas_text' => (string) $this->cellCalculated($sheet, 'E46'),
+        //     'usia_lunas' => $this->parseAgeYear($this->cellCalculated($sheet, 'E46')),
+        //     'tgl_permohonan' => $this->cellDate($sheet, 'E47'),
+        //     'tgl_lunas' => $this->cellDate($sheet, 'E49'),
+        // ];
 
-        $result = [
-            'produk' => (string) $input['produk'],
-            'jenis_pensiun' => (string) $input['jenis_pensiun'],
-            'mutasi' => 'NON MUTASI',
-            'bank_tujuan' => (string) $input['bank_tujuan'],
-            'nama_debitur' => (string) $input['nama_debitur'],
-            'tanggal_simulasi' => Carbon::parse($input['tanggal_simulasi'])->toDateString(),
-            'tanggal_lahir' => Carbon::parse($input['tanggal_lahir'])->toDateString(),
-            'nomor_pensiun' => (string) $input['nomor_pensiun'],
-            'instansi' => (string) $input['instansi'],
-            'gaji_pensiun' => $gajiPensiun,
-            'angsuran_lainnya' => $angsuranLainnya,
-            'tenor' => ($input['tenor'] === null || $input['tenor'] === '') ? 0 : (int) $input['tenor'],
-            'plafond' => ($input['plafond'] === null || $input['plafond'] === '') ? 0 : (float) $input['plafond'],
-            'nama_marketing' => (string) $input['nama_marketing'],
-            'kode_area' => (string) $input['kode_area'],
-            'umur_text' => (string) $this->cellCalculated($sheet, 'E20'),
-            'umur' => $this->parseAgeYear($this->cellCalculated($sheet, 'E20')),
-            'tenor_max' => $tenorMaxFinal,
-            'plafond_max' => $plafondMaxFinal,
-            'angsuran' => (float) $this->cellCalculated($sheet, 'E31'),
-            'biaya_adm_angs' => (float) $this->cellCalculated($sheet, 'E32'),
-            'total_angsuran' => (float) $this->cellCalculated($sheet, 'E33'),
-            'provisi' => (float) $this->cellCalculated($sheet, 'E35'),
-            'administrasi' => (float) $this->cellCalculated($sheet, 'E36'),
-            'asuransi' => (float) $this->cellCalculated($sheet, 'E37'),
-            'pelunasan' => (float) $this->cellCalculated($sheet, 'E39'),
-            'amount_blokir_angsuran' => (float) $this->cellCalculated($sheet, 'E41'),
-            'blokir_angsuran' => (float) $this->cellCalculated($sheet, 'E41'),
-            'total_biaya' => (float) $this->cellCalculated($sheet, 'E51'),
-            'sisa_gaji_saat_pengajuan' => $sisaGajiSaatPengajuan,
-            'sisa_gaji_akhir' => (float) $this->cellCalculated($sheet, 'E52'),
-            'extra_premi' => 0.0,
-            'tata_laksana' => '',
-            'terima_bersih' => (float) $this->cellCalculated($sheet, 'E54'),
-            'usia_lunas_text' => (string) $this->cellCalculated($sheet, 'E46'),
-            'usia_lunas' => $this->parseAgeYear($this->cellCalculated($sheet, 'E46')),
-            'tgl_permohonan' => $this->cellDate($sheet, 'E47'),
-            'tgl_lunas' => $this->cellDate($sheet, 'E49'),
-        ];
+        // $spreadsheet->disconnectWorksheets();
 
-        $spreadsheet->disconnectWorksheets();
-
-        return $result;
+        // return $result;
     }
 
     private function calculateWithoutSpreadsheet(array $input): array
@@ -235,8 +236,9 @@ class KbSimulationExcelService
             : 0.0;
         $biayaAdmAngs = $angsuran * $adminAngsuranPercent;
         $totalAngsuran = $angsuran + $biayaAdmAngs;
-
+        
         $provisi = $plafond * $provisiPercent;
+        Log::info("Provisi calculated: {$provisi}");
         $administrasi = $plafond * $administrasiPercent;
         $asuransi = $plafond * $asuransiPercent;
         $extraPremi = 0.0;

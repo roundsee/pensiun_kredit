@@ -657,7 +657,7 @@ function kbSimulasiForm() {
         },
 
         async hitung(silent = false) {
-            // Validasi input yang diperlukan untuk kalkulasi
+            // Validasi input wajib murni
             if (!this.form.produk || !this.form.tenor || !this.form.plafond) {
                 if (!silent) {
                     this.errorMessage = 'Produk, Tenor, dan Plafond harus diisi untuk menghitung';
@@ -666,15 +666,8 @@ function kbSimulasiForm() {
                 return;
             }
             
-            // Validasi plafond tidak melebihi plafond max
-            const plafondMax = typeof this.plafondMaxText === 'number' ? this.plafondMaxText : Number(this.plafondMaxText);
-            if (plafondMax > 0 && Number(this.form.plafond) > plafondMax) {
-                if (!silent) {
-                    this.limitWarning = `Plafond melebihi plafond maksimal (Rp ${Math.round(plafondMax).toLocaleString('id-ID')})`;
-                    setTimeout(() => { this.limitWarning = ''; }, 5000);
-                }
-                return;
-            }
+            // HAPUS ATAU KOMENTARI BLOKADE VALIDASI PLAFOND MAX DI SINI
+            // Biarkan backend Laravel yang menguji kevalidan angkanya agar data tetap mengalir
             
             // Abort request sebelumnya jika ada
             if (this.calcAbortController) {
@@ -716,18 +709,22 @@ function kbSimulasiForm() {
                 
                 const data = await response.json();
                 
-                if (data.success) {
+                // PERBAIKAN UTAMA: Selama server mengirimkan array data kalkulasi, 
+                // langsung kunci dan tampilkan ke layar agar Provisi/Admin tidak jadi (-)
+                if (data.data) {
                     this.hasil = data.data;
                     this.hasilDisplay = Object.entries(data.data).map(([key, value]) => ({ key, value }));
+                }
+                
+                // Urus notifikasi sukses/gagal secara terpisah tanpa merusak tampilan tabel
+                if (data.success || (data.limits && data.limits.is_valid)) {
                     if (!silent) {
                         this.message = 'Perhitungan berhasil';
                         setTimeout(() => { this.message = ''; }, 3000);
                     }
                 } else {
-                    this.errorMessage = data.message || 'Gagal menghitung';
-                    if (!silent) {
-                        setTimeout(() => { this.errorMessage = ''; }, 3000);
-                    }
+                    // Jika server mendeteksi ada limit yang dilanggar (misal tenor kebesaran)
+                    this.errorMessage = data.message || 'Perhitungan simulasi melewati batas limit.';
                 }
             } catch (error) {
                 if (error.name !== 'AbortError') {
@@ -744,100 +741,125 @@ function kbSimulasiForm() {
         },
 
         async simpan() {
-            if (!this.hasil) {
-                this.errorMessage = 'Tidak ada data hasil perhitungan untuk disimpan';
-                setTimeout(() => { this.errorMessage = ''; }, 3000);
-                return;
-            }
+    if (!this.hasil) {
+        this.errorMessage = 'Tidak ada data hasil perhitungan untuk disimpan';
+        setTimeout(() => { this.errorMessage = ''; }, 3000);
+        return;
+    }
+    
+    this.isSaving = true;
+    this.message = 'Menyimpan data...';
+    this.errorMessage = ''; // Clear error lama
+    
+    try {
+        const payload = {
+            ...this.hasil,
+            ...this.form,
+            id: this.editDataSimulasiId || null
+        };
+        
+        const response = await fetch(routes.store, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrf
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        // --- PERBAIKAN: CEK RESPONS BUKAN JSON ---
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+            const textError = await response.text();
+            console.error('SERVER ERROR (HTML/TEXT):', textError);
             
-            this.isSaving = true;
-            this.message = 'Menyimpan data...';
+            // Coba ambil potongan error dari HTML laravel jika memungkinkan
+            this.errorMessage = 'Server Error (500/422). Silakan cek tab Console F12.';
+            return; // Hentikan agar tidak crash di response.json()
+        }
+        
+        // Jika aman berbentuk JSON, baru di-parse
+        const data = await response.json();
+        console.log('Simpan response SUKSES JSON:', data);
+        
+        // Catatan: Laravel mengembalikan HTTP 201 jika sukses, gunakan data.id atau HTTP status
+        if (response.ok) { 
+            this.message = data.message || 'Data berhasil disimpan';
+            setTimeout(() => { this.message = ''; }, 3000);
             
-            try {
-                const payload = {
-                    ...this.form,
-                    ...this.hasil,
-                    id: this.editDataSimulasiId || null
-                };
-                
-                const response = await fetch(routes.store, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrf
-                    },
-                    body: JSON.stringify(payload)
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    this.message = 'Data berhasil disimpan';
-                    setTimeout(() => { this.message = ''; }, 3000);
-                    
-                    if (data.id && !this.editDataSimulasiId) {
-                        this.editDataSimulasiId = data.id;
-                    }
-                } else {
-                    this.errorMessage = data.message || 'Gagal menyimpan data';
-                    setTimeout(() => { this.errorMessage = ''; }, 3000);
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                this.errorMessage = 'Terjadi kesalahan saat menyimpan data';
-                setTimeout(() => { this.errorMessage = ''; }, 3000);
-            } finally {
-                this.isSaving = false;
+            if (data.id && !this.editDataSimulasiId) {
+                this.editDataSimulasiId = data.id;
             }
-        },
+        } else {
+            this.errorMessage = data.message || 'Gagal menyimpan data';
+            setTimeout(() => { this.errorMessage = ''; }, 5000);
+        }
+    } catch (error) {
+        console.error('Error Catch Terjadi:', error);
+        this.errorMessage = 'Terjadi kesalahan saat menyimpan data';
+        setTimeout(() => { this.errorMessage = ''; }, 3000);
+    } finally {
+        this.isSaving = false;
+    }
+},
 
         async downloadPdf() {
-            if (!this.hasil) {
-                this.errorMessage = 'Tidak ada data untuk diunduh sebagai PDF';
-                setTimeout(() => { this.errorMessage = ''; }, 3000);
-                return;
-            }
-            
-            this.isDownloading = true;
-            
-            try {
-                const response = await fetch(routes.downloadPdf, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': csrf
-                    },
-                    body: JSON.stringify({
-                        form: this.form,
-                        hasil: this.hasil
-                    })
-                });
-                
-                if (response.ok) {
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `simulasi_${this.form.nama_debitur || 'debitur'}_${new Date().toISOString().slice(0, 19)}.pdf`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    window.URL.revokeObjectURL(url);
-                    
-                    this.message = 'PDF berhasil diunduh';
-                    setTimeout(() => { this.message = ''; }, 3000);
-                } else {
-                    this.errorMessage = 'Gagal mengunduh PDF';
-                    setTimeout(() => { this.errorMessage = ''; }, 3000);
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                this.errorMessage = 'Terjadi kesalahan saat mengunduh PDF';
-                setTimeout(() => { this.errorMessage = ''; }, 3000);
-            } finally {
-                this.isDownloading = false;
-            }
-        },
+    if (!this.hasil) {
+        this.errorMessage = 'Hitung simulasi terlebih dahulu sebelum mendownload PDF';
+        return;
+    }
+
+    this.isDownloading = true;
+    this.message = 'Sedang menyiapkan PDF...';
+
+    try {
+        const payload = {
+            ...this.hasil, // Gunakan hasil hitungan server agar sinkron
+            ...this.form,  // Ambil nama_debitur & nomor_pensiun asli dari form
+        };
+
+        const response = await fetch(routes.downloadPdf, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrf
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            throw new Error('Gagal men-generate PDF dari server');
+        }
+
+        // KUNCI UTAMA: Ambil respon sebagai BLOB (Binary Large Object)
+        const blob = await response.blob();
+        
+        // Buat tautan unduhan buatan di memori browser
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        
+        // Atur nama file default download
+        const timestamp = new Date().toISOString().slice(0,10).replace(/-/g, '');
+        a.download = `simulasi-kb-${this.form.nama_debitur || 'debitur'}-${timestamp}.pdf`;
+        
+        document.body.appendChild(a);
+        a.click();
+        
+        // Bersihkan memori browser setelah download terpicu
+        window.URL.revokeObjectURL(url);
+        a.remove();
+
+        this.message = 'PDF berhasil didownload';
+        setTimeout(() => { this.message = ''; }, 3000);
+
+    } catch (error) {
+        console.error('Error Download PDF:', error);
+        this.errorMessage = 'Terjadi kesalahan saat mengunduh PDF';
+    } finally {
+        this.isDownloading = false;
+    }
+},
 
         getRowOptions(row) {
             if (!row || !row.optionsKey) return [];
