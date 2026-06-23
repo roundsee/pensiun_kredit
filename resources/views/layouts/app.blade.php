@@ -31,6 +31,9 @@
                             <a class="nav-link" href="{{ route('kb_simulasi.index') }}">Simulasi KB</a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link" href="{{ route('data_simulasi.trial.list') }}">Trial Data Simulasi</a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link" href="{{ route('data_simulasi.list') }}">Data Simulasi</a>
                         </li>
                         <li class="nav-item">

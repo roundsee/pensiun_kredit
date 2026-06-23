@@ -245,6 +245,7 @@ class SimulationController extends Controller
         }
 
         $now = now();
+        $payload['status'] = 'confirmed';
         $payload['created_at'] = $now;
         $payload['updated_at'] = $now;
         $savedId = DB::table('data_simulasi')->insertGetId($payload);
@@ -657,7 +658,9 @@ class SimulationController extends Controller
             'no_pk'       => self::generateNomorPK(),
             'no_sppk'     => self::generateNomorSPPK(),
             'no_si'       => $this->generateNomorSI(),
-            'suku_bunga'  => 0, 
+            'suku_bunga'  => 10,
+            'prosentaseprovisi'=>0.5,
+            'prosentaseadmini'=>0.5, 
             'updated_at'  => now(),
         ];
 

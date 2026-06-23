@@ -5,7 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
-class ProductStructSeeder extends Seeder
+class ProductStructSeeder_mantap extends Seeder
 {
     public function run(): void
     {
@@ -13,7 +13,7 @@ class ProductStructSeeder extends Seeder
 
         $rows = [
             [
-                'produk' => 'Platinum-Sendiri',
+                'produk' => 'MANTAP-Platinum-Sendiri',
                 'kantor_bayar' => 'MANTAP',
                 'plafond_min' => 10000000,
                 'plafond_max' => 250000000,
@@ -34,12 +34,12 @@ class ProductStructSeeder extends Seeder
                 'sort_order' => 1,
             ],
             [
-                'produk' => 'Platinum-Janda',
+                'produk' => 'MANTAP-Platinum-Janda',
                 'kantor_bayar' => 'MANTAP',
                 'plafond_min' => 10000000,
                 'plafond_max' => 100000000,
                 'tenor_max' => 96,
-                'rate_percent' => 0.14,
+                'rate_percent' => 0.16,
                 'provisi_percent' => 0.02,
                 'usia_masuk_min' => 68,
                 'usia_max' => 80,
@@ -55,7 +55,7 @@ class ProductStructSeeder extends Seeder
                 'sort_order' => 2,
             ],
             [
-                'produk' => 'Platinum-Duda',
+                'produk' => 'MANTAP-Platinum-Duda',
                 'kantor_bayar' => 'MANTAP',
                 'plafond_min' => 10000000,
                 'plafond_max' => 600000000,
@@ -76,7 +76,7 @@ class ProductStructSeeder extends Seeder
                 'sort_order' => 3,
             ],
             [
-                'produk' => 'Platinum-Yatim',
+                'produk' => 'MANTAP-Platinum-Yatim',
                 'kantor_bayar' => 'MANTAP',
                 'plafond_min' => 5000000,
                 'plafond_max' => 500000000,
@@ -97,7 +97,7 @@ class ProductStructSeeder extends Seeder
                 'sort_order' => 3,
             ],            
             [
-                'produk' => 'Regular-Sendiri',
+                'produk' => 'MANTAP-Regular-Sendiri',
                 'kantor_bayar' => 'MANTAP',
                 'plafond_min' => 1000000,
                 'plafond_max' => 500000000,
@@ -118,7 +118,7 @@ class ProductStructSeeder extends Seeder
                 'sort_order' => 4,
             ],
             [
-                'produk' => 'Regular-Janda',
+                'produk' => 'MANTAP-Regular-Janda',
                 'kantor_bayar' => 'MANTAP',
                 'plafond_min' => 1000000,
                 'plafond_max' => 200000000,
@@ -139,7 +139,7 @@ class ProductStructSeeder extends Seeder
                 'sort_order' => 5,
             ],
             [
-                'produk' => 'Regular-Duda',
+                'produk' => 'MANTAP-Regular-Duda',
                 'kantor_bayar' => 'MANTAP',
                 'plafond_min' => 1000000,
                 'plafond_max' => 200000000,
@@ -160,7 +160,7 @@ class ProductStructSeeder extends Seeder
                 'sort_order' => 6,
             ],
             [
-                'produk' => 'SG-Sendiri',
+                'produk' => 'MANTAP-SG-Sendiri',
                 'kantor_bayar' => 'MANTAP',
                 'plafond_min' => 1500000,
                 'plafond_max' => 30000000,
@@ -181,7 +181,7 @@ class ProductStructSeeder extends Seeder
                 'sort_order' => 7,
             ],
             [
-                'produk' => 'SG-Janda',
+                'produk' => 'MANTAP-SG-Janda',
                 'kantor_bayar' => 'MANTAP',
                 'plafond_min' => 1500000,
                 'plafond_max' => 30000000,
@@ -202,7 +202,7 @@ class ProductStructSeeder extends Seeder
                 'sort_order' => 8,
             ],
             [
-                'produk' => 'SG-Duda',
+                'produk' => 'MANTAP-SG-Duda',
                 'kantor_bayar' => 'MANTAP',
                 'plafond_min' => 1500000,
                 'plafond_max' => 30000000,
@@ -223,7 +223,7 @@ class ProductStructSeeder extends Seeder
                 'sort_order' => 9,
             ],
             [
-                'produk' => 'SG-Yatim',
+                'produk' => 'MANTAP-SG-Yatim',
                 'kantor_bayar' => 'MANTAP',
                 'plafond_min' => 1500000,
                 'plafond_max' => 30000000,

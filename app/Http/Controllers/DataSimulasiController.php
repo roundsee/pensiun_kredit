@@ -15,6 +15,10 @@ class DataSimulasiController extends Controller
     {
         $dataSimulasi = DataSimulasi::query()
             ->with('pelengkap')
+            ->where(function ($query) {
+                $query->where('status', 'confirmed')
+                    ->orWhereNull('status');
+            })
             ->latest('id')
             ->paginate(15);
 
@@ -23,7 +27,40 @@ class DataSimulasiController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'document_type']);
 
-        return view('products.data_simulasi_index', compact('dataSimulasi', 'mailMergeTemplates'));
+        $listTitle = 'Data Simulasi';
+        $isTrialList = false;
+
+        return view('products.data_simulasi_index', compact('dataSimulasi', 'mailMergeTemplates', 'listTitle', 'isTrialList'));
+    }
+
+    public function trialIndex()
+    {
+        $dataSimulasi = DataSimulasi::query()
+            ->with('pelengkap')
+            ->where('status', 'trial')
+            ->latest('id')
+            ->paginate(15);
+
+        $mailMergeTemplates = MailMergeTemplate::query()
+            ->orderBy('document_type')
+            ->orderBy('name')
+            ->get(['id', 'name', 'document_type']);
+
+        $listTitle = 'Trial Data Simulasi';
+        $isTrialList = true;
+
+        return view('products.data_simulasi_index', compact('dataSimulasi', 'mailMergeTemplates', 'listTitle', 'isTrialList'));
+    }
+
+    public function confirm(DataSimulasi $dataSimulasi)
+    {
+        $dataSimulasi->update([
+            'status' => 'confirmed',
+        ]);
+
+        return redirect()
+            ->route('data_simulasi.trial.list')
+            ->with('success', 'Status simulasi berhasil diubah menjadi confirmed.');
     }
 
     public function edit(DataSimulasi $dataSimulasi)
@@ -326,7 +363,7 @@ class DataSimulasiController extends Controller
             'no_sppk' => 'NO SPPK',
             'alamat' => 'ALAMAT',
             'alamat_2' => 'ALAMAT 2',
-            'kota' => 'KOTA',
+            'kota' => 'KOTA []',
             'tgl_surat_pernyataan_kuasa_potong_gaji' => 'TANGGAL SURAT PERNYATAAN KUASA POTONG GAJI',
             'no_skep' => 'NO SKEP',
             'no_pk' => 'NO PK',

@@ -14,6 +14,8 @@ class DataSimulasi extends Model
     protected $table = 'data_simulasi';
 
     protected $fillable = [
+        'status',
+        'keterangan',
         'jenis_pensiun',
         'nama_debitur',
         'tanggal_lahir',
@@ -54,6 +56,7 @@ class DataSimulasi extends Model
     ];
 
     protected $casts = [
+        'status' => 'string',
         'tanggal_lahir' => 'date',
         'tgl_permohonan' => 'date',
         'tgl_lunas' => 'date',

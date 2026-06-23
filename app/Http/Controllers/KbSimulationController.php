@@ -13,8 +13,8 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
-use Log;
 
 class KbSimulationController extends Controller
 {
@@ -93,6 +93,8 @@ class KbSimulationController extends Controller
                     'jenis_pensiun' => $record->jenis_pensiun,
                     'mutasi' => $record->mutasi,
                     'bank_tujuan' => $record->bank_tujuan,
+                    'bank_asal' => $record->bank_asal,
+                    'keterangan' => $record->keterangan,
                     'nama_debitur' => $record->nama_debitur,
                     'tanggal_simulasi' => optional($record->tgl_permohonan)?->toDateString(),
                     'tanggal_lahir' => optional($record->tanggal_lahir)?->toDateString(),
@@ -101,6 +103,8 @@ class KbSimulationController extends Controller
                     'gaji_pensiun' => $record->gaji_pensiun,
                     'angsuran_lainnya' => null,
                     'blokir_angsuran' => $record->blokir_angsuran,
+                    'umur_text' => $record->umur !== null ? ((int) $record->umur . ' thn') : null,
+                    'tenor_max' => $record->tenor_max,
                     'tenor' => $record->tenor,
                     'plafond' => $record->plafond,
                     'pelunasan' => $record->pelunasan,
@@ -124,7 +128,9 @@ class KbSimulationController extends Controller
         $input = array_merge([
             'produk' => 'Platinum',
             'jenis_pensiun' => 'Sendiri',
-            'bank_tujuan' => 'BANK BUKOPIN',
+            'bank_asal' => 'BANK BUKOPIN',
+            'bank_tujuan' => 'KB',
+            'keterangan' => '',
             'nama_debitur' => '-',
             'tanggal_simulasi' => now()->toDateString(),
             'tanggal_lahir' => null,
@@ -159,14 +165,13 @@ class KbSimulationController extends Controller
             'limits' => $limitChecks,
         ]);
     }
-
-    public function store(Request $request): JsonResponse
+public function store(Request $request): JsonResponse
     {
         $this->ensurePricingOverridesAuthorized($request);
         Log::info('Storing KB simulation data...');
         $isClientSide = $request->boolean('client_side_calculation');
         Log::info('Client side calculation: ' . ($isClientSide ? 'true' : 'false'));
-        //$input = $request->validate($this->storeRules());
+        
         $validator = Validator::make($request->all(), $this->storeRules());
         if ($validator->fails()) {
             Log::error('VALIDASI GAGAL DI FIELD: ' . json_encode($validator->errors()->toArray()));
@@ -174,6 +179,7 @@ class KbSimulationController extends Controller
         }
         $input = $validator->validated();        
         Log::info('Input data: ' . json_encode($input));
+
         if ($isClientSide) {
             Log::info('Validating client result data...');
             $clientResult = $request->validate($this->clientResultRules());
@@ -190,82 +196,141 @@ class KbSimulationController extends Controller
             }
         }
 
-        $limitChecks = $this->buildLimitChecks($input, $result);
-        Log::info('Limit checks: ' . json_encode($limitChecks));
-        if (!$limitChecks['is_valid']) {
-            Log::warning('Invalid limit checks detected.');
-            return response()->json([
-                'message' => 'Pengajuan ditolak karena ada batasan kelayakan yang tidak terpenuhi.',
-                'limits' => $limitChecks,
-                'display' => $this->buildDisplayResult($result),
-                'data' => $result,
-            ], 422);
-        }
+        // ==================== LANGSUNG MERGE DAN SAVE ====================
+        // Gabungkan data input (nama, no pensiun, dll) dan hasil perhitungan keuangan
+        $persistPayload = array_merge($input, $result);
 
-        $persistPayload = $result;
+        // Bersihkan field pembantu yang tidak ada di kolom database Anda
+        unset(
+            $persistPayload['umur_text'], 
+            $persistPayload['usia_lunas_text'], 
+            $persistPayload['angsuran_lainnya'],
+            $persistPayload['client_side_calculation']
+        );
 
-        unset($persistPayload['umur_text'], $persistPayload['usia_lunas_text'], $persistPayload['angsuran_lainnya']);
+        $persistPayload['status'] = 'trial';
 
+        // Langsung simpan ke database tanpa limitcheck
         $saved = DataSimulasi::query()->create($persistPayload);
+        Log::info('Data simulasi KB berhasil disimpan dengan ID: ' . $saved->id);
+        // =================================================================
 
         return response()->json([
             'message' => 'Data simulasi KB berhasil disimpan.',
             'id' => $saved->id,
             'data' => $saved,
             'display' => $this->buildDisplayResult($result),
-            'limits' => $limitChecks,
         ], 201);
     }
+    // public function store(Request $request): JsonResponse
+    // {
+    //     Log::Info('Storing KB simulation data...');
+    //     Log::info('Request data: ' . json_encode($request->all()));
+    //    // $this->ensurePricingOverridesAuthorized($request);
+    //     Log::info('Storing KB simulation data...');
+    //     $isClientSide = $request->boolean('client_side_calculation');
+    //     Log::info('Client side calculation: ' . ($isClientSide ? 'true' : 'false'));
+    //     //$input = $request->validate($this->storeRules());
+    //     $validator = Validator::make($request->all(), $this->storeRules());
+    //     if ($validator->fails()) {
+    //         Log::error('VALIDASI GAGAL DI FIELD: ' . json_encode($validator->errors()->toArray()));
+    //         return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
+    //     }
+    //     $input = $validator->validated();        
+    //     Log::info('Input data: ' . json_encode($input));
+    //     if ($isClientSide) {
+    //         Log::info('Validating client result data...');
+    //         $clientResult = $request->validate($this->clientResultRules());
+    //         $result = array_merge($input, $clientResult);
+    //     } else {
+    //         Log::info('Calculating KB simulation data...');
+    //         try {
+    //             $result = $this->kbSimulationExcelService->calculate($input);
+    //         } catch (\Throwable $e) {
+    //             Log::error('Error during KB simulation calculation: ' . $e->getMessage());
+    //             return response()->json([
+    //                 'message' => $e->getMessage(),
+    //             ], 422);
+    //         }
+    //     }
+
+    //     $limitChecks = $this->buildLimitChecks($input, $result);
+    //     Log::info('Limit checks: ' . json_encode($limitChecks));
+    //     if (!$limitChecks['is_valid']) {
+    //         Log::warning('Invalid limit checks detected.');
+    //         return response()->json([
+    //             'message' => 'Pengajuan ditolak karena ada batasan kelayakan yang tidak terpenuhi.',
+    //             'limits' => $limitChecks,
+    //             'display' => $this->buildDisplayResult($result),
+    //             'data' => $result,
+    //         ], 422);
+    //     }
+
+    //     $persistPayload = $result;
+
+    //     unset($persistPayload['umur_text'], $persistPayload['usia_lunas_text'], $persistPayload['angsuran_lainnya']);
+
+    //     $saved = DataSimulasi::query()->create($persistPayload);
+
+    //     return response()->json([
+    //         'message' => 'Data simulasi KB berhasil disimpan.',
+    //         'id' => $saved->id,
+    //         'data' => $saved,
+    //         'display' => $this->buildDisplayResult($result),
+    //         'limits' => $limitChecks,
+    //     ], 201);
+    // }
 
     public function downloadPdf(Request $request)
 {
     // Gunakan validator manual agar jika ada field kurang tidak langsung melempar error HTML Redirect
-    $validator = \Illuminate\Support\Facades\Validator::make($request->all(), $this->calculateRules());
+    //$validator = \Illuminate\Support\Facades\Validator::make($request->all(), $this->calculateRules());
     
     // Ambil data yang lolos validasi, atau ambil langsung dari request jika ada yang miss
-    $input = $request->all();
+    //$input = $request->all();
 
     // Pastikan data personal dasar terisi aman sebagai fallback
-    $input = array_merge([
-        'produk' => 'Platinum',
-        'jenis_pensiun' => 'Sendiri',
-        'bank_tujuan' => 'BANK BUKOPIN',
-        'nama_debitur' => '-',
-        'tanggal_simulasi' => now()->toDateString(),
-        'tanggal_lahir' => null,
-        'nomor_pensiun' => '-',
-        'instansi' => 'TASPEN',
-        'gaji_pensiun' => 0,
-        'angsuran_lainnya' => 0,
-        'tenor' => 1,
-        'plafond' => 0,
-        'nama_marketing' => '-',
-        'kode_area' => '-',
-    ], $input);
-
+    // $input = array_merge([
+    //     'produk' => 'Platinum',
+    //     'jenis_pensiun' => 'Sendiri',
+    //     'bank_tujuan' => 'KB',
+    //     'bank_asal' => '',
+    //     'nama_debitur' => '-',
+    //     'tanggal_simulasi' => now()->toDateString(),
+    //     'tanggal_lahir' => null,
+    //     'nomor_pensiun' => '-',
+    //     'instansi' => 'TASPEN',
+    //     'gaji_pensiun' => 0,
+    //     'angsuran_lainnya' => 0,
+    //     'tenor' => 1,
+    //     'plafond' => 0,
+    //     'nama_marketing' => '-',
+    //     'kode_area' => '-',
+    // ], $input);
+    $sim =DataSimulasi::where('id','=',$request->input('id'))->first();
     $isClientSide = $request->boolean('client_side_calculation');
 
-    if ($isClientSide) {
-        $result = $input; // Jika client-side, gunakan langsung gabungan data dari frontend
-    } else {
-        try {
-            // Hitung ulang via excel service untuk memastikan kecocokan angka
-            $result = $this->kbSimulationExcelService->calculate($input);
-        } catch (\Throwable $e) {
-            // Catat ke log file jika excel service mendadak error
-            \Illuminate\Support\Facades\Log::error('PDF Calculation Fail: ' . $e->getMessage());
-            return response()->json(['message' => 'Gagal menghitung ulang simulasi untuk PDF: ' . $e->getMessage()], 422);
-        }
-    }
+    // if ($isClientSide) {
+    //     $result = $input; // Jika client-side, gunakan langsung gabungan data dari frontend
+    // } else {
+    //     try {
+    //         // Hitung ulang via excel service untuk memastikan kecocokan angka
+    //         $result = $this->kbSimulationExcelService->calculate($input);
+    //     } catch (\Throwable $e) {
+    //         // Catat ke log file jika excel service mendadak error
+    //         \Illuminate\Support\Facades\Log::error('PDF Calculation Fail: ' . $e->getMessage());
+    //         return response()->json(['message' => 'Gagal menghitung ulang simulasi untuk PDF: ' . $e->getMessage()], 422);
+    //     }
+    // }
 
-    // Prepare objects expected by the legacy blade `simulasifordownload`
-    $simArray = array_merge($input, $result); // Merge agar semua field bersatu aman
-    $simArray['notas'] = $request->input('nomor_pensiun') ?? $result['nomor_pensiun'] ?? '-';
-    $simArray['created_at'] = \Illuminate\Support\Carbon::parse($input['tanggal_simulasi'] ?? now());
-    $simArray['usia'] = $result['umur'] ?? null;
-    $simArray['instansi'] = $input['instansi'] ?? ($result['instansi'] ?? null);
-    $simArray['product_kode'] = $input['product_kode'] ?? $input['produk'] ?? null;
-    $sim = (object) $simArray;
+    // // Prepare objects expected by the legacy blade `simulasifordownload`
+    // $simArray = array_merge($input, $result); // Merge agar semua field bersatu aman
+    // $simArray['notas'] = $request->input('nomor_pensiun') ?? $result['nomor_pensiun'] ?? '-';
+    // $simArray['created_at'] = \Illuminate\Support\Carbon::parse($input['tanggal_simulasi'] ?? now());
+    // $simArray['usia'] = $result['umur'] ?? null;
+    // $simArray['instansi'] = $input['instansi'] ?? ($result['instansi'] ?? null);
+    // $simArray['product_kode'] = $input['product_kode'] ?? $input['produk'] ?? null;
+    //$sim = (object) $simArray;
 
     $tu = (object) [
         'nama_penerima' => $request->input('nama_debitur') ?? $result['nama_debitur'] ?? '-',
@@ -284,7 +349,6 @@ class KbSimulationController extends Controller
 
     $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('products.simulasifordownload', [
         'sim' => $sim,
-        'tu' => $tu,
         'logo' => $logo,
         'user_name' => $user_name,
         'generatedAt' => now(),
@@ -371,6 +435,7 @@ class KbSimulationController extends Controller
         return [
             ['label' => 'E10 - Produk', 'value' => (string) ($result['produk'] ?? '')],
             ['label' => 'E11 - Jenis Pensiun', 'value' => (string) ($result['jenis_pensiun'] ?? '')],
+            ['label' => 'E13 - Bank Asal', 'value' => (string) ($result['bank_asal'] ?? '')],
             ['label' => 'E14 - Bank Tujuan/Kantor Bayar', 'value' => (string) ($result['bank_tujuan'] ?? '')],
             ['label' => 'E18 - Nama Debitur', 'value' => (string) ($result['nama_debitur'] ?? '')],
             ['label' => 'E21 - Nomor Pensiun', 'value' => (string) ($result['nomor_pensiun'] ?? '')],
@@ -415,7 +480,9 @@ class KbSimulationController extends Controller
             'produk' => ['nullable', 'string', 'max:100'],
             'jenis_pensiun' => ['required', 'string', 'max:100'],
             'mutasi' => ['nullable', 'string', 'in:Mutasi,Non Mutasi'],
+            'bank_asal' => ['nullable', 'string', 'max:255'],
             'bank_tujuan' => ['nullable', 'string', 'max:255'],
+            'keterangan' => ['nullable', 'string', 'max:500'],
             'nama_debitur' => ['nullable', 'string', 'max:255'],
             'tanggal_simulasi' => ['required', 'date'],
             'tanggal_lahir' => ['required', 'date'],
@@ -440,6 +507,7 @@ class KbSimulationController extends Controller
             'produk' => ['required', 'string', 'max:100'],
             'jenis_pensiun' => ['required', 'string', 'max:100'],
            'mutasi' => ['nullable', 'string', 'in:Mutasi,Non Mutasi,MUTASI,NON MUTASI,mutasi,non mutasi'],
+            'bank_asal' => ['nullable', 'string', 'max:255'],
             'bank_tujuan' => ['nullable', 'string', 'max:255'],
             'nama_debitur' => ['nullable', 'string', 'max:255'],
             'tanggal_simulasi' => ['required', 'date'],

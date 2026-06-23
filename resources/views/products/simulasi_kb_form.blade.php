@@ -54,7 +54,7 @@
                     <div class="alert alert-warning mb-3" x-show="shouldShowMessages() && limitWarning" x-text="limitWarning"></div>
 
                     <div class="d-flex justify-content-end mb-3">
-                        <a href="{{ route('data_simulasi.list') }}" class="btn btn-sm btn-outline-secondary">Lihat Data Simulasi</a>
+                        <a href="{{ route('data_simulasi.trial.list') }}" class="btn btn-sm btn-outline-secondary">Lihat Trial Data Simulasi</a>
                     </div>
 
                     <div class="kb-sheet-wrap">
@@ -105,8 +105,19 @@
 
                     <div class="d-flex gap-2 mt-3">
                         <button class="btn btn-outline-primary" type="button" @click="hitung(false)">Hitung Ulang (Manual)</button>
-                        <button class="btn btn-primary" type="button" @click="simpan" :disabled="!hasil || isSaving" x-text="isSaving ? 'Menyimpan...' : 'Simpan ke Data Simulasi'"></button>
+                        <button type="button" 
+                                @click="simpan()" 
+                                :disabled="!isValidForm || isSaving" 
+                                :class="!isValidForm ? 'opacity-50 cursor-not-allowed' : ''"
+                                class="btn btn-primary">
+                            <span x-text="isSaving ? 'Menyimpan...' : 'Simpan ke Data Simulasi'"></span>
+                        </button>
                         <button class="btn btn-outline-danger" type="button" @click="downloadPdf" :disabled="!hasil || isDownloading" x-text="isDownloading ? 'Menyiapkan PDF...' : 'Download PDF'"></button>
+                    </div>
+                    <div class="mt-3">
+                        <label class="form-label fw-semibold">Keterangan Trial</label>
+                        <textarea class="form-control" rows="3" x-model="form.keterangan" placeholder="Contoh: debitur minta sisa gaji akhir nya minimal 250rb"></textarea>
+                        <div class="form-text">Keterangan ini akan tampil di list Trial Data Simulasi.</div>
                     </div>
                     <div class="small text-muted mt-2" x-show="isCalculating">Menghitung otomatis...</div>
 
@@ -161,7 +172,9 @@ function kbSimulasiForm() {
             produk: '',
             jenis_pensiun: 'Sendiri',
             mutasi: 'Non Mutasi',
+            bank_asal: '',
             bank_tujuan: '',
+            keterangan: '',
             nama_debitur: '',
             tanggal_simulasi: new Date().toISOString().slice(0, 10),
             tanggal_lahir: '',
@@ -185,7 +198,8 @@ function kbSimulasiForm() {
             { cell: 'E10', label: 'Produk', type: 'select', key: 'produk', optionsKey: 'produk', allowEmpty: true },
             { cell: 'E11', label: 'Jenis Pensiun', type: 'select', key: 'jenis_pensiun', optionsKey: 'jenis_pensiun' },
             { cell: 'E12', label: 'Mutasi', type: 'select', key: 'mutasi', optionsKey: 'mutasi' },
-            { cell: 'E13', label: 'Bank Asal', type: 'output', key: 'bank_asal', format: 'text', staticValue: 'BANK BUKOPIN' },
+            //{ cell: 'E13', label: 'Bank Asal', type: 'output', key: 'bank_asal', format: 'text', staticValue: 'BANK BUKOPIN' },
+            { cell: 'E13', label: 'Bank Asal', type: 'select', key: 'bank_asal', optionsKey: 'bank_asal', allowEmpty: true },
             { cell: 'E14', label: 'Bank Tujuan', type: 'select', key: 'bank_tujuan', optionsKey: 'bank_tujuan', allowEmpty: true },
             { cell: 'E15', label: '', type: 'blank' },
             { cell: 'E16', label: 'INPUT DATA', type: 'section' },
@@ -233,9 +247,11 @@ function kbSimulasiForm() {
         hasil: null,
         hasilDisplay: [],
         limits: null,
+        isValidForm: true,
         umurRealtimeText: '-',
         tenorMaxText: '-',
         plafondMaxText: '-',
+        limitWarning:'',
         realtimeTenorMaxValue: 0,
         calcRequestSeq: 0,
         calcInFlightSignature: '',
@@ -258,12 +274,13 @@ function kbSimulasiForm() {
             this.syncAllSelectValues();
 
             const watchedPaths = [
-                'form.produk', 'form.jenis_pensiun', 'form.mutasi', 'form.bank_tujuan',
+                'form.produk', 'form.jenis_pensiun', 'form.mutasi', 'form.bank_tujuan','form.bank_asal',
                 'form.nama_debitur', 'form.tanggal_simulasi', 'form.tanggal_lahir',
                 'form.nomor_pensiun', 'form.instansi', 'form.gaji_pensiun',
                 'form.angsuran_lainnya', 'form.blokir_angsuran', 'form.rate_percent_override',
                 'form.admin_angsuran_percent_override', 'form.tenor', 'form.plafond',
                 'form.pelunasan', 'form.nama_marketing', 'form.kode_area',
+                'form.keterangan',
             ];
 
             watchedPaths.forEach((path) => {
@@ -329,7 +346,10 @@ function kbSimulasiForm() {
         },
 
         applyInitialData() {
+            console.log('Applying initial data:', initialData);
             if (!initialData || !initialData.id) return;
+
+            this.hasil = { ...(this.hasil || {}), ...initialData };
 
             Object.keys(this.form).forEach((key) => {
                 if (Object.prototype.hasOwnProperty.call(initialData, key) && initialData[key] !== null && initialData[key] !== undefined) {
@@ -348,6 +368,7 @@ function kbSimulasiForm() {
         },
 
         applyInitialDefaults() {
+            
             const jenisOptions = Array.isArray(this.options.jenis_pensiun) ? this.options.jenis_pensiun : [];
             const sendiriOption = jenisOptions.find((item) => String(item).trim().toLowerCase() === 'sendiri');
             const jenisDefault = sendiriOption || jenisOptions[0] || 'Sendiri';
@@ -376,9 +397,11 @@ function kbSimulasiForm() {
                 this.form.tanggal_simulasi = new Date().toISOString().slice(0, 10);
             }
             
-            const productKey = `${this.form.produk}-${this.form.jenis_pensiun}`;
+            const productKey = `${this.form.bank_tujuan}-${this.form.produk}-${this.form.jenis_pensiun}`;
+           console.log('Applying initial defaults for productKey:', productKey);
             if (this.form.produk && this.productStructs[productKey]) {
                 const struct = this.productStructs[productKey];
+                console.log('Found product struct:', struct);
                 
                 if ((this.form.rate_percent_override === '' || this.form.rate_percent_override === null) && struct.rate_percent !== undefined) {
                     this.form.rate_percent_override = Math.round(Number(struct.rate_percent * 100));
@@ -391,7 +414,7 @@ function kbSimulasiForm() {
         },
 
         updateRateDefaults() {
-            const productKey = `${this.form.produk}-${this.form.jenis_pensiun}`;
+            const productKey = `${this.form.bank_tujuan}-${this.form.produk}-${this.form.jenis_pensiun}`;
             if (this.form.produk && this.productStructs && this.productStructs[productKey]) {
                 const struct = this.productStructs[productKey];
                 
@@ -406,6 +429,7 @@ function kbSimulasiForm() {
         },
 
         onFormChanged() {
+            console.log('Form changed:', this.form);
             this.applyInitialDefaults();
             this.syncAllSelectValues();
             this.recalculateRealtimeAge();
@@ -457,6 +481,7 @@ function kbSimulasiForm() {
         },
 
         resolveInsuranceRatePercent(product, tenor) {
+            console.log('Resolving insurance rate for product:', product, 'tenor:', tenor);
             if (!product || tenor === null || tenor === undefined || tenor === '') {
                 return (this.insuranceConfigs.default_percent || 0) / 100;
             }
@@ -477,28 +502,32 @@ function kbSimulasiForm() {
         },
 
         syncSelectValue(row) {
-            if (!row || row.type !== 'select' || !row.key) return;
-           
-            const optionsList = this.getRowOptions(row) || [];
-            if (optionsList.length === 0) return;
+    if (!row || row.type !== 'select' || !row.key) return;
+   
+    const optionsList = this.getRowOptions(row) || [];
+    if (optionsList.length === 0) return;
 
-            const current = this.form[row.key];
-            const currentNormalized = this.normalizeOptionValue(current);
-            const matched = optionsList.find((item) => this.normalizeOptionValue(item) === currentNormalized) ?? null;
+    const current = this.form[row.key];
+    const currentNormalized = this.normalizeOptionValue(current);
+    const matched = optionsList.find((item) => this.normalizeOptionValue(item) === currentNormalized) ?? null;
 
-            if (matched !== null) {
-                this.form[row.key] = matched;
-                return;
-            }
-            if (row.key === 'produk') return;
+    if (matched !== null) {
+        this.form[row.key] = matched;
+        return;
+    }
+    
+    // PERBAIKAN: Jangan paksa reset atau berikan nilai default jika user memilih opsi kosong/tertentu pada bank
+    if (row.key === 'produk' || row.key === 'bank_tujuan' || row.key === 'bank_asal') {
+        return;
+    }
 
-            const preferred = this.resolvePreferredSelectValue(row.key, optionsList);
-            if (preferred !== null) {
-                this.form[row.key] = preferred;
-                return;
-            }
-            this.form[row.key] = row.allowEmpty ? '' : optionsList[0];
-        },
+    const preferred = this.resolvePreferredSelectValue(row.key, optionsList);
+    if (preferred !== null) {
+        this.form[row.key] = preferred;
+        return;
+    }
+    this.form[row.key] = row.allowEmpty ? '' : optionsList[0];
+},
 
         syncAllSelectValues() {
             this.excelRows.forEach((row) => this.syncSelectValue(row));
@@ -580,26 +609,62 @@ function kbSimulasiForm() {
                 this.umurRealtimeText = '-';
                 return;
             }
+       let years = referenceDate.getFullYear() - birth.getFullYear();
+        let months = referenceDate.getMonth() - birth.getMonth();
+        let days = referenceDate.getDate() - birth.getDate();
 
-            let years = referenceDate.getFullYear() - birth.getFullYear();
-            let months = referenceDate.getMonth() - birth.getMonth();
-            if (referenceDate.getDate() < birth.getDate()) months -= 1;
-            if (months < 0) {
-                years -= 1;
-                months += 12;
-            }
-            this.umurRealtimeText = `${Math.max(0, years)} thn ${Math.max(0, months)} bln`;
+        // Jika hari minus, artinya belum melewati tanggal lahir di bulan berjalan
+        if (days < 0) {
+            months -= 1;
+            // Cari jumlah hari pada bulan sebelumnya untuk tahu sisa hari riil
+            let prevMonth = new Date(referenceDate.getFullYear(), referenceDate.getMonth(), 0).getDate();
+            days = prevMonth + days;
+        }
+
+        if (months < 0) {
+            years -= 1;
+            months += 12;
+        }
+
+        // LOGIKA ANDA: Jika ada kelebihan hari (> 0), bulatkan ke atas menjadi +1 bulan
+        if (days > 0) {
+            months += 1;
+        }
+
+        // Jika setelah ditambah bulan menjadi 12, konversi ke tahun
+        if (months >= 12) {
+            years += 1;
+            months = 0;
+        }
+
+        this.umurRealtimeText = `${Math.max(0, years)} thn ${Math.max(0, months)} bln`;
+            // let years = referenceDate.getFullYear() - birth.getFullYear();
+            // let months = referenceDate.getMonth() - birth.getMonth();
+            // if (referenceDate.getDate() < birth.getDate()) months -= 1;
+            // if (months < 0) {
+            //     years -= 1;
+            //     months += 12;
+            // }
+            // this.umurRealtimeText = `${Math.max(0, years)} thn ${Math.max(0, months)} bln`;
         },
 
         recalculateRealtimeTenorMax() {
+console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
+        produk: this.form.produk,
+        jenis_pensiun: this.form.jenis_pensiun,
+        tanggal_lahir: this.form.tanggal_lahir,
+        tanggal_simulasi: this.form.tanggal_simulasi,
+        bank_tujuan: this.form.bank_tujuan
+    });            
             if (!this.form.produk || !this.form.jenis_pensiun || !this.form.tanggal_lahir || !this.form.tanggal_simulasi) {
                 this.tenorMaxText = '-';
                 this.realtimeTenorMaxValue = 0;
                 return;
             }
 
-            const productKey = `${this.form.produk}-${this.form.jenis_pensiun}`;
+            const productKey = `${this.form.bank_tujuan}-${this.form.produk}-${this.form.jenis_pensiun}`;
             const struct = this.productStructs[productKey] || null;
+            console.log('Recalculating tenor max for productKey:', productKey, 'with struct:', struct);
             if (!struct || !struct.tenor_max || !struct.usia_max) {
                 this.tenorMaxText = '-';
                 this.realtimeTenorMaxValue = 0;
@@ -622,7 +687,8 @@ function kbSimulasiForm() {
         },
 
         recalculateRealtimePlafondMax() {
-            const productKey = `${this.form.produk}-${this.form.jenis_pensiun}`;
+            const productKey = `${this.form.bank_tujuan}-${this.form.produk}-${this.form.jenis_pensiun}`;
+            console.log('Recalculating plafond max for productKey:', productKey);
             const struct = this.productStructs[productKey] || null;
             if (!struct) {
                 this.plafondMaxText = '-';
@@ -693,6 +759,7 @@ function kbSimulasiForm() {
                     body: JSON.stringify({
                         produk: this.form.produk,
                         jenis_pensiun: this.form.jenis_pensiun,
+                        bank_tujuan: this.form.bank_tujuan,
                         mutasi: this.form.mutasi,
                         plafond: this.form.plafond,
                         tenor: this.form.tenor,
@@ -706,8 +773,23 @@ function kbSimulasiForm() {
                     }),
                     signal: this.calcAbortController.signal
                 });
-                
+// === AMANKAN CHECK CONTENT TYPE DI SINI ===
+                const contentType = response.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) {
+                    const textError = await response.text();
+                    console.error('SERVER ERROR (HTML/TEXT):', textError); // Lihat error detail di F12 Console
+                    
+                    this.isValidForm = false;
+                    this.errorMessage = 'Server Error saat menghitung. Silakan cek tab Console F12 / Network.';
+                    this.isCalculating = false;
+                    return; 
+                }                
                 const data = await response.json();
+
+// Reset semua notifikasi setiap kali hitung dimulai jika format JSON valid
+                this.message = '';
+                this.errorMessage = '';
+                this.limitWarning = '';                
                 
                 // PERBAIKAN UTAMA: Selama server mengirimkan array data kalkulasi, 
                 // langsung kunci dan tampilkan ke layar agar Provisi/Admin tidak jadi (-)
@@ -715,7 +797,11 @@ function kbSimulasiForm() {
                     this.hasil = data.data;
                     this.hasilDisplay = Object.entries(data.data).map(([key, value]) => ({ key, value }));
                 }
-                
+                if (data.limits) {
+                    this.isValidForm = data.limits.is_valid; 
+                } else {
+                    this.isValidForm = true; 
+                }                
                 // Urus notifikasi sukses/gagal secara terpisah tanpa merusak tampilan tabel
                 if (data.success || (data.limits && data.limits.is_valid)) {
                     if (!silent) {
@@ -749,15 +835,22 @@ function kbSimulasiForm() {
     
     this.isSaving = true;
     this.message = 'Menyimpan data...';
-    this.errorMessage = ''; // Clear error lama
+    this.errorMessage = ''; 
     
     try {
+        // PERBAIKAN PAYLOAD: Pastikan bank_tujuan dan bank_asal dipastikan ikut masuk
         const payload = {
-            ...this.hasil,
             ...this.form,
+            ...this.hasil,
+            bank_tujuan: this.form.bank_tujuan,
+            bank_asal: this.form.bank_asal,
+            nama_debitur: this.form.nama_debitur,   // <--- Tambahkan ini
+            nomor_pensiun: this.form.nomor_pensiun, // <--- Tambahkan ini
             id: this.editDataSimulasiId || null
         };
         
+        console.log('Payload dikirim ke store:', payload); // Log untuk debug
+
         const response = await fetch(routes.store, {
             method: 'POST',
             headers: {
@@ -767,22 +860,18 @@ function kbSimulasiForm() {
             body: JSON.stringify(payload)
         });
         
-        // --- PERBAIKAN: CEK RESPONS BUKAN JSON ---
         const contentType = response.headers.get("content-type");
         if (!contentType || !contentType.includes("application/json")) {
             const textError = await response.text();
             console.error('SERVER ERROR (HTML/TEXT):', textError);
-            
-            // Coba ambil potongan error dari HTML laravel jika memungkinkan
-            this.errorMessage = 'Server Error (500/422). Silakan cek tab Console F12.';
-            return; // Hentikan agar tidak crash di response.json()
+            this.errorMessage = 'Server Error (500/422). Silakan cek tab Console F12 / Network.';
+            this.isSaving = false; // RESET STATUS AGAR TOMBOL KEMBALI NORMAL
+            return; 
         }
         
-        // Jika aman berbentuk JSON, baru di-parse
         const data = await response.json();
         console.log('Simpan response SUKSES JSON:', data);
         
-        // Catatan: Laravel mengembalikan HTTP 201 jika sukses, gunakan data.id atau HTTP status
         if (response.ok) { 
             this.message = data.message || 'Data berhasil disimpan';
             setTimeout(() => { this.message = ''; }, 3000);
@@ -790,6 +879,8 @@ function kbSimulasiForm() {
             if (data.id && !this.editDataSimulasiId) {
                 this.editDataSimulasiId = data.id;
             }
+            // SINKRONKAN ID KE DATA HASIL AGAR UNDUH PDF BISA JALAN
+            this.hasil.id = data.id;
         } else {
             this.errorMessage = data.message || 'Gagal menyimpan data';
             setTimeout(() => { this.errorMessage = ''; }, 5000);
@@ -799,23 +890,26 @@ function kbSimulasiForm() {
         this.errorMessage = 'Terjadi kesalahan saat menyimpan data';
         setTimeout(() => { this.errorMessage = ''; }, 3000);
     } finally {
-        this.isSaving = false;
+        this.isSaving = false; // PASTIKAN SELALU RESET DI SINI
     }
 },
 
         async downloadPdf() {
-    if (!this.hasil) {
-        this.errorMessage = 'Hitung simulasi terlebih dahulu sebelum mendownload PDF';
+    // 1. Pastikan simulasi sudah dihitung dan data ID-nya sudah ada (setelah disimpan ke DB)
+    // Sesuai dengan data backend yang membutuhkan ID data simulasi.
+    if (!this.hasil || !this.hasil.id) {
+        this.errorMessage = 'Simpan atau hitung simulasi terlebih dahulu sebelum mendownload PDF';
         return;
     }
 
     this.isDownloading = true;
     this.message = 'Sedang menyiapkan PDF...';
+    this.errorMessage = ''; // Reset error message jika ada sebelumnya
 
     try {
+        // 2. Cukup kirim payload berisi ID saja
         const payload = {
-            ...this.hasil, // Gunakan hasil hitungan server agar sinkron
-            ...this.form,  // Ambil nama_debitur & nomor_pensiun asli dari form
+            id: this.hasil.id
         };
 
         const response = await fetch(routes.downloadPdf, {
@@ -831,7 +925,7 @@ function kbSimulasiForm() {
             throw new Error('Gagal men-generate PDF dari server');
         }
 
-        // KUNCI UTAMA: Ambil respon sebagai BLOB (Binary Large Object)
+        // Ambil respon sebagai BLOB (Binary Large Object)
         const blob = await response.blob();
         
         // Buat tautan unduhan buatan di memori browser
@@ -839,7 +933,7 @@ function kbSimulasiForm() {
         const a = document.createElement('a');
         a.href = url;
         
-        // Atur nama file default download
+        // Atur nama file default download (bisa pakai nama debitur dari form jika di DB belum sinkron saat itu)
         const timestamp = new Date().toISOString().slice(0,10).replace(/-/g, '');
         a.download = `simulasi-kb-${this.form.nama_debitur || 'debitur'}-${timestamp}.pdf`;
         
@@ -889,8 +983,24 @@ function kbSimulasiForm() {
         },
         
         getRowDisplayValue(row) {
-            if (row.key === 'umur_text') return this.umurRealtimeText;
-            if (row.key === 'tenor_max') return this.tenorMaxText;
+            if (row.key === 'umur_text') {
+                if (this.umurRealtimeText && this.umurRealtimeText !== '-') {
+                    return this.umurRealtimeText;
+                }
+                if (this.hasil && this.hasil.umur_text) {
+                    return this.hasil.umur_text;
+                }
+                return '-';
+            }
+            if (row.key === 'tenor_max') {
+                if (this.tenorMaxText && this.tenorMaxText !== '-') {
+                    return this.tenorMaxText;
+                }
+                if (this.hasil && this.hasil.tenor_max !== undefined && this.hasil.tenor_max !== null && this.hasil.tenor_max !== '') {
+                    return `${Math.round(Number(this.hasil.tenor_max) || 0)} bulan`;
+                }
+                return '-';
+            }
             if (row.key === 'plafond_max') {
                 if (typeof this.plafondMaxText === 'number') {
                     return 'Rp ' + Math.round(this.plafondMaxText).toLocaleString('id-ID');

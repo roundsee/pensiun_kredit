@@ -7,7 +7,7 @@ use App\Models\ProductStruct;
 use App\Models\TemplateField;
 use App\Models\InsuranceRate;
 use Carbon\Carbon;
-use Log;
+use Illuminate\Support\Facades\Log;
 class KbSimulationExcelService
 {
     public function getSelectOptions(): array
@@ -18,7 +18,12 @@ class KbSimulationExcelService
             ->orderBy('id')
             ->pluck('value')
             ->all();
-
+$bankAsal = KbReferenceOption::query()
+            ->where('category', 'bank_asal')
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->pluck('value')
+            ->all();
         $area = KbReferenceOption::query()
             ->where('category', 'area')
             ->orderBy('sort_order')
@@ -29,6 +34,7 @@ class KbSimulationExcelService
         return [
             'produk' => ['Platinum', 'Regular'],
             'jenis_pensiun' => ['Sendiri', 'Janda', 'Duda'],
+            'bank_asal' => $bankAsal,
             'bank_tujuan' => $bankTujuan,
             'area' => $area,
         ];
@@ -183,7 +189,8 @@ class KbSimulationExcelService
 
     private function calculateWithoutSpreadsheet(array $input): array
     {
-        $productKey = trim((string) $input['produk'] . '-' . (string) $input['jenis_pensiun']);
+       // $productKey = trim((string) $input['produk'] . '-' . (string) $input['jenis_pensiun']);
+       $productKey = trim((string) $input['bank_tujuan'] . '-' . (string) $input['produk'] . '-' . (string) $input['jenis_pensiun']);
         $struct = ProductStruct::query()
             ->where('produk', $productKey)
             ->first();
@@ -194,6 +201,7 @@ class KbSimulationExcelService
         [$umurText, $umurTahun] = $this->buildAgeText($tanggalLahir, $tanggalSimulasi);
 
         $tenorMax = $this->calculateTenorMaxFromProductStruct(
+            (string) $input['bank_tujuan'],
             (string) $input['produk'],
             (string) $input['jenis_pensiun'],
             (string) $input['tanggal_lahir'],
@@ -209,6 +217,8 @@ class KbSimulationExcelService
         $plafond = ($input['plafond'] === null || $input['plafond'] === '') ? 0.0 : (float) $input['plafond'];
 
         $plafondMax = $this->calculatePlafondMaxFromProductStruct(
+            
+           (string) $input['bank_tujuan'],
             (string) $input['produk'],
             (string) $input['jenis_pensiun'],
             $tenorForPlafond,
@@ -229,8 +239,9 @@ class KbSimulationExcelService
         $adminAngsuranPercent = $this->normalizePercent($adminAngsuranSource);
         $provisiPercent = $this->normalizePercent((float) ($struct?->provisi_percent ?? 0));
         $administrasiPercent = $this->normalizePercent((float) ($struct?->admin_percent ?? 0));
-        $asuransiPercent = $this->resolveInsurancePercent((string) $input['produk'], $tenor);
-
+        Log::Info("BANK TUJUAN : " . (string) $input['bank_tujuan']);
+        $asuransiPercent = $this->resolveInsurancePercent((string) $input['bank_tujuan'],(string) $input['produk'], $tenor,$umurTahun); 
+        Log::Info("Resolved insurance percent: {$asuransiPercent} for bank_tujuan={$input['bank_tujuan']}, product={$input['produk']}, tenor={$tenor}, usia={$umurTahun}");
         $angsuran = $tenor > 0 && $plafond > 0
             ? abs($this->excelPmt($monthlyRate, $tenor, $plafond)) + 10000.0
             : 0.0;
@@ -306,10 +317,10 @@ class KbSimulationExcelService
         ];
     }
 
-    private function calculateTenorMaxFromProductStruct(string $produk, string $jenisPensiun, string $tanggalLahir, string $tanggalSimulasi): ?int
+    private function calculateTenorMaxFromProductStruct(string $bank_tujuan,string $produk, string $jenisPensiun, string $tanggalLahir, string $tanggalSimulasi): ?int
     {
-        $productKey = trim($produk . '-' . $jenisPensiun);
-
+       // $productKey = trim($produk . '-' . $jenisPensiun);
+        $productKey = trim($bank_tujuan . '-' . $produk . '-' . $jenisPensiun);
         $struct = ProductStruct::query()
             ->where('produk', $productKey)
             ->first();
@@ -326,7 +337,18 @@ class KbSimulationExcelService
         }
 
         $tanggalAcuan = Carbon::parse($tanggalSimulasi);
-        $usiaDebiturBulan = Carbon::parse($tanggalLahir)->diffInMonths($tanggalAcuan);
+        $tanggalLahirCarbon = Carbon::parse($tanggalLahir);
+
+        // Samakan formula dengan frontend (Blade JS):
+        // month diff = year diff * 12 + month diff, lalu -1 jika day acuan < day lahir.
+        $usiaDebiturBulan = (($tanggalAcuan->year - $tanggalLahirCarbon->year) * 12)
+            + ($tanggalAcuan->month - $tanggalLahirCarbon->month);
+
+        if ($tanggalAcuan->day < $tanggalLahirCarbon->day) {
+            $usiaDebiturBulan -= 1;
+        }
+
+        $usiaDebiturBulan = max(0, $usiaDebiturBulan);
         $usiaMaxBulan = $usiaMaxTahun * 12;
         $sisaMasaBulan = max(0, $usiaMaxBulan - $usiaDebiturBulan);
 
@@ -334,6 +356,8 @@ class KbSimulationExcelService
     }
 
     private function calculatePlafondMaxFromProductStruct(
+        
+    string $bank_tujuan,
         string $produk,
         string $jenisPensiun,
         int $tenor,
@@ -341,7 +365,7 @@ class KbSimulationExcelService
         mixed $ratePercentOverride = null,
         mixed $adminAngsuranPercentOverride = null
     ): ?float {
-        $productKey = trim($produk . '-' . $jenisPensiun);
+        $productKey = trim($bank_tujuan . '-' . $produk . '-' . $jenisPensiun);
 
         $struct = ProductStruct::query()
             ->where('produk', $productKey)
@@ -392,19 +416,51 @@ class KbSimulationExcelService
         return $value;
     }
 
-    private function resolveInsurancePercent(?string $product = null, ?int $tenor = null): float
+    private function resolveInsurancePercent(?string $bank_tujuan = null,?string $product = null, ?int $tenor = null,?int $usia = null): float
     {
+        Log::info("Resolving insurance percent for bank_tujuan={$bank_tujuan}, product={$product}, tenor={$tenor}, usia={$usia}");
+        $rate = null;
         // If product+tenor provided, prefer explicit table lookup for per-million premium.
-        if ($product !== null && $tenor !== null) {
+        if ($product !== null && $tenor !== null && $bank_tujuan !== null) {
             // Excel MATCH(..., -1) on a descending sorted array finds the smallest
             // value greater than or equal to the lookup; implement equivalent logic:
             // find the smallest tenor >= requested tenor. If none, fallback to the
             // largest available tenor.
-            $rate = InsuranceRate::query()
-                ->where('product', $product)
-                ->where('tenor', '>=', $tenor)
-                ->orderBy('tenor', 'asc')
-                ->first();
+            if($bank_tujuan=="KB"){
+                if($product=="Platinum") {
+                $rate = InsuranceRate::query()
+                    ->where('product', $product)
+                    ->where('bank_tujuan', $bank_tujuan)
+                    ->where('tenor', '>=', $tenor)
+                    ->orderBy('tenor', 'asc')
+                    ->first();
+                }
+                if($product=="Regular") {
+                $rate = InsuranceRate::query()
+                    ->where('product', $product)
+                    ->where('bank_tujuan', $bank_tujuan)
+                    ->where('usia', '>=', $usia)
+                    ->where('tenor', '>=', $tenor)
+                    ->orderBy('tenor', 'asc')
+                    ->first();
+                }
+            }
+            if($bank_tujuan=="MANTAP"){
+                $rate = InsuranceRate::query()
+                    ->where('product', $product)
+                    ->where('bank_tujuan', $bank_tujuan)
+                    ->where('tenor', '>=', $tenor)
+                    ->orderBy('tenor', 'asc')
+                    ->first();
+            }
+            if($bank_tujuan=="POS"){
+                $rate = InsuranceRate::query()
+                    ->where('product', $product)
+                    ->where('bank_tujuan', $bank_tujuan)
+                    ->where('tenor', '>=', $tenor)
+                    ->orderBy('tenor', 'asc')
+                    ->first();
+            }
 
             if ($rate === null) {
                 // no tenor >= requested, pick the largest available tenor instead
@@ -421,20 +477,33 @@ class KbSimulationExcelService
                 return (float) $rate->premium_per_million / 1000.0;
             }
         }
-
+        Log::Info($rate);
         $defaultValue = TemplateField::query()
             ->where('field_name', 'asuransi')
             ->orderByDesc('updated_at')
             ->value('default_value');
-
+        Log::info("Using default insurance percent: {$defaultValue}");
         return $this->normalizePercent((float) ($defaultValue ?? 0));
     }
 
     private function buildAgeText(Carbon $tanggalLahir, Carbon $tanggalAcuan): array
-    {
-        $months = $tanggalLahir->diffInMonths($tanggalAcuan);
-        $years = intdiv($months, 12);
-        $remainingMonths = $months % 12;
+        {// Menggunakan diff native php melalui Carbon untuk mendapatkan pecahannya
+        $diff = $tanggalLahir->diff($tanggalAcuan);
+        
+        $years = $diff->y;
+        $remainingMonths = $diff->m;
+        $days = $diff->d;
+
+        // LOGIKA ANDA: Jika ada kelebihan hari (> 0), bulatkan ke atas menjadi +1 bulan
+        if ($days > 0) {
+            $remainingMonths += 1;
+        }
+
+        // Jika bulan genap atau lebih dari 12 setelah dibulatkan
+        if ($remainingMonths >= 12) {
+            $years += 1;
+            $remainingMonths = 0;
+        }
 
         return [sprintf('%d thn %d bln', $years, $remainingMonths), $years];
     }

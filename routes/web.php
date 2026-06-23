@@ -45,8 +45,14 @@ Route::delete('/accounts/{id}', [AccountController::class, 'destroy'])->name('ac
 
 // Simulation
 Route::get('/simulation', [SimulationController::class, 'index'])->name('simulation.index')->middleware('auth');
-Route::get('/data-simulasi/upload', [SimulationController::class, 'dataSimulasiIndex'])->name('data_simulasi.index')->middleware('auth');
+Route::get('/data-simulasi/upload', function () {
+    return redirect()
+        ->route('data_simulasi.list')
+        ->with('error', 'Fitur import PDF ke Data Simulasi sudah dinonaktifkan.');
+})->name('data_simulasi.index')->middleware('auth');
 Route::get('/data-simulasi', [DataSimulasiController::class, 'index'])->name('data_simulasi.list')->middleware('auth');
+Route::get('/data-simulasi/trial', [DataSimulasiController::class, 'trialIndex'])->name('data_simulasi.trial.list')->middleware('auth');
+Route::patch('/data-simulasi/{dataSimulasi}/confirm', [DataSimulasiController::class, 'confirm'])->name('data_simulasi.confirm')->middleware('auth');
 Route::get('/data-simulasi/{dataSimulasi}/edit', [DataSimulasiController::class, 'edit'])->name('data_simulasi.edit')->middleware('auth');
 Route::put('/data-simulasi/{dataSimulasi}', [DataSimulasiController::class, 'update'])->name('data_simulasi.update')->middleware('auth');
 Route::get('/data-simulasi/{dataSimulasi}/pelengkap', [DataSimulasiController::class, 'editPelengkap'])->name('data_simulasi.pelengkap.edit')->middleware('auth');
@@ -76,7 +82,11 @@ Route::get('/simulation/accounts', [SimulationController::class, 'getAccountsByP
 Route::post('/simulation/import-ocr-rows', [SimulationController::class, 'importOcrRows'])->name('simulation.import_ocr_rows')->middleware('auth');
 Route::post('/simulation/import-pdf-text', [SimulationController::class, 'importPdfText'])->name('simulation.import_pdf_text')->middleware('auth');
 Route::post('/simulation/preview-pdf-text', [SimulationController::class, 'previewPdfText'])->name('simulation.preview_pdf_text')->middleware('auth');
-Route::post('/data-simulasi', [SimulationController::class, 'storeDataSimulasi'])->name('data_simulasi.store')->middleware('auth');
+Route::post('/data-simulasi', function () {
+    return response()->json([
+        'message' => 'Fitur import PDF ke Data Simulasi sudah dinonaktifkan.',
+    ], 410);
+})->name('data_simulasi.store')->middleware('auth');
 Route::get('/simulasi-kb', [KbSimulationController::class, 'index'])->name('kb_simulasi.index')->middleware('auth');
 Route::post('/simulasi-kb/calculate', [KbSimulationController::class, 'calculate'])->name('kb_simulasi.calculate')->middleware('auth');
 Route::post('/simulasi-kb/store', [KbSimulationController::class, 'store'])->name('kb_simulasi.store')->middleware('auth');

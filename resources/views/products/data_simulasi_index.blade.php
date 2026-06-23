@@ -3,10 +3,8 @@
 @section('content')
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1 class="h4 mb-0">Data Simulasi</h1>
-        <div class="d-flex gap-2">
-            <a href="{{ route('data_simulasi.index') }}" class="btn btn-primary">Upload PDF</a>
-        </div>
+        <h1 class="h4 mb-0">{{ $listTitle ?? 'Data Simulasi' }}</h1>
+        <div></div>
     </div>
 
     @if(session('success'))
@@ -27,52 +25,67 @@
                         <thead>
                             <tr>
                                 <th>ID</th>
+                                @if($isTrialList ?? false)
+                                <th>Keterangan</th>
+                                @endif
                                 <th>Nama Debitur</th>
-                                <th>Produk</th>
-                                <th>Nomor Pensiun</th>
+                                <th>Tgl Lahir</th>
+                                <th>Usia</th>
+                                <th>Gaji</th>
                                 <th>Instansi</th>
+                                <th>Bank Asal</th>
+                                <th>Bank Tujuan</th>
+                                <th>Rate</th>
+                                <th>Admin Angsuran</th>
+                                <th>Angsuran</th>
                                 <th>Plafond</th>
-                                <th>Created</th>
-                                <th style="width: 900px;">Aksi</th>
+                                <th>Total Angsuran</th>
+                                <th>Administrasi</th>
+                                <th>Provisi</th>
+                                <th>Asuransi</th>
+                                <th>Blokir</th>
+                                <th>Sisa Gaji Setelah Pengajuan</th>
+                                <th>Terima Bersih</th>
+                                <th>Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach($dataSimulasi as $row)
                                 <tr>
                                     <td>{{ $row->id }}</td>
+                                    @if($isTrialList ?? false)
+                                        <td>{{ $row->keterangan ?: '-' }}</td>
+                                    @endif
                                     <td>{{ $row->nama_debitur ?: '-' }}</td>
-                                    <td>{{ $row->produk ?: '-' }}</td>
-                                    <td>{{ $row->nomor_pensiun ?: '-' }}</td>
+                                    <td>{{ $row->tanggal_lahir?->format('d-m-Y') ?: '-' }}</td>
+                                    <td>{{ $row->umur !== null ? $row->umur . ' th' : '-' }}</td>
+                                    <td>{{ $row->gaji_pensiun !== null ? number_format((float) $row->gaji_pensiun, 0, ',', '.') : '-' }}</td>
                                     <td>{{ $row->instansi ?: '-' }}</td>
-                                    <td>{{ $row->plafond ?: '-' }}</td>
-                                    <td>{{ $row->created_at?->format('d-m-Y H:i') ?: '-' }}</td>
+                                    <td>{{ $row->bank_asal ?: '-' }}</td>
+                                    <td>{{ $row->bank_tujuan ?: '-' }}</td>
+                                    <td>{{ $row->rate_percent_override !== null ? $row->rate_percent_override . '%' : '-' }}</td>
+                                    <td>{{ $row->admin_angsuran_percent_override !== null ? $row->admin_angsuran_percent_override . '%' : '-' }}</td>
+                                    <td>{{ $row->angsuran !== null ? number_format((float) $row->angsuran, 0, ',', '.') : '-' }}</td>
+                                    <td>{{ $row->plafond !== null ? number_format((float) $row->plafond, 0, ',', '.') : '-' }}</td>
+                                    <td>{{ $row->total_angsuran !== null ? number_format((float) $row->total_angsuran, 0, ',', '.') : '-' }}</td>
+                                    <td>{{ $row->administrasi !== null ? number_format((float) $row->administrasi, 0, ',', '.') : '-' }}</td>
+                                    <td>{{ $row->provisi !== null ? number_format((float) $row->provisi, 0, ',', '.') : '-' }}</td>
+                                    <td>{{ $row->asuransi !== null ? number_format((float) $row->asuransi, 0, ',', '.') : '-' }}</td>
+                                    <td>{{ $row->blokir_angsuran !== null ? $row->blokir_angsuran : '-' }}</td>
+                                    <td>{{ $row->sisa_gaji_akhir !== null ? number_format((float) $row->sisa_gaji_akhir, 0, ',', '.') : '-' }}</td>
+                                    <td>{{ $row->terima_bersih !== null ? number_format((float) $row->terima_bersih, 0, ',', '.') : '-' }}</td>
                                     <td>
-                                        <div class="d-flex gap-2">
-                                            <a href="{{ route('kb_simulasi.index', ['edit_data_simulasi' => $row->id]) }}" class="btn btn-sm btn-warning">Edit</a>
-                                            <a href="{{ route('data_simulasi.pelengkap.edit', $row) }}"
-                                               class="btn btn-sm {{ $row->pelengkap ? 'btn-info' : 'btn-outline-info' }}">
-                                                {{ $row->pelengkap ? 'Edit Pelengkap' : 'Input Pelengkap' }}
-                                            </a>
-                                            <a href="{{ route('data_simulasi.idpb.upload_form', $row) }}" class="btn btn-sm btn-outline-dark">Upload IDPB</a>
-                                            <a href="{{ route('permohonan_cif.download_template', ['data_simulasi_id' => $row->id]) }}" class="btn btn-sm btn-outline-dark">Permohonan CIF</a>
-                                            <a href="{{ route('pelunasan_to_kb.download_template', ['data_simulasi_id' => $row->id]) }}" class="btn btn-sm btn-outline-dark">Pelunasan TO KB</a>
-                                            <a href="{{ route('dnka.horizontal.download_template', ['data_simulasi_id' => $row->id]) }}" class="btn btn-sm btn-outline-success">DNKA Horizontal</a>
-                                            <a href="{{ route('dnka.vertical.download_template', ['data_simulasi_id' => $row->id]) }}" class="btn btn-sm btn-outline-success">DNKA Vertical</a>
-                                            <a href="{{ route('datanominatif.download_template', ['data_simulasi_id' => $row->id]) }}" class="btn btn-sm btn-outline-secondary">Data Nominatif</a>
-                                            <a href="{{ route('data_los_bulk.download_template', ['data_simulasi_id' => $row->id]) }}" class="btn btn-sm btn-outline-secondary">Data LOS Bulk</a>
-                                            <a href="{{ route('data_rekening.download_template', ['data_simulasi_id' => $row->id]) }}" class="btn btn-sm btn-outline-secondary">Data Rekening</a>
-                                            <a href="{{ route('repayment_schedule.download_template', ['data_simulasi_id' => $row->id]) }}" class="btn btn-sm btn-outline-secondary">Repayment Schedule</a>
-                                            <a href="{{ route('perjanjian_kredit.generate', $row) }}" class="btn btn-sm btn-outline-primary">PK Standard</a>
-                                            <a href="{{ route('perjanjian_kredit.generate', $row) }}?version=kb" class="btn btn-sm btn-outline-info">PK KB Version</a>
-                                            <a href="{{ route('si.generate_to', $row) }}" class="btn btn-sm btn-outline-warning">SI TO</a>
-                                            <a href="{{ route('si.generate_new_topup', $row) }}" class="btn btn-sm btn-outline-warning">SI New/Topup</a>
-                                            <a href="{{ route('sppk.generate', $row) }}" class="btn btn-sm btn-outline-primary">SPPK</a>
-                                            <form action="{{ route('data_simulasi.destroy', $row) }}" method="POST" onsubmit="return confirm('Yakin hapus data simulasi ini?')">
+                                        @if($isTrialList ?? false)
+                                            <form action="{{ route('data_simulasi.confirm', $row) }}" method="POST" onsubmit="return confirm('Konfirmasi simulasi ini? Data akan pindah ke list Data Simulasi.')">
                                                 @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn btn-sm btn-danger">Hapus</button>
+                                                @method('PATCH')
+                                                <button type="submit" class="btn btn-sm btn-success">Confirm</button>
                                             </form>
-                                        </div>
+                                        @else
+                                            <span class="badge {{ ($row->status === 'trial') ? 'text-bg-warning' : 'text-bg-success' }}">
+                                                {{ $row->status ?: 'confirmed' }}
+                                            </span>
+                                        @endif
                                     </td>
                                 </tr>
                             @endforeach
