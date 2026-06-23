@@ -93,7 +93,15 @@ class DataSimulasiController extends Controller
 
     public function destroy(DataSimulasi $dataSimulasi)
     {
+        $wasTrial = $dataSimulasi->status === 'trial';
+
         $dataSimulasi->delete();
+
+        if ($wasTrial) {
+            return redirect()
+                ->route('data_simulasi.trial.list')
+                ->with('success', 'Trial simulasi berhasil dihapus.');
+        }
 
         return redirect()
             ->route('data_simulasi.list')
