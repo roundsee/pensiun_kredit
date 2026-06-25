@@ -128,7 +128,6 @@
 </div>
 
 @php
-    $kbInsuranceConfigs = $insuranceConfigs ?? ['default_percent' => 0];
     $kbInitialData = $initialData ?? null;
     $kbPermissions = [
         'role' => $userRole ?? 'marketing',
@@ -143,8 +142,6 @@
 @endphp
 <script type="application/json" id="kb-simulasi-options">{!! json_encode($options, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}</script>
 <script type="application/json" id="kb-product-structs">{!! json_encode($productStructs, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}</script>
-<script type="application/json" id="kb-insurance-configs">{!! json_encode($kbInsuranceConfigs, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}</script>
-<script type="application/json" id="kb-insurance-rates">{!! json_encode($insuranceRates ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}</script>
 <script type="application/json" id="kb-initial-data">{!! json_encode($kbInitialData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}</script>
 <script type="application/json" id="kb-permissions">{!! json_encode($kbPermissions, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}</script>
 <script type="application/json" id="kb-simulasi-routes">{!! json_encode($kbSimulasiRoutes, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}</script>
@@ -154,8 +151,6 @@
 function kbSimulasiForm() {
     const options = JSON.parse(document.getElementById('kb-simulasi-options')?.textContent || '{}');
     const productStructs = JSON.parse(document.getElementById('kb-product-structs')?.textContent || '{}');
-    const insuranceConfigs = JSON.parse(document.getElementById('kb-insurance-configs')?.textContent || '{}');
-    const insuranceRates = JSON.parse(document.getElementById('kb-insurance-rates')?.textContent || '{}');
     const initialData = JSON.parse(document.getElementById('kb-initial-data')?.textContent || 'null');
     const permissions = JSON.parse(document.getElementById('kb-permissions')?.textContent || '{}');
     const routes = JSON.parse(document.getElementById('kb-simulasi-routes')?.textContent || '{}');
@@ -164,8 +159,6 @@ function kbSimulasiForm() {
     return {
         options,
         productStructs,
-        insuranceConfigs,
-        insuranceRates,
         permissions,
         editDataSimulasiId: initialData && initialData.id ? Number(initialData.id) : null,
         form: {
@@ -210,7 +203,7 @@ function kbSimulasiForm() {
             { cell: 'E21', label: 'Nomor Pensiun', type: 'text', key: 'nomor_pensiun' },
             { cell: 'E22', label: 'Instansi', type: 'select', key: 'instansi', optionsKey: 'instansi' },
             { cell: 'E23', label: 'Gaji Pensiun', type: 'integer', key: 'gaji_pensiun' },
-            { cell: 'E24', label: 'Angsuran Lainnya (sisa gaji)', type: 'integer', key: 'angsuran_lainnya' },
+            { cell: 'E24', label: 'Angsuran Lainnya', type: 'integer', key: 'angsuran_lainnya' },
             { cell: 'E25', label: 'Sisa Gaji saat pengajuan', type: 'output', key: 'sisa_gaji_saat_pengajuan', format: 'currency' },
             { cell: 'E26', label: 'Tenor Max', type: 'output', key: 'tenor_max', format: 'months' },
             { cell: 'E26A', label: 'Rate (%) Override', type: 'integer', key: 'rate_percent_override', onlyRoleCanEditPricing: true },
@@ -478,27 +471,6 @@ function kbSimulasiForm() {
             const preferred = preferredMap[rowKey];
             if (!preferred) return null;
             return optionsList.find((item) => this.normalizeOptionValue(item) === preferred) ?? null;
-        },
-
-        resolveInsuranceRatePercent(product, tenor) {
-            console.log('Resolving insurance rate for product:', product, 'tenor:', tenor);
-            if (!product || tenor === null || tenor === undefined || tenor === '') {
-                return (this.insuranceConfigs.default_percent || 0) / 100;
-            }
-            const tenorValue = Number(tenor);
-            if (!Number.isFinite(tenorValue) || tenorValue <= 0) {
-                return (this.insuranceConfigs.default_percent || 0) / 100;
-            }
-            const rates = Array.isArray(this.insuranceRates[product]) ? this.insuranceRates[product] : [];
-            if (rates.length === 0) {
-                return (this.insuranceConfigs.default_percent || 0) / 100;
-            }
-            const matched = rates.find((item) => Number(item.tenor) >= tenorValue);
-            if (matched) {
-                return (Number(matched.premium_per_million) || 0) / 1000;
-            }
-            const last = rates[rates.length - 1];
-            return last ? (Number(last.premium_per_million) || 0) / 1000 : (this.insuranceConfigs.default_percent || 0) / 100;
         },
 
         syncSelectValue(row) {
@@ -769,7 +741,8 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
                         tanggal_simulasi: this.form.tanggal_simulasi,
                         gaji_pensiun: this.form.gaji_pensiun,
                         angsuran_lainnya: this.form.angsuran_lainnya,
-                        blokir_angsuran: this.form.blokir_angsuran
+                        blokir_angsuran: this.form.blokir_angsuran,
+                        pelunasan: this.form.pelunasan
                     }),
                     signal: this.calcAbortController.signal
                 });

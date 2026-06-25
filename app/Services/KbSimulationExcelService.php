@@ -426,6 +426,8 @@ $bankAsal = KbReferenceOption::query()
             // value greater than or equal to the lookup; implement equivalent logic:
             // find the smallest tenor >= requested tenor. If none, fallback to the
             // largest available tenor.
+
+            Log::info("Looking up insurance rate for bank_tujuan={$bank_tujuan}, product={$product}, tenor={$tenor}, usia={$usia}");
             if($bank_tujuan=="KB"){
                 if($product=="Platinum") {
                 $rate = InsuranceRate::query()

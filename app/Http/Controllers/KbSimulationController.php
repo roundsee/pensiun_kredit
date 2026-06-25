@@ -3,9 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\DataSimulasi;
-use App\Models\InsuranceRate;
 use App\Models\ProductStruct;
-use App\Models\TemplateField;
 use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Services\KbSimulationExcelService;
@@ -58,24 +56,6 @@ class KbSimulationController extends Controller
             })
             ->all();
 
-        $insuranceConfigs = [
-            'default_percent' => (float) (TemplateField::query()
-                ->where('field_name', 'asuransi')
-                ->orderByDesc('updated_at')
-                ->value('default_value') ?? 0),
-        ];
-
-        $insuranceRates = InsuranceRate::query()
-            ->orderBy('product')
-            ->orderBy('tenor')
-            ->get(['product', 'tenor', 'premium_per_million'])
-            ->groupBy('product')
-            ->map(fn ($items) => $items->map(fn (InsuranceRate $item) => [
-                'tenor' => (int) $item->tenor,
-                'premium_per_million' => (float) $item->premium_per_million,
-            ])->values())
-            ->all();
-
         /** @var User|null $user */
         $user = Auth::user();
 
@@ -116,7 +96,7 @@ class KbSimulationController extends Controller
             }
         }
 
-        return view('products.simulasi_kb_form', compact('options', 'productStructs', 'insuranceConfigs', 'insuranceRates', 'initialData', 'userRole', 'canEditPricing'));
+        return view('products.simulasi_kb_form', compact('options', 'productStructs', 'initialData', 'userRole', 'canEditPricing'));
     }
 
     public function calculate(Request $request): JsonResponse
