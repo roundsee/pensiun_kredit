@@ -22,28 +22,13 @@
                             <a class="nav-link" href="{{ route('dashboard') }}">Dashboard</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ route('products.index') }}">Products</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ route('simulation.index') }}">Simulasi</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ route('kb_simulasi.index') }}">Simulasi KB</a>
+                            <a class="nav-link" href="{{ route('kb_simulasi.index') }}">Simulasi</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="{{ route('data_simulasi.trial.list') }}">Trial Data Simulasi</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="{{ route('data_simulasi.list') }}">Data Simulasi</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ route('product_templates.index') }}">Product Templates</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ route('accounts.index') }}">Accounts</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ route('mail_merge.index') }}">Mail Merge</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="{{ route('pic_nbp.index') }}">Petugas NBP</a>
