@@ -436,15 +436,16 @@ $bankAsal = KbReferenceOption::query()
                     ->where('tenor', '>=', $tenor)
                     ->orderBy('tenor', 'asc')
                     ->first();
+                    Log::info("Resolved insurance rate for KB Platinum: " . ($rate ? $rate->premium_per_million : 'null')); 
                 }
                 if($product=="Regular") {
                 $rate = InsuranceRate::query()
                     ->where('product', $product)
                     ->where('bank_tujuan', $bank_tujuan)
-                    ->where('usia', '>=', $usia)
                     ->where('tenor', '>=', $tenor)
                     ->orderBy('tenor', 'asc')
                     ->first();
+                    Log::info("Resolved insurance rate for KB Regular: " . ($rate ? $rate->premium_per_million : 'null'));  
                 }
             }
             if($bank_tujuan=="MANTAP"){
@@ -454,6 +455,7 @@ $bankAsal = KbReferenceOption::query()
                     ->where('tenor', '>=', $tenor)
                     ->orderBy('tenor', 'asc')
                     ->first();
+                    Log::info("Resolved insurance rate for MANTAP: " . ($rate ? $rate->premium_per_million : 'null'));  
             }
             if($bank_tujuan=="POS"){
                 $rate = InsuranceRate::query()
@@ -470,6 +472,7 @@ $bankAsal = KbReferenceOption::query()
                     ->where('product', $product)
                     ->orderBy('tenor', 'desc')
                     ->first();
+                Log::info("No insurance rate found for bank_tujuan={$bank_tujuan}, product={$product}, tenor={$tenor}, usia={$usia}. Using fallback rate: " . ($rate ? $rate->premium_per_million : 'null'));       
             }
 
             if ($rate !== null) {
