@@ -126,7 +126,7 @@
     <table>
       <tr><td class="label">Nama Debitur</td><td class="highlight">{{ $sim->nama_debitur }}</td></tr>
       <tr><td class="label">Tanggal Lahir</td><td>{{ $sim->tanggal_lahir }}</td></tr>
-      <tr><td class="label">Umur</td><td>{{ $sim->usia }}</td></tr>
+      <tr><td class="label">Umur</td><td>{{ $sim->umur !== null ? $sim->umur . ' thn' : '-' }}</td></tr>
       <tr><td class="label">Instansi</td><td class="highlight">{{ $sim->instansi }}</td></tr>
       <tr><td class="label">Gaji Pensiun</td><td class="highlight">{{ number_format($sim->terima_bersih, 0, ',', '.') }}</td></tr>
       <tr><td class="label">Angsuran Lainnya</td><td class="highlight">{{ number_format($sim->angsuran_lain, 0, ',', '.') }}</td></tr>
@@ -135,10 +135,10 @@
       <tr><td class="label">Plafond Max</td><td>{{ number_format($sim->plafond_max, 0, ',', '.') }}</td></tr>
       <tr><td class="label">Tenor</td><td class="highlight">{{ $sim->tenor }}</td></tr>
       <tr><td class="label">Plafond</td><td class="highlight">{{ number_format($sim->plafond, 0, ',', '.') }}</td></tr>
-      <tr><td class="label">Blokir Angsuran</td><td class="highlight">{{ number_format($sim->blokir, 0, ',', '.') }}</td></tr>
+      <tr><td class="label">Blokir Angsuran (Bulan)</td><td class="highlight">{{ number_format($sim->blokir_angsuran, 0, ',', '.') }}</td></tr>
       <tr><td class="label">Angsuran</td><td>{{ number_format($sim->angsuran, 0, ',', '.') }}</td></tr>
-      <tr><td class="label">Adm Angsuran</td><td>{{ number_format($sim->adm_angsuran, 0, ',', '.') }}</td></tr>
-      <tr><td class="label">Total Angsuran</td><td>{{ number_format($sim->adm_angsuran+$sim->angsuran, 0, ',', '.') }}</td></tr>
+      <tr><td class="label">Adm Angsuran</td><td>{{ number_format($sim->biaya_adm_angs, 0, ',', '.') }}</td></tr>
+      <tr><td class="label">Total Angsuran</td><td>{{ number_format($sim->total_angsuran, 0, ',', '.') }}</td></tr>
     </table>
 
     <div class="section-title">RINCIAN PEMBIAYAAN</div>

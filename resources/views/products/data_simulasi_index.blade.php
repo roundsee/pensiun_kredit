@@ -109,6 +109,7 @@
                                     <td>
                                         @if($isTrialList ?? false)
                                             <div class="d-flex gap-2">
+                                                <a href="{{ route('kb_simulasi.index', ['edit_data_simulasi' => $row->id]) }}" class="btn btn-sm btn-warning">Edit</a>
                                                 <form action="{{ route('data_simulasi.confirm', $row) }}" method="POST" onsubmit="return confirm('Konfirmasi simulasi ini? Data akan pindah ke list Data Simulasi.')">
                                                     @csrf
                                                     @method('PATCH')

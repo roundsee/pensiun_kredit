@@ -253,7 +253,7 @@ $bankAsal = KbReferenceOption::query()
         $administrasi = $plafond * $administrasiPercent;
         $asuransi = $plafond * $asuransiPercent;
         $extraPremi = 0.0;
-        $blokirAngsuranCount = max(1, min(3, (int) ($input['blokir_angsuran'] ?? 1)));
+        $blokirAngsuranCount = max(1, min(5, (int) ($input['blokir_angsuran'] ?? 1)));
         $amountBlokirAngsuran = $blokirAngsuranCount * $totalAngsuran;
         $pelunasan = max(0.0, (float) ($input['pelunasan'] ?? 0));
 

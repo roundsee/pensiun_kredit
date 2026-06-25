@@ -185,7 +185,7 @@ function kbSimulasiForm() {
             kode_area: '',
         },
         mutasiOptions: ['Mutasi', 'Non Mutasi'],
-        blokirOptions: ['1', '2', '3'],
+        blokirOptions: ['1', '2', '3', '4', '5'],
         instansiOptions: ['TASPEN', 'ASABRI'],
         excelRows: [
             { cell: 'E10', label: 'Produk', type: 'select', key: 'produk', optionsKey: 'produk', allowEmpty: true },

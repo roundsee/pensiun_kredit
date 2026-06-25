@@ -323,7 +323,7 @@ public function store(Request $request): JsonResponse
    
 
     // load logo
-    $logoPath = public_path('img/Logo_nata.jpeg');
+    $logoPath = public_path('image/logo_nbp.png');
     $logo = '';
     if (file_exists($logoPath)) {
         $logo = base64_encode(file_get_contents($logoPath));
@@ -470,7 +470,7 @@ public function store(Request $request): JsonResponse
             'instansi' => ['nullable', 'string', 'max:100'],
             'gaji_pensiun' => ['nullable', 'numeric', 'min:0'],
             'angsuran_lainnya' => ['nullable', 'numeric', 'min:0'],
-            'blokir_angsuran' => ['nullable', 'integer', 'in:1,2,3'],
+            'blokir_angsuran' => ['nullable', 'integer', 'in:1,2,3,4,5'],
             'pelunasan' => ['nullable', 'numeric', 'min:0'],
             'rate_percent_override' => ['nullable', 'numeric', 'min:0'],
             'admin_angsuran_percent_override' => ['nullable', 'numeric', 'min:0'],
@@ -489,6 +489,7 @@ public function store(Request $request): JsonResponse
            'mutasi' => ['nullable', 'string', 'in:Mutasi,Non Mutasi,MUTASI,NON MUTASI,mutasi,non mutasi'],
             'bank_asal' => ['nullable', 'string', 'max:255'],
             'bank_tujuan' => ['nullable', 'string', 'max:255'],
+            'keterangan' => ['nullable', 'string', 'max:500'],
             'nama_debitur' => ['nullable', 'string', 'max:255'],
             'tanggal_simulasi' => ['required', 'date'],
             'tanggal_lahir' => ['required', 'date'],
@@ -496,7 +497,7 @@ public function store(Request $request): JsonResponse
             'instansi' => ['nullable', 'string', 'max:100'],
             'gaji_pensiun' => ['nullable', 'numeric', 'min:0'],
             'angsuran_lainnya' => ['nullable', 'numeric', 'min:0'],
-            'blokir_angsuran' => ['nullable', 'integer', 'in:1,2,3'],
+            'blokir_angsuran' => ['nullable', 'integer', 'in:1,2,3,4,5'],
             'pelunasan' => ['nullable', 'numeric', 'min:0'],
             'rate_percent_override' => ['nullable', 'numeric', 'min:0'],
             'admin_angsuran_percent_override' => ['nullable', 'numeric', 'min:0'],
