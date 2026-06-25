@@ -40,6 +40,7 @@
                         <thead>
                             <tr>
                                 @if($isTrialList ?? false)
+                                <th style="min-width: 280px;">Aksi</th>
                                 <th>ID</th>
                                 <th>Keterangan</th>
                                 <th>Nama Debitur</th>
@@ -60,7 +61,6 @@
                                 <th>Blokir</th>
                                 <th>Sisa Gaji Setelah Pengajuan</th>
                                 <th>Terima Bersih</th>
-                                <th style="min-width: 540px;">Aksi</th>
                                 @else
                                 <th>Nama Debitur</th>
                                 <th>Tgl Lahir</th>
@@ -77,6 +77,26 @@
                             @foreach($dataSimulasi as $row)
                                 <tr>
                                     @if($isTrialList ?? false)
+                                        <td>
+                                            <div class="d-flex gap-2 flex-wrap">
+                                                <a href="{{ route('kb_simulasi.index', ['edit_data_simulasi' => $row->id]) }}" class="btn btn-sm btn-warning">Edit</a>
+                                                <form action="{{ route('kb_simulasi.download_pdf') }}" method="POST" target="_blank">
+                                                    @csrf
+                                                    <input type="hidden" name="id" value="{{ $row->id }}">
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger">Download PDF</button>
+                                                </form>
+                                                <form action="{{ route('data_simulasi.confirm', $row) }}" method="POST" onsubmit="return confirm('Konfirmasi simulasi ini? Data akan pindah ke list Data Simulasi.')">
+                                                    @csrf
+                                                    @method('PATCH')
+                                                    <button type="submit" class="btn btn-sm btn-success">Confirm</button>
+                                                </form>
+                                                <form action="{{ route('data_simulasi.destroy', $row) }}" method="POST" onsubmit="return confirm('Yakin hapus trial simulasi ini?')">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-sm btn-danger">Hapus</button>
+                                                </form>
+                                            </div>
+                                        </td>
                                         <td>{{ $row->id }}</td>
                                         <td>{{ $row->keterangan ?: '-' }}</td>
                                         <td>{{ $row->nama_debitur ?: '-' }}</td>
@@ -107,21 +127,7 @@
                                         <td>{{ $row->asuransi !== null ? number_format((float) $row->asuransi, 0, ',', '.') : '-' }}</td>
                                     @endif
                                     <td>
-                                        @if($isTrialList ?? false)
-                                            <div class="d-flex gap-2">
-                                                <a href="{{ route('kb_simulasi.index', ['edit_data_simulasi' => $row->id]) }}" class="btn btn-sm btn-warning">Edit</a>
-                                                <form action="{{ route('data_simulasi.confirm', $row) }}" method="POST" onsubmit="return confirm('Konfirmasi simulasi ini? Data akan pindah ke list Data Simulasi.')">
-                                                    @csrf
-                                                    @method('PATCH')
-                                                    <button type="submit" class="btn btn-sm btn-success">Confirm</button>
-                                                </form>
-                                                <form action="{{ route('data_simulasi.destroy', $row) }}" method="POST" onsubmit="return confirm('Yakin hapus trial simulasi ini?')">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="btn btn-sm btn-danger">Hapus</button>
-                                                </form>
-                                            </div>
-                                        @else
+                                        @if(!($isTrialList ?? false))
                                             <div class="data-simulasi-action-grid">
                                                 <a href="{{ route('kb_simulasi.index', ['edit_data_simulasi' => $row->id]) }}" class="btn btn-sm btn-warning">Edit</a>
                                                 <form action="{{ route('kb_simulasi.download_pdf') }}" method="POST" target="_blank">
