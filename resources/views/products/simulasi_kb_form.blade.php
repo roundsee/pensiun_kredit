@@ -41,6 +41,26 @@
     }
     .kb-sheet-input {
         min-width: 260px;
+        background: #fff1db;
+        border-color: #f0c48a;
+    }
+    .kb-sheet-input:focus {
+        background: #fff8ec;
+        border-color: #d99a4e;
+        box-shadow: 0 0 0 0.2rem rgba(217, 154, 78, 0.18);
+    }
+    .kb-sheet-input:disabled {
+        background: #eef2f6;
+        border-color: #d8dee4;
+    }
+    .kb-trial-note {
+        background: #e9f5ff;
+        border-color: #98c9ea;
+    }
+    .kb-trial-note:focus {
+        background: #f4fbff;
+        border-color: #63abd9;
+        box-shadow: 0 0 0 0.2rem rgba(99, 171, 217, 0.18);
     }
 </style>
 <div class="container" x-data="kbSimulasiForm()">
@@ -51,7 +71,6 @@
                 <div class="card-body">
                     <div class="alert alert-info mb-3" x-show="shouldShowMessages() && message" x-text="message"></div>
                     <div class="alert alert-danger mb-3" x-show="shouldShowMessages() && errorMessage" x-text="errorMessage"></div>
-                    <div class="alert alert-warning mb-3" x-show="shouldShowMessages() && limitWarning" x-text="limitWarning"></div>
 
                     <div class="d-flex justify-content-end mb-3">
                         <a href="{{ route('data_simulasi.trial.list') }}" class="btn btn-sm btn-outline-secondary">Lihat Trial Data Simulasi</a>
@@ -103,6 +122,8 @@
                         </table>
                     </div>
 
+                    <div class="alert alert-warning mt-3 mb-0" x-show="shouldShowMessages() && limitWarning" x-text="limitWarning"></div>
+
                     <div class="d-flex gap-2 mt-3">
                         <button type="button" 
                                 @click="simpan()" 
@@ -115,7 +136,7 @@
                     </div>
                     <div class="mt-3">
                         <label class="form-label fw-semibold">Keterangan Trial</label>
-                        <textarea class="form-control" rows="3" x-model="form.keterangan" placeholder="Contoh: debitur minta sisa gaji akhir nya minimal 250rb"></textarea>
+                        <textarea class="form-control kb-trial-note" rows="3" x-model="form.keterangan" placeholder="Contoh: debitur minta sisa gaji akhir nya minimal 250rb"></textarea>
                         <div class="form-text">Keterangan ini akan tampil di list Trial Data Simulasi.</div>
                     </div>
                     <div class="small text-muted mt-2" x-show="isCalculating">Menghitung otomatis...</div>
@@ -205,7 +226,7 @@ function kbSimulasiForm() {
             { cell: 'E24', label: 'Angsuran Lainnya', type: 'integer', key: 'angsuran_lainnya' },
             { cell: 'E25', label: 'Sisa Gaji saat pengajuan', type: 'output', key: 'sisa_gaji_saat_pengajuan', format: 'currency' },
             { cell: 'E26', label: 'Tenor Max', type: 'output', key: 'tenor_max', format: 'months' },
-            { cell: 'E26A', label: 'Rate (%) Override', type: 'integer', key: 'rate_percent_override', onlyRoleCanEditPricing: true },
+            { cell: 'E26A', label: 'Rate (%) Override', type: 'number', key: 'rate_percent_override', onlyRoleCanEditPricing: true },
             { cell: 'E26B', label: 'Adm Angsuran (%) Override', type: 'integer', key: 'admin_angsuran_percent_override', onlyRoleCanEditPricing: true },
             { cell: 'E28', label: 'Tenor', type: 'integer', key: 'tenor' },
             { cell: 'E27', label: 'Plafond Max', type: 'output', key: 'plafond_max', format: 'currency' },
@@ -456,6 +477,54 @@ function kbSimulasiForm() {
             }, 800);
         },
 
+        buildLimitFeedback(limits) {
+            const warnings = [];
+            const fieldMessages = {};
+
+            if (!limits) {
+                return { warning: '', fieldMessages };
+            }
+
+            if (limits.usia_min_valid === false) {
+                warnings.push(`Usia masuk di bawah batas minimum ${limits.usia_masuk_min} tahun`);
+                fieldMessages.tanggal_lahir = `Usia masuk minimal ${limits.usia_masuk_min} tahun`;
+            }
+
+            if (limits.usia_max_valid === false) {
+                warnings.push(`Usia melebihi batas maksimum ${limits.usia_lunas_max} tahun`);
+                fieldMessages.tanggal_lahir = `Usia maksimum ${limits.usia_lunas_max} tahun`;
+            }
+
+            if (limits.tenor_valid === false) {
+                warnings.push(`Tenor input melebihi tenor max ${limits.tenor_max} bulan`);
+                fieldMessages.tenor = `Maksimal ${limits.tenor_max} bulan`;
+            }
+
+            if (limits.plafond_valid === false) {
+                warnings.push(`Plafond input melebihi plafond max`);
+                fieldMessages.plafond = 'Plafond melebihi batas maksimal';
+            }
+
+            if (limits.total_angsuran_valid === false) {
+                warnings.push(`Total angsuran melebihi batas kemampuan bayar`);
+                fieldMessages.tenor = fieldMessages.tenor || 'Total angsuran terlalu besar';
+                fieldMessages.plafond = fieldMessages.plafond || 'Turunkan plafond atau tenor';
+            }
+
+            if (limits.sisa_gaji_akhir_valid === false) {
+                warnings.push(`Sisa gaji akhir di bawah minimum Rp ${Math.round(Number(limits.sisa_gaji_akhir_min || 0)).toLocaleString('id-ID')}`);
+            }
+
+            if (limits.terima_bersih_valid === false) {
+                warnings.push('Terima bersih harus lebih besar dari 0');
+            }
+
+            return {
+                warning: warnings.length > 0 ? `Data belum valid: ${warnings.join('; ')}` : '',
+                fieldMessages,
+            };
+        },
+
         normalizeOptionValue(value) {
             return String(value ?? '').trim().toLowerCase();
         },
@@ -682,14 +751,37 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
             }
 
             const rateToUse = (this.form.rate_percent_override && this.form.rate_percent_override !== '')
-              ? Number(this.form.rate_percent_override)
-              : (struct.rate_percent ? struct.rate_percent * 100 : 0);
+                ? Number(this.form.rate_percent_override)
+                : (struct.rate_percent ? Number(struct.rate_percent) * 100 : 0);
+
+            const adminAngsuranToUse = (this.form.admin_angsuran_percent_override && this.form.admin_angsuran_percent_override !== '')
+                ? Number(this.form.admin_angsuran_percent_override)
+                : (struct.admin_angsuran_percent ? Number(struct.admin_angsuran_percent) * 100 : 0);
+
+            const dbrToUse = struct.dbr_percent ? Number(struct.dbr_percent) : 0;
+
             const rateBulanan = (rateToUse / 100) / 12;
-            if (rateBulanan <= 0) return;
-            const adm_ang = this.form.admin_angsuran_percent_override;
-            const pmt = (sisaGaji-125000)/(1+adm_ang/100);
+            const adminAngsuran = adminAngsuranToUse / 100;
+            const ratioGajiMax = dbrToUse > 1 ? dbrToUse / 100 : dbrToUse;
+
+            if (rateBulanan <= 0 || ratioGajiMax <= 0) {
+                this.plafondMaxText = '-';
+                return;
+            }
+
+            // Samakan dengan Excel/backend:
+            // basis = MIN(E25*C20, (E25-120000)/(1+D35))
+            const kandidatPertama = sisaGaji * ratioGajiMax;
+            const kandidatKedua = (sisaGaji - 120000) / (1 + adminAngsuran);
+            const basisAngsuran = Math.min(kandidatPertama, kandidatKedua);
+
+            if (!Number.isFinite(basisAngsuran) || basisAngsuran <= 0) {
+                this.plafondMaxText = '-';
+                return;
+            }
+
             const n = tenorInput;
-            const pv = pmt * ((1 - Math.pow(1 + rateBulanan, -n)) / rateBulanan);
+            const pv = basisAngsuran * ((1 - Math.pow(1 + rateBulanan, -n)) / rateBulanan);
             this.plafondMaxText = Number.isFinite(pv) && pv > 0 ? Math.round(pv) : '-';
         },
 
@@ -719,6 +811,7 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
             }
             this.errorMessage = '';
             this.limitWarning = '';
+            this.fieldMessages = {};
             
             try {
                 const response = await fetch(routes.calculate, {
@@ -761,7 +854,8 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
 // Reset semua notifikasi setiap kali hitung dimulai jika format JSON valid
                 this.message = '';
                 this.errorMessage = '';
-                this.limitWarning = '';                
+                this.limitWarning = '';
+                this.fieldMessages = {};
                 
                 // PERBAIKAN UTAMA: Selama server mengirimkan array data kalkulasi, 
                 // langsung kunci dan tampilkan ke layar agar Provisi/Admin tidak jadi (-)
@@ -773,7 +867,11 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
                     this.isValidForm = data.limits.is_valid; 
                 } else {
                     this.isValidForm = true; 
-                }                
+                }
+
+                const limitFeedback = this.buildLimitFeedback(data.limits);
+                this.fieldMessages = limitFeedback.fieldMessages;
+
                 // Urus notifikasi sukses/gagal secara terpisah tanpa merusak tampilan tabel
                 if (data.success || (data.limits && data.limits.is_valid)) {
                     if (!silent) {
@@ -781,8 +879,7 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
                         setTimeout(() => { this.message = ''; }, 3000);
                     }
                 } else {
-                    // Jika server mendeteksi ada limit yang dilanggar (misal tenor kebesaran)
-                    this.errorMessage = data.message || 'Perhitungan simulasi melewati batas limit.';
+                    this.limitWarning = limitFeedback.warning || 'Perhitungan berhasil, tetapi ada data yang belum valid.';
                 }
             } catch (error) {
                 if (error.name !== 'AbortError') {

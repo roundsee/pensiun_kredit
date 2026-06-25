@@ -395,7 +395,7 @@ $bankAsal = KbReferenceOption::query()
         // =PV(C21/12, E29, -MIN(E25*C20, (E25-120000-(10000*D35*10))/(1+D35)))
         $monthlyRate = $rateTahunan / 12;
         $kandidatPertama = $sisaGajiSaatPengajuan * $ratioGajiMax;
-        $kandidatKedua = ($sisaGajiSaatPengajuan - 120000 - (10000 * $adminAngsuran * 10)) / (1 + $adminAngsuran);
+        $kandidatKedua = ($sisaGajiSaatPengajuan - 120000) / (1 + $adminAngsuran);
         $basisAngsuran = min($kandidatPertama, $kandidatKedua);
 
         if ($basisAngsuran <= 0) {
