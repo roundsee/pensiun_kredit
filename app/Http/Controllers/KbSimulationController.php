@@ -307,8 +307,16 @@ public function store(Request $request): JsonResponse
     //     'nama_marketing' => '-',
     //     'kode_area' => '-',
     // ], $input);
-    $sim =DataSimulasi::where('id','=',$request->input('id'))->first();
-    $isClientSide = $request->boolean('client_side_calculation');
+    $validated = $request->validate([
+        'id' => ['required', 'integer', 'exists:data_simulasi,id'],
+    ]);
+
+    $sim = DataSimulasi::query()->find($validated['id']);
+    if ($sim === null) {
+        return response()->json([
+            'message' => 'Data simulasi tidak ditemukan.',
+        ], 404);
+    }
 
     // if ($isClientSide) {
     //     $result = $input; // Jika client-side, gunakan langsung gabungan data dari frontend
@@ -332,11 +340,7 @@ public function store(Request $request): JsonResponse
     // $simArray['product_kode'] = $input['product_kode'] ?? $input['produk'] ?? null;
     //$sim = (object) $simArray;
 
-    $tu = (object) [
-        'nama_penerima' => $request->input('nama_debitur') ?? $result['nama_debitur'] ?? '-',
-        'tgl_lahir_penerima' => $request->input('tanggal_lahir') ?? $result['tanggal_lahir'] ?? null,
-        'bersih' => $result['gaji_pensiun'] ?? ($input['gaji_pensiun'] ?? 0),
-    ];
+   
 
     // load logo
     $logoPath = public_path('img/Logo_nata.jpeg');
@@ -344,13 +348,9 @@ public function store(Request $request): JsonResponse
     if (file_exists($logoPath)) {
         $logo = base64_encode(file_get_contents($logoPath));
     }
-
-    $user_name = optional(auth()->user())->name ?? ($input['nama_marketing'] ?? '-');
-
     $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('products.simulasifordownload', [
         'sim' => $sim,
         'logo' => $logo,
-        'user_name' => $user_name,
         'generatedAt' => now(),
     ])->setPaper('a4', 'portrait');
 

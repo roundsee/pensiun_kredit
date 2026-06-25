@@ -123,6 +123,11 @@
                                         @else
                                             <div class="data-simulasi-action-grid">
                                                 <a href="{{ route('kb_simulasi.index', ['edit_data_simulasi' => $row->id]) }}" class="btn btn-sm btn-warning">Edit</a>
+                                                <form action="{{ route('kb_simulasi.download_pdf') }}" method="POST" target="_blank">
+                                                    @csrf
+                                                    <input type="hidden" name="id" value="{{ $row->id }}">
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger">PDF Simulasi</button>
+                                                </form>
                                                 <a href="{{ route('data_simulasi.pelengkap.edit', $row) }}"
                                                    class="btn btn-sm {{ $row->pelengkap ? 'btn-info' : 'btn-outline-info' }}">
                                                     {{ $row->pelengkap ? 'Edit Pelengkap' : 'Input Pelengkap' }}
