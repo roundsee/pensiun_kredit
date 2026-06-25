@@ -104,13 +104,12 @@
                     </div>
 
                     <div class="d-flex gap-2 mt-3">
-                        <button class="btn btn-outline-primary" type="button" @click="hitung(false)">Hitung Ulang (Manual)</button>
                         <button type="button" 
                                 @click="simpan()" 
                                 :disabled="!isValidForm || isSaving" 
                                 :class="!isValidForm ? 'opacity-50 cursor-not-allowed' : ''"
                                 class="btn btn-primary">
-                            <span x-text="isSaving ? 'Menyimpan...' : 'Simpan ke Data Simulasi'"></span>
+                            <span x-text="isSaving ? 'Menyimpan...' : 'Simpan'"></span>
                         </button>
                         <button class="btn btn-outline-danger" type="button" @click="downloadPdf" :disabled="!hasil || isDownloading" x-text="isDownloading ? 'Menyiapkan PDF...' : 'Download PDF'"></button>
                     </div>
