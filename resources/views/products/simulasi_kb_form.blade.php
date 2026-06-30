@@ -883,6 +883,7 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
                         admin_angsuran_percent_override: this.form.admin_angsuran_percent_override,
                         tanggal_lahir: this.form.tanggal_lahir,
                         tanggal_simulasi: this.form.tanggal_simulasi,
+                        instansi: this.form.instansi,
                         gaji_pensiun: this.form.gaji_pensiun,
                         angsuran_lainnya: this.form.angsuran_lainnya,
                         blokir_angsuran: this.form.blokir_angsuran,
@@ -965,6 +966,7 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
             ...this.hasil,
             bank_tujuan: this.form.bank_tujuan,
             bank_asal: this.form.bank_asal,
+            instansi: this.form.instansi,
             nama_debitur: this.form.nama_debitur,   // <--- Tambahkan ini
             nomor_pensiun: this.form.nomor_pensiun, // <--- Tambahkan ini
             id: this.editDataSimulasiId || null
