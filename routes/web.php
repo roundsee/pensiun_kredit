@@ -88,7 +88,9 @@ Route::post('/data-simulasi', function () {
     ], 410);
 })->name('data_simulasi.store')->middleware('auth');
 Route::get('/simulasi-kb', [KbSimulationController::class, 'index'])->name('kb_simulasi.index')->middleware('auth');
+Route::get('/simulasi-kb/goal-seeker', [KbSimulationController::class, 'goalSeekerIndex'])->name('kb_simulasi.goal_seeker')->middleware('auth');
 Route::post('/simulasi-kb/calculate', [KbSimulationController::class, 'calculate'])->name('kb_simulasi.calculate')->middleware('auth');
+Route::post('/simulasi-kb/goal-seek', [KbSimulationController::class, 'goalSeek'])->name('kb_simulasi.goal_seek')->middleware('auth');
 Route::post('/simulasi-kb/store', [KbSimulationController::class, 'store'])->name('kb_simulasi.store')->middleware('auth');
 Route::post('/simulasi-kb/download-pdf', [KbSimulationController::class, 'downloadPdf'])->name('kb_simulasi.download_pdf')->middleware('auth');
 Route::post('/simulation/batches/{batchId}/map-proposal', [SimulationController::class, 'mapBatchToProposal'])->name('simulation.map_batch_to_proposal')->middleware('auth');

@@ -443,6 +443,7 @@ $bankAsal = KbReferenceOption::query()
                     ->where('product', $product)
                     ->where('bank_tujuan', $bank_tujuan)
                     ->where('tenor', '>=', $tenor)
+                    ->where('usia', '>=', $usia)
                     ->orderBy('tenor', 'asc')
                     ->first();
                     Log::info("Resolved insurance rate for KB Regular: " . ($rate ? $rate->premium_per_million : 'null'));  

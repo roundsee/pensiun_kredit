@@ -72,7 +72,8 @@
                     <div class="alert alert-info mb-3" x-show="shouldShowMessages() && message" x-text="message"></div>
                     <div class="alert alert-danger mb-3" x-show="shouldShowMessages() && errorMessage" x-text="errorMessage"></div>
 
-                    <div class="d-flex justify-content-end mb-3">
+                    <div class="d-flex justify-content-end gap-2 mb-3">
+                        <a href="{{ route('kb_simulasi.goal_seeker') }}" class="btn btn-sm btn-outline-primary">Goal Seeker</a>
                         <a href="{{ route('data_simulasi.trial.list') }}" class="btn btn-sm btn-outline-secondary">Lihat Trial Data Simulasi</a>
                     </div>
 
@@ -394,8 +395,16 @@ function kbSimulasiForm() {
             const blokirSatu = blokirOptions.find((item) => String(item).trim() === '1');
             const blokirDefault = blokirSatu || blokirOptions[0] || '1';
 
+            const produkOptions = Array.isArray(this.options.produk) ? this.options.produk : [];
+            const platinumOption = produkOptions.find((item) => String(item).trim().toLowerCase() === 'platinum');
+            const produkDefault = platinumOption || produkOptions[0] || 'Platinum';
+
             if (!this.form.jenis_pensiun || !jenisOptions.includes(this.form.jenis_pensiun)) {
                 this.form.jenis_pensiun = jenisDefault;
+            }
+
+            if (!this.form.produk || String(this.form.produk).trim() === '') {
+                this.form.produk = produkDefault;
             }
 
             if (!this.form.instansi || !instansiOptions.includes(this.form.instansi)) {
@@ -409,6 +418,8 @@ function kbSimulasiForm() {
             if (!this.form.tanggal_simulasi || String(this.form.tanggal_simulasi).trim() === '') {
                 this.form.tanggal_simulasi = new Date().toISOString().slice(0, 10);
             }
+
+            this.applyAutoProdukByAge();
             
             const productKey = `${this.form.bank_tujuan}-${this.form.produk}-${this.form.jenis_pensiun}`;
            console.log('Applying initial defaults for productKey:', productKey);
@@ -441,9 +452,50 @@ function kbSimulasiForm() {
             }
         },
 
+        getCurrentAgeYears() {
+            if (!this.form.tanggal_lahir) return null;
+
+            const birth = new Date(this.form.tanggal_lahir + 'T00:00:00');
+            const referenceDate = this.form.tanggal_simulasi
+                ? new Date(this.form.tanggal_simulasi + 'T00:00:00')
+                : new Date();
+
+            if (Number.isNaN(birth.getTime()) || Number.isNaN(referenceDate.getTime())) {
+                return null;
+            }
+
+            let years = referenceDate.getFullYear() - birth.getFullYear();
+            let months = referenceDate.getMonth() - birth.getMonth();
+
+            if (referenceDate.getDate() < birth.getDate()) {
+                months -= 1;
+            }
+            if (months < 0) {
+                years -= 1;
+            }
+
+            return Math.max(0, years);
+        },
+
+        applyAutoProdukByAge() {
+            const produkOptions = Array.isArray(this.options.produk) ? this.options.produk : [];
+            if (produkOptions.length === 0) return;
+
+            const regularOption = produkOptions.find((item) => String(item).trim().toLowerCase() === 'regular') || 'Regular';
+            const platinumOption = produkOptions.find((item) => String(item).trim().toLowerCase() === 'platinum') || 'Platinum';
+
+            const ageYears = this.getCurrentAgeYears();
+            const nextProduk = ageYears !== null && ageYears < 68 ? regularOption : platinumOption;
+
+            if (this.form.produk !== nextProduk) {
+                this.form.produk = nextProduk;
+            }
+        },
+
         onFormChanged() {
             console.log('Form changed:', this.form);
             this.applyInitialDefaults();
+            this.applyAutoProdukByAge();
             this.syncAllSelectValues();
             this.recalculateRealtimeAge();
             this.recalculateRealtimeTenorMax();
@@ -1037,6 +1089,9 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
         },
         
         isInputDisabled(row) { 
+            if (row && row.key === 'produk') {
+                return true;
+            }
             if (row.onlyRoleCanEditPricing && !this.permissions.can_edit_pricing) {
                 return true;
             }
