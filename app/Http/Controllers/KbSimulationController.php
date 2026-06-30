@@ -118,13 +118,26 @@ class KbSimulationController extends Controller
 
         $input = $request->validate($this->goalSeekerRules());
 
-        $targetAngsuranMax = $input['target_angsuran_max'] ?? null;
-        $targetSisaGajiAkhirMin = $input['target_sisa_gaji_akhir_min'] ?? null;
+        $targetField = (string) $input['target_field'];
+        $targetValue = (float) $input['target_value'];
+        $adjustableParameters = array_values(array_unique($input['adjustable_parameters'] ?? []));
 
-        if ($targetAngsuranMax === null && $targetSisaGajiAkhirMin === null) {
+        if (count($adjustableParameters) < 1 || count($adjustableParameters) > 2) {
             return response()->json([
-                'message' => 'Isi minimal satu target: Angsuran Max atau Sisa Gaji Akhir Min.',
+                'message' => 'Pilih 1 atau 2 parameter yang diubah.',
             ], 422);
+        }
+
+        /** @var User|null $user */
+        $user = $request->user();
+        $canEditPricing = $user?->canEditKbPricing() ?? false;
+
+        $pricingParameters = ['rate_percent_override', 'admin_angsuran_percent_override'];
+        $needsPricingAccess = count(array_intersect($adjustableParameters, $pricingParameters)) > 0;
+        if ($needsPricingAccess && ! $canEditPricing) {
+            return response()->json([
+                'message' => 'Anda tidak memiliki akses untuk mengubah parameter rate/admin angsuran.',
+            ], 403);
         }
 
         $baseInput = array_merge([
@@ -146,10 +159,11 @@ class KbSimulationController extends Controller
             'kode_area' => '-',
         ], $input);
 
-        $probe = $this->kbSimulationExcelService->calculate(array_merge($baseInput, [
+        $probeInput = array_merge($baseInput, [
             'tenor' => null,
             'plafond' => null,
-        ]));
+        ]);
+        $probe = $this->kbSimulationExcelService->calculate($probeInput);
 
         $tenorMaxSystem = (int) ($probe['tenor_max'] ?? 0);
         if ($tenorMaxSystem <= 0) {
@@ -161,6 +175,10 @@ class KbSimulationController extends Controller
         $tenorMin = max(1, (int) ($input['tenor_min'] ?? 1));
         $tenorMaxReq = (int) ($input['tenor_max'] ?? $tenorMaxSystem);
         $tenorMax = max($tenorMin, min($tenorMaxReq, $tenorMaxSystem));
+        $plafondMaxSystem = (int) floor((float) ($probe['plafond_max'] ?? 0));
+        if ($plafondMaxSystem <= 0) {
+            $plafondMaxSystem = 100000000;
+        }
 
         $productKey = trim((string) $baseInput['bank_tujuan'] . '-' . (string) $baseInput['produk'] . '-' . (string) $baseInput['jenis_pensiun']);
         $struct = ProductStruct::query()->where('produk', $productKey)->first();
@@ -168,97 +186,121 @@ class KbSimulationController extends Controller
         $baseRate = ($baseInput['rate_percent_override'] ?? null) !== null && ($baseInput['rate_percent_override'] ?? '') !== ''
             ? (float) $baseInput['rate_percent_override']
             : (float) ($struct?->rate_percent ?? 0);
+        if ($baseRate > 0 && $baseRate <= 1) {
+            $baseRate *= 100;
+        }
 
-        $allowRateSearch = (bool) ($input['allow_rate_search'] ?? true);
-        /** @var User|null $user */
-        $user = $request->user();
-        $canEditPricing = $user?->canEditKbPricing() ?? false;
+        $baseAdminAngsuran = ($baseInput['admin_angsuran_percent_override'] ?? null) !== null && ($baseInput['admin_angsuran_percent_override'] ?? '') !== ''
+            ? (float) $baseInput['admin_angsuran_percent_override']
+            : (float) ($struct?->admin_angsuran_percent ?? 0);
+        if ($baseAdminAngsuran > 0 && $baseAdminAngsuran <= 1) {
+            $baseAdminAngsuran *= 100;
+        }
 
-        $rateCandidates = $this->buildRateCandidates($baseRate, $allowRateSearch && $canEditPricing);
+        $baseTenor = ($baseInput['tenor'] ?? null) !== null && ($baseInput['tenor'] ?? '') !== ''
+            ? (int) $baseInput['tenor']
+            : $tenorMax;
+
+        $basePlafond = ($baseInput['plafond'] ?? null) !== null && ($baseInput['plafond'] ?? '') !== ''
+            ? (int) $baseInput['plafond']
+            : $plafondMaxSystem;
+
+        $candidateContext = [
+            'tenor_min' => $tenorMin,
+            'tenor_max' => $tenorMax,
+            'plafond_max' => $plafondMaxSystem,
+            'base_rate' => $baseRate,
+            'base_admin_angsuran' => $baseAdminAngsuran,
+            'base_tenor' => $baseTenor,
+            'base_plafond' => $basePlafond,
+        ];
+
+        $paramA = $adjustableParameters[0];
+        $paramB = $adjustableParameters[1] ?? null;
+        $paramACandidates = $this->buildParameterCandidates($paramA, $candidateContext);
+        $paramBCandidates = $paramB !== null
+            ? $this->buildParameterCandidates($paramB, $candidateContext)
+            : [null];
+
+        if (count($paramACandidates) === 0 || ($paramB !== null && count($paramBCandidates) === 0)) {
+            return response()->json([
+                'message' => 'Rentang parameter untuk Goal Seeker tidak valid.',
+            ], 422);
+        }
 
         $bestCandidate = null;
+        $bestDistance = INF;
         $testedCount = 0;
 
-        foreach ($rateCandidates as $rateCandidate) {
-            for ($tenor = $tenorMax; $tenor >= $tenorMin; $tenor--) {
-                $seedInput = array_merge($baseInput, [
-                    'tenor' => $tenor,
-                    'plafond' => null,
-                    'rate_percent_override' => $rateCandidate,
-                ]);
+        foreach ($paramACandidates as $valueA) {
+            foreach ($paramBCandidates as $valueB) {
+                $trialInput = $baseInput;
+                $trialInput[$paramA] = $valueA;
+                if ($paramB !== null) {
+                    $trialInput[$paramB] = $valueB;
+                }
 
-                $seedResult = $this->kbSimulationExcelService->calculate($seedInput);
-                $testedCount++;
+                if (($trialInput['tenor'] ?? null) === null || $trialInput['tenor'] === '') {
+                    $trialInput['tenor'] = $baseTenor;
+                }
+                if (($trialInput['plafond'] ?? null) === null || $trialInput['plafond'] === '') {
+                    $trialInput['plafond'] = $basePlafond;
+                }
 
-                $plafondMax = (int) floor((float) ($seedResult['plafond_max'] ?? 0));
-                if ($plafondMax <= 0) {
+                if ((int) $trialInput['tenor'] < $tenorMin || (int) $trialInput['tenor'] > $tenorMax) {
+                    continue;
+                }
+                if ((float) $trialInput['plafond'] <= 0 || (float) $trialInput['plafond'] > $plafondMaxSystem) {
                     continue;
                 }
 
-                $low = 100000;
-                $high = $plafondMax;
-                $bestForPair = null;
+                $trialResult = $this->kbSimulationExcelService->calculate($trialInput);
+                $testedCount++;
 
-                for ($i = 0; $i < 25 && $low <= $high; $i++) {
-                    $midRaw = (int) floor(($low + $high) / 2);
-                    $mid = max(100000, (int) floor($midRaw / 1000) * 1000);
+                $currentValue = (float) ($trialResult[$this->resolveTargetResultKey($targetField)] ?? 0);
+                $distance = abs($currentValue - $targetValue);
 
-                    $trialInput = array_merge($baseInput, [
-                        'tenor' => $tenor,
-                        'plafond' => $mid,
-                        'rate_percent_override' => $rateCandidate,
-                    ]);
-
-                    $trialResult = $this->kbSimulationExcelService->calculate($trialInput);
-                    $testedCount++;
-
-                    if ($this->matchesGoalTarget($trialResult, $targetAngsuranMax, $targetSisaGajiAkhirMin)) {
-                        $bestForPair = [
-                            'rate_percent_override' => $rateCandidate,
-                            'result' => $trialResult,
-                        ];
-                        $low = $mid + 1000;
-                    } else {
-                        $high = $mid - 1000;
+                if ($distance < $bestDistance) {
+                    $bestDistance = $distance;
+                    $selectedInput = [
+                        $paramA => $valueA,
+                    ];
+                    if ($paramB !== null) {
+                        $selectedInput[$paramB] = $valueB;
                     }
+                    $bestCandidate = [
+                        'result' => $trialResult,
+                        'input' => $selectedInput,
+                    ];
                 }
 
-                if ($bestForPair !== null) {
-                    if ($bestCandidate === null) {
-                        $bestCandidate = $bestForPair;
-                    } else {
-                        $currentPlafond = (float) ($bestCandidate['result']['plafond'] ?? 0);
-                        $candidatePlafond = (float) ($bestForPair['result']['plafond'] ?? 0);
-                        if ($candidatePlafond > $currentPlafond) {
-                            $bestCandidate = $bestForPair;
-                        }
-                    }
+                if ($distance < 1) {
+                    continue;
                 }
             }
         }
 
         if ($bestCandidate === null) {
             return response()->json([
-                'message' => 'Belum ditemukan kombinasi tenor/plafond/rate yang memenuhi target.',
+                'message' => 'Belum ditemukan kombinasi parameter yang mendekati target.',
                 'checked_count' => $testedCount,
-                'target' => [
-                    'angsuran_max' => $targetAngsuranMax,
-                    'sisa_gaji_akhir_min' => $targetSisaGajiAkhirMin,
-                ],
             ], 422);
         }
+
+        $resultTargetValue = (float) ($bestCandidate['result'][$this->resolveTargetResultKey($targetField)] ?? 0);
 
         return response()->json([
             'message' => 'Kombinasi terbaik ditemukan.',
             'checked_count' => $testedCount,
             'target' => [
-                'angsuran_max' => $targetAngsuranMax,
-                'sisa_gaji_akhir_min' => $targetSisaGajiAkhirMin,
+                'field' => $targetField,
+                'value' => $targetValue,
+                'result_value' => $resultTargetValue,
+                'difference' => abs($resultTargetValue - $targetValue),
             ],
             'selected' => [
-                'rate_percent_override' => $bestCandidate['rate_percent_override'],
-                'tenor' => $bestCandidate['result']['tenor'] ?? null,
-                'plafond' => $bestCandidate['result']['plafond'] ?? null,
+                'adjustable_parameters' => $adjustableParameters,
+                'inputs' => $bestCandidate['input'],
             ],
             'data' => $bestCandidate['result'],
             'display' => $this->buildDisplayResult($bestCandidate['result']),
@@ -719,51 +761,71 @@ public function store(Request $request): JsonResponse
             'pelunasan' => ['nullable', 'numeric', 'min:0'],
             'rate_percent_override' => ['nullable', 'numeric', 'min:0'],
             'admin_angsuran_percent_override' => ['nullable', 'numeric', 'min:0'],
+            'tenor' => ['nullable', 'integer', 'min:1'],
+            'plafond' => ['nullable', 'numeric', 'min:0'],
             'tenor_min' => ['nullable', 'integer', 'min:1'],
             'tenor_max' => ['nullable', 'integer', 'min:1'],
-            'target_angsuran_max' => ['nullable', 'numeric', 'min:1'],
-            'target_sisa_gaji_akhir_min' => ['nullable', 'numeric', 'min:0'],
-            'allow_rate_search' => ['nullable', 'boolean'],
+            'target_field' => ['required', 'string', 'in:angsuran,plafond,terima_bersih,sisa_gaji_akhir'],
+            'target_value' => ['required', 'numeric', 'min:0'],
+            'adjustable_parameters' => ['required', 'array', 'min:1', 'max:2'],
+            'adjustable_parameters.*' => ['required', 'string', 'in:rate_percent_override,tenor,plafond,admin_angsuran_percent_override'],
         ];
     }
 
-    private function matchesGoalTarget(array $result, ?float $targetAngsuranMax, ?float $targetSisaGajiAkhirMin): bool
+    private function resolveTargetResultKey(string $targetField): string
     {
-        if ($targetAngsuranMax !== null && (float) ($result['total_angsuran'] ?? 0) > $targetAngsuranMax) {
-            return false;
-        }
-
-        if ($targetSisaGajiAkhirMin !== null && (float) ($result['sisa_gaji_akhir'] ?? 0) < $targetSisaGajiAkhirMin) {
-            return false;
-        }
-
-        return true;
+        return match ($targetField) {
+            'angsuran' => 'angsuran',
+            'plafond' => 'plafond',
+            'terima_bersih' => 'terima_bersih',
+            'sisa_gaji_akhir' => 'sisa_gaji_akhir',
+            default => 'angsuran',
+        };
     }
 
-    private function buildRateCandidates(float $baseRate, bool $allowRateSearch): array
+    private function buildParameterCandidates(string $parameter, array $ctx): array
     {
-        if ($baseRate <= 0) {
-            return [0.0];
+        if ($parameter === 'tenor') {
+            return range((int) $ctx['tenor_min'], (int) $ctx['tenor_max']);
         }
 
-        if (! $allowRateSearch) {
-            return [round($baseRate, 2)];
+        if ($parameter === 'plafond') {
+            $max = max(100000, (int) $ctx['plafond_max']);
+            $step = max(100000, (int) ceil($max / 80 / 1000) * 1000);
+            $values = [];
+            for ($v = 100000; $v <= $max; $v += $step) {
+                $values[] = (int) $v;
+            }
+            if (!in_array($max, $values, true)) {
+                $values[] = $max;
+            }
+            return $values;
         }
 
-        $rawCandidates = [
-            $baseRate,
-            $baseRate - 1.0,
-            $baseRate - 0.5,
-            $baseRate + 0.5,
-            $baseRate + 1.0,
-        ];
+        if ($parameter === 'rate_percent_override') {
+            $base = max(0.5, (float) $ctx['base_rate']);
+            $start = max(0.5, $base - 5.0);
+            $end = $base + 5.0;
+            return $this->decimalRange($start, $end, 0.25);
+        }
 
-        $filtered = array_filter($rawCandidates, static fn (float $value): bool => $value > 0);
-        $rounded = array_map(static fn (float $value): float => round($value, 2), $filtered);
-        $unique = array_values(array_unique($rounded));
-        sort($unique);
+        if ($parameter === 'admin_angsuran_percent_override') {
+            $base = max(0.0, (float) $ctx['base_admin_angsuran']);
+            $start = max(0.0, $base - 3.0);
+            $end = $base + 3.0;
+            return $this->decimalRange($start, $end, 0.25);
+        }
 
-        return $unique;
+        return [];
+    }
+
+    private function decimalRange(float $start, float $end, float $step): array
+    {
+        $values = [];
+        for ($value = $start; $value <= $end + 1e-9; $value += $step) {
+            $values[] = round($value, 2);
+        }
+        return array_values(array_unique($values));
     }
 
     private function ensurePricingOverridesAuthorized(Request $request): void

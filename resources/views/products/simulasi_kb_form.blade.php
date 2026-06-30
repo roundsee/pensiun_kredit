@@ -176,6 +176,12 @@ function kbSimulasiForm() {
     const permissions = JSON.parse(document.getElementById('kb-permissions')?.textContent || '{}');
     const routes = JSON.parse(document.getElementById('kb-simulasi-routes')?.textContent || '{}');
     const csrf = '{{ csrf_token() }}';
+    let goalSeekerTransfer = null;
+    try {
+        goalSeekerTransfer = JSON.parse(sessionStorage.getItem('kb_goal_seeker_transfer') || 'null');
+    } catch (error) {
+        goalSeekerTransfer = null;
+    }
     
     return {
         options,
@@ -284,6 +290,7 @@ function kbSimulasiForm() {
 
         init() {
             this.applyInitialData();
+            this.applyGoalSeekerTransferData();
             this.applyInitialDefaults();
             this.syncAllSelectValues();
 
@@ -378,6 +385,38 @@ function kbSimulasiForm() {
 
             if (initialData.blokir_angsuran !== null && initialData.blokir_angsuran !== undefined) {
                 this.form.blokir_angsuran = String(initialData.blokir_angsuran);
+            }
+        },
+
+        applyGoalSeekerTransferData() {
+            if (!goalSeekerTransfer || this.editDataSimulasiId) {
+                return;
+            }
+
+            Object.keys(this.form).forEach((key) => {
+                if (!Object.prototype.hasOwnProperty.call(goalSeekerTransfer, key)) {
+                    return;
+                }
+
+                const value = goalSeekerTransfer[key];
+                if (value === null || value === undefined || value === '') {
+                    return;
+                }
+
+                if (key === 'blokir_angsuran') {
+                    this.form[key] = String(value);
+                    return;
+                }
+
+                this.form[key] = value;
+            });
+
+            this.message = 'Data dari Goal Seeker sudah dimuat. Silakan review lalu Simpan.';
+
+            try {
+                sessionStorage.removeItem('kb_goal_seeker_transfer');
+            } catch (error) {
+                // no-op
             }
         },
 
