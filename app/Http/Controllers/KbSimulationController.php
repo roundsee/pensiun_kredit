@@ -102,6 +102,38 @@ class KbSimulationController extends Controller
     public function goalSeekerIndex()
     {
         $options = $this->kbSimulationExcelService->getSelectOptions();
+        $productStructs = ProductStruct::query()
+            ->orderBy('sort_order')
+            ->get([
+                'produk',
+                'tenor_max',
+                'usia_max',
+                'usia_masuk_min',
+                'usia_masuk_max',
+                'rate_percent',
+                'dbr_percent',
+                'admin_angsuran_percent',
+                'provisi_percent',
+                'admin_percent',
+                'blokir_angsuran',
+            ])
+            ->mapWithKeys(function (ProductStruct $item) {
+                return [
+                    $item->produk => [
+                        'tenor_max' => (int) ($item->tenor_max ?? 0),
+                        'usia_max' => (int) ($item->usia_max ?? 0),
+                        'usia_masuk_min' => (int) ($item->usia_masuk_min ?? 0),
+                        'usia_masuk_max' => (int) ($item->usia_masuk_max ?? 0),
+                        'rate_percent' => (float) ($item->rate_percent ?? 0),
+                        'dbr_percent' => (float) ($item->dbr_percent ?? 0),
+                        'admin_angsuran_percent' => (float) ($item->admin_angsuran_percent ?? 0),
+                        'provisi_percent' => (float) ($item->provisi_percent ?? 0),
+                        'admin_percent' => (float) ($item->admin_percent ?? 0),
+                        'blokir_angsuran' => (int) ($item->blokir_angsuran ?? 0),
+                    ],
+                ];
+            })
+            ->all();
 
         /** @var User|null $user */
         $user = Auth::user();
@@ -109,7 +141,7 @@ class KbSimulationController extends Controller
         $userRole = $user?->roleSlug() ?? User::ROLE_MARKETING;
         $canEditPricing = $user?->canEditKbPricing() ?? false;
 
-        return view('products.simulasi_kb_goal_seeker', compact('options', 'userRole', 'canEditPricing'));
+        return view('products.simulasi_kb_goal_seeker', compact('options', 'productStructs', 'userRole', 'canEditPricing'));
     }
 
     public function goalSeek(Request $request): JsonResponse
@@ -177,7 +209,9 @@ class KbSimulationController extends Controller
         $tenorMax = max($tenorMin, min($tenorMaxReq, $tenorMaxSystem));
         $plafondMaxSystem = (int) floor((float) ($probe['plafond_max'] ?? 0));
         if ($plafondMaxSystem <= 0) {
-            $plafondMaxSystem = 100000000;
+            return response()->json([
+                'message' => 'Tidak bisa menentukan plafond max dari data saat ini.',
+            ], 422);
         }
 
         $productKey = trim((string) $baseInput['bank_tujuan'] . '-' . (string) $baseInput['produk'] . '-' . (string) $baseInput['jenis_pensiun']);
@@ -231,6 +265,7 @@ class KbSimulationController extends Controller
         $bestCandidate = null;
         $bestDistance = INF;
         $testedCount = 0;
+        $validCheckedCount = 0;
 
         foreach ($paramACandidates as $valueA) {
             foreach ($paramBCandidates as $valueB) {
@@ -257,6 +292,12 @@ class KbSimulationController extends Controller
                 $trialResult = $this->kbSimulationExcelService->calculate($trialInput);
                 $testedCount++;
 
+                $limitChecks = $this->buildLimitChecks($trialInput, $trialResult);
+                if (!($limitChecks['is_valid'] ?? false)) {
+                    continue;
+                }
+                $validCheckedCount++;
+
                 $currentValue = (float) ($trialResult[$this->resolveTargetResultKey($targetField)] ?? 0);
                 $distance = abs($currentValue - $targetValue);
 
@@ -282,8 +323,11 @@ class KbSimulationController extends Controller
 
         if ($bestCandidate === null) {
             return response()->json([
-                'message' => 'Belum ditemukan kombinasi parameter yang mendekati target.',
+                'message' => $validCheckedCount === 0
+                    ? 'Belum ada kombinasi parameter yang valid untuk rule simulasi saat ini.'
+                    : 'Belum ditemukan kombinasi parameter valid yang mendekati target.',
                 'checked_count' => $testedCount,
+                'valid_checked_count' => $validCheckedCount,
             ], 422);
         }
 
@@ -292,6 +336,7 @@ class KbSimulationController extends Controller
         return response()->json([
             'message' => 'Kombinasi terbaik ditemukan.',
             'checked_count' => $testedCount,
+            'valid_checked_count' => $validCheckedCount,
             'target' => [
                 'field' => $targetField,
                 'value' => $targetValue,
@@ -553,7 +598,13 @@ public function store(Request $request): JsonResponse
 
     private function buildLimitChecks(array $input, array $result): array
     {
-        $productKey = trim((string) ($input['produk'] ?? '') . '-' . (string) ($input['jenis_pensiun'] ?? ''));
+        $productKey = trim(
+            (string) ($input['bank_tujuan'] ?? '')
+            . '-'
+            . (string) ($input['produk'] ?? '')
+            . '-'
+            . (string) ($input['jenis_pensiun'] ?? '')
+        );
         $struct = ProductStruct::query()
             ->where('produk', $productKey)
             ->first();
@@ -569,17 +620,32 @@ public function store(Request $request): JsonResponse
         $plafondInput = ($plafondInputRaw === null || $plafondInputRaw === '') ? null : (float) $plafondInputRaw;
         $tenorMax = (int) ($result['tenor_max'] ?? 0);
         $plafondMax = (float) ($result['plafond_max'] ?? 0);
+        $plafondMaxDisplayed = round($plafondMax);
+        $plafondTolerance = 1000.0;
 
         $tenorValid = $tenorInput === null ? true : ($tenorInput <= $tenorMax);
-        $plafondValid = $plafondInput === null ? true : ($plafondInput <= $plafondMax);
+        $plafondValid = $plafondInput === null
+            ? true
+            : ($plafondInput <= ($plafondMaxDisplayed + $plafondTolerance));
 
         $usiaMinValid = $usiaMasukMin === null || $usia === null ? true : ($usia >= $usiaMasukMin);
         $usiaMaxValid = $usiaLunasMax === null || $usia === null ? true : ($usia <= $usiaLunasMax);
 
         $sisaGajiSaatPengajuan = (float) ($result['sisa_gaji_saat_pengajuan'] ?? 0);
         $totalAngsuran = (float) ($result['total_angsuran'] ?? 0);
-        $angsuranMax = $sisaGajiSaatPengajuan - 125000;
-        $totalAngsuranValid = $totalAngsuran <= $angsuranMax;
+        // Samakan dengan basis formula plafond max: (sisa_gaji - 120000) / (1 + admin_angsuran).
+        // Perhitungan angsuran aktual menambahkan komponen tetap +10000 pada angsuran,
+        // sehingga validasi perlu memberi allowance agar nilai di titik plafond_max tidak false reject.
+        $angsuranMax = max(0.0, $sisaGajiSaatPengajuan - 120000.0);
+        $adminRatio = 0.0;
+        $angsuranPokok = (float) ($result['angsuran'] ?? 0);
+        $biayaAdmAngs = (float) ($result['biaya_adm_angs'] ?? 0);
+        if ($angsuranPokok > 0) {
+            $adminRatio = max(0.0, $biayaAdmAngs / $angsuranPokok);
+        }
+        $fixedInstallmentAllowance = 10000.0 * (1 + $adminRatio);
+        $totalAngsuranTolerance = $fixedInstallmentAllowance + 1.0;
+        $totalAngsuranValid = $totalAngsuran <= ($angsuranMax + $totalAngsuranTolerance);
 
         $sisaGajiAkhir = (float) ($result['sisa_gaji_akhir'] ?? 0);
         $sisaGajiAkhirMin = 110000.0;
@@ -587,6 +653,12 @@ public function store(Request $request): JsonResponse
 
         $terimaBersih = (float) ($result['terima_bersih'] ?? 0);
         $terimaBersihValid = $terimaBersih > 0;
+
+        // Plafond max adalah angka turunan/estimasi. Jika hasil aktual masih lolos batas angsuran,
+        // sisa gaji akhir, dan terima bersih, jangan blokir hanya karena selisih tipis pada plafond max.
+        if (! $plafondValid && $totalAngsuranValid && $sisaGajiAkhirValid && $terimaBersihValid) {
+            $plafondValid = true;
+        }
 
         return [
             'usia' => $usia,
@@ -599,6 +671,7 @@ public function store(Request $request): JsonResponse
             'tenor_valid' => $tenorValid,
             'plafond_input' => $plafondInput,
             'plafond_max' => $plafondMax,
+            'plafond_max_displayed' => $plafondMaxDisplayed,
             'plafond_valid' => $plafondValid,
             'total_angsuran' => $totalAngsuran,
             'angsuran_max' => $angsuranMax,

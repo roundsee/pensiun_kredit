@@ -554,8 +554,9 @@ function kbSimulasiForm() {
         scheduleAutoCalculate() {
             if (!this.enableAutoServerCalc) return;
             
-            // Cek apakah semua field required sudah terisi
-            if (!this.form.produk || !this.form.tenor || !this.form.plafond) {
+            // Samakan dengan GoalSeeker: cukup data inti terisi untuk hitung standar backend,
+            // agar plafond max berasal dari server (bukan hanya fallback realtime frontend).
+            if (!this.form.produk || !this.form.jenis_pensiun || !this.form.bank_tujuan || !this.form.tanggal_simulasi || !this.form.tanggal_lahir) {
                 return;
             }
 
@@ -865,25 +866,28 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
             const kandidatPertama = sisaGaji * ratioGajiMax;
             const kandidatKedua = (sisaGaji - 120000) / (1 + adminAngsuran);
             const basisAngsuran = Math.min(kandidatPertama, kandidatKedua);
+            const basisAngsuranPokok = basisAngsuran - 10000;
 
-            if (!Number.isFinite(basisAngsuran) || basisAngsuran <= 0) {
+            if (!Number.isFinite(basisAngsuranPokok) || basisAngsuranPokok <= 0) {
                 this.plafondMaxText = '-';
                 return;
             }
 
             const n = tenorInput;
-            const pv = basisAngsuran * ((1 - Math.pow(1 + rateBulanan, -n)) / rateBulanan);
+            const pv = basisAngsuranPokok * ((1 - Math.pow(1 + rateBulanan, -n)) / rateBulanan);
             this.plafondMaxText = Number.isFinite(pv) && pv > 0 ? Math.round(pv) : '-';
         },
 
         async hitung(silent = false) {
             // Validasi input wajib murni
             if (!this.form.produk || !this.form.tenor || !this.form.plafond) {
-                if (!silent) {
+                if (silent) {
+                    // Saat auto-calc, izinkan call tanpa tenor/plafond agar backend tetap bisa mengembalikan tenor_max/plafond_max.
+                } else {
                     this.errorMessage = 'Produk, Tenor, dan Plafond harus diisi untuk menghitung';
                     setTimeout(() => { this.errorMessage = ''; }, 3000);
+                    return;
                 }
-                return;
             }
             
             // HAPUS ATAU KOMENTARI BLOKADE VALIDASI PLAFOND MAX DI SINI
@@ -1167,6 +1171,9 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
                 return '-';
             }
             if (row.key === 'plafond_max') {
+                if (this.hasil && this.hasil.plafond_max !== undefined && this.hasil.plafond_max !== null && this.hasil.plafond_max !== '') {
+                    return 'Rp ' + Math.round(Number(this.hasil.plafond_max) || 0).toLocaleString('id-ID');
+                }
                 if (typeof this.plafondMaxText === 'number') {
                     return 'Rp ' + Math.round(this.plafondMaxText).toLocaleString('id-ID');
                 }

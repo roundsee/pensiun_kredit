@@ -395,14 +395,18 @@ $bankAsal = KbReferenceOption::query()
         // =PV(C21/12, E29, -MIN(E25*C20, (E25-120000-(10000*D35*10))/(1+D35)))
         $monthlyRate = $rateTahunan / 12;
         $kandidatPertama = $sisaGajiSaatPengajuan * $ratioGajiMax;
-        $kandidatKedua = ($sisaGajiSaatPengajuan - 120000) / (1 + $adminAngsuran);
+        $kandidatKedua = ($sisaGajiSaatPengajuan - 250000) / (1 + $adminAngsuran);
         $basisAngsuran = min($kandidatPertama, $kandidatKedua);
 
-        if ($basisAngsuran <= 0) {
+        // Angsuran aktual di sistem adalah PMT + 10.000, lalu baru dikenakan admin angsuran.
+        // Karena itu, payment yang dipakai untuk PV harus dikurangi komponen tetap 10.000 dulu.
+        $basisAngsuranPokok = $basisAngsuran - 10000.0;
+
+        if ($basisAngsuranPokok <= 0) {
             return 0.0;
         }
 
-        $pv = $this->excelPv($monthlyRate, $tenor, -$basisAngsuran);
+        $pv = $this->excelPv($monthlyRate, $tenor, -$basisAngsuranPokok);
 
         return max(0.0, $pv);
     }

@@ -50,7 +50,7 @@
         box-shadow: 0 0 0 0.2rem rgba(217, 154, 78, 0.18);
     }
 </style>
-<div class="container" x-data="kbGoalSeeker()">
+<div class="container" x-data="kbGoalSeeker()" x-init="init()">
     <div class="row justify-content-center">
         <div class="col-xl-9">
             <div class="card mb-3">
@@ -76,7 +76,9 @@
                                         <td class="kb-cell-value">
                                             <template x-if="row.type === 'select'">
                                                 <select class="form-select form-select-sm kb-sheet-input" x-model="form[row.key]" :disabled="isInputDisabled(row)">
-                                                    <option value="" x-show="row.allowEmpty">Pilih</option>
+                                                    <template x-if="row.allowEmpty">
+                                                        <option value="">Pilih</option>
+                                                    </template>
                                                     <template x-for="item in getRowOptions(row)" :key="row.cell + '_' + item">
                                                         <option :value="item" x-text="item"></option>
                                                     </template>
@@ -173,11 +175,11 @@
                         </div>
                         <div class="col-md-3">
                             <div class="small text-muted">Tenor</div>
-                            <div class="fw-semibold" x-text="hasil.tenor + ' bulan'"></div>
+                            <div class="fw-semibold" x-text="hasil ? ((hasil.tenor ?? '-') + ' bulan') : '-'"></div>
                         </div>
                         <div class="col-md-3">
                             <div class="small text-muted">Plafond</div>
-                            <div class="fw-semibold" x-text="formatCurrency(hasil.plafond)"></div>
+                            <div class="fw-semibold" x-text="formatCurrency(hasil ? hasil.plafond : 0)"></div>
                         </div>
                         <div class="col-md-3">
                             <div class="small text-muted">Kombinasi Dicek</div>
@@ -193,15 +195,15 @@
                         </div>
                         <div class="col-md-4">
                             <div class="small text-muted">Total Angsuran</div>
-                            <div class="fw-semibold" x-text="formatCurrency(hasil.total_angsuran)"></div>
+                            <div class="fw-semibold" x-text="formatCurrency(hasil ? hasil.total_angsuran : 0)"></div>
                         </div>
                         <div class="col-md-4">
                             <div class="small text-muted">Sisa Gaji Akhir</div>
-                            <div class="fw-semibold" x-text="formatCurrency(hasil.sisa_gaji_akhir)"></div>
+                            <div class="fw-semibold" x-text="formatCurrency(hasil ? hasil.sisa_gaji_akhir : 0)"></div>
                         </div>
                         <div class="col-md-4">
                             <div class="small text-muted">Terima Bersih</div>
-                            <div class="fw-semibold" x-text="formatCurrency(hasil.terima_bersih)"></div>
+                            <div class="fw-semibold" x-text="formatCurrency(hasil ? hasil.terima_bersih : 0)"></div>
                         </div>
                         <div class="col-12">
                             <button type="button" class="btn btn-success" @click="gunakanKeSimulasi()">
@@ -226,6 +228,7 @@
     ];
 @endphp
 <script type="application/json" id="kb-goal-options">{!! json_encode($options, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}</script>
+<script type="application/json" id="kb-goal-product-structs">{!! json_encode($productStructs ?? [], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}</script>
 <script type="application/json" id="kb-goal-permissions">{!! json_encode($goalSeekerPermissions, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}</script>
 <script type="application/json" id="kb-goal-routes">{!! json_encode($goalSeekerRoutes, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) !!}</script>
 
@@ -233,6 +236,7 @@
 <script>
 function kbGoalSeeker() {
     const options = JSON.parse(document.getElementById('kb-goal-options')?.textContent || '{}');
+    const productStructs = JSON.parse(document.getElementById('kb-goal-product-structs')?.textContent || '{}');
     const permissions = JSON.parse(document.getElementById('kb-goal-permissions')?.textContent || '{}');
     const routes = JSON.parse(document.getElementById('kb-goal-routes')?.textContent || '{}');
     const csrf = '{{ csrf_token() }}';
@@ -241,10 +245,14 @@ function kbGoalSeeker() {
 
     return {
         options,
+        productStructs,
         permissions,
         isSearching: false,
         isCalculatingStandard: false,
         autoCalculateTimer: null,
+        standardCalcAbortController: null,
+        standardCalcRequestSeq: 0,
+        standardCalcLastAppliedSeq: 0,
         message: '',
         errorMessage: '',
         checkedCount: 0,
@@ -254,7 +262,7 @@ function kbGoalSeeker() {
         targetSummary: '',
         paramSummary: '',
         form: {
-            produk: (options.produk && options.produk.length > 0) ? options.produk[0] : 'Platinum',
+            produk: 'Platinum',
             jenis_pensiun: 'Sendiri',
             mutasi: 'Non Mutasi',
             bank_asal: (options.bank_asal && options.bank_asal.length > 0) ? options.bank_asal[0] : '',
@@ -268,8 +276,8 @@ function kbGoalSeeker() {
             angsuran_lainnya: 0,
             blokir_angsuran: '1',
             pelunasan: 0,
-            rate_percent_override: '',
-            admin_angsuran_percent_override: '',
+            rate_percent_override: 16,
+            admin_angsuran_percent_override: 10,
             nama_marketing: '',
             kode_area: (options.area && options.area.length > 0) ? options.area[0] : '',
             tenor_min: 1,
@@ -284,7 +292,7 @@ function kbGoalSeeker() {
         blokirOptions: ['1', '2', '3', '4', '5'],
         instansiOptions: ['TASPEN', 'ASABRI'],
         excelRows: [
-            { cell: 'E10', label: 'Produk', type: 'select', key: 'produk', optionsKey: 'produk', allowEmpty: true },
+            { cell: 'E10', label: 'Produk', type: 'select', key: 'produk', optionsKey: 'produk' },
             { cell: 'E11', label: 'Jenis Pensiun', type: 'select', key: 'jenis_pensiun', optionsKey: 'jenis_pensiun' },
             { cell: 'E12', label: 'Mutasi', type: 'select', key: 'mutasi', optionsKey: 'mutasi' },
             { cell: 'E13', label: 'Bank Asal', type: 'select', key: 'bank_asal', optionsKey: 'bank_asal', allowEmpty: true },
@@ -324,6 +332,13 @@ function kbGoalSeeker() {
         ],
 
         init() {
+            this.form.produk = 'Platinum';
+            this.form.instansi = 'TASPEN';
+            this.form.mutasi = 'Non Mutasi';
+            this.form.rate_percent_override = 16;
+            this.form.admin_angsuran_percent_override = 10;
+
+            this.applyInitialDefaults();
             const watchedPaths = [
                 'produk', 'jenis_pensiun', 'mutasi', 'bank_asal', 'bank_tujuan',
                 'nama_debitur', 'tanggal_simulasi', 'tanggal_lahir', 'nomor_pensiun', 'instansi',
@@ -332,14 +347,178 @@ function kbGoalSeeker() {
             ];
 
             watchedPaths.forEach((key) => {
-                this.$watch(`form.${key}`, () => this.scheduleAutoCalculate());
+                this.$watch(`form.${key}`, () => {
+                    this.applyInitialDefaults();
+                    this.syncAllSelectValues();
+                    this.scheduleAutoCalculate();
+                });
             });
 
+            this.syncAllSelectValues();
             this.scheduleAutoCalculate();
+
+            this.$nextTick(() => {
+                this.form.produk = 'Platinum';
+                this.form.instansi = 'TASPEN';
+                this.form.mutasi = 'Non Mutasi';
+                this.form.rate_percent_override = 16;
+                this.form.admin_angsuran_percent_override = 10;
+                this.syncAllSelectValues();
+                this.scheduleAutoCalculate();
+            });
+        },
+
+        normalizeOptionValue(value) {
+            return String(value ?? '').trim().toLowerCase();
+        },
+
+        syncSelectValue(row) {
+            if (!row || row.type !== 'select' || !row.key) return;
+
+            const optionsList = this.getRowOptions(row) || [];
+            if (optionsList.length === 0) return;
+
+            const current = this.form[row.key];
+            const currentNormalized = this.normalizeOptionValue(current);
+            const matched = optionsList.find((item) => this.normalizeOptionValue(item) === currentNormalized) ?? null;
+
+            if (matched !== null) {
+                this.form[row.key] = matched;
+                return;
+            }
+
+            const preferredMap = {
+                produk: 'platinum',
+                instansi: 'taspen',
+                mutasi: 'non mutasi',
+            };
+
+            const preferred = preferredMap[row.key];
+            if (preferred) {
+                const preferredValue = optionsList.find((item) => this.normalizeOptionValue(item) === preferred);
+                if (preferredValue !== undefined) {
+                    this.form[row.key] = preferredValue;
+                    return;
+                }
+            }
+
+            this.form[row.key] = optionsList[0];
+        },
+
+        syncAllSelectValues() {
+            this.excelRows.forEach((row) => this.syncSelectValue(row));
         },
 
         isInputDisabled(row) {
+            if (row && row.key === 'produk') {
+                return true;
+            }
             return !!row.onlyRoleCanEditPricing && !this.permissions.can_edit_pricing;
+        },
+
+        getCurrentAgeYears() {
+            if (!this.form.tanggal_lahir) return null;
+
+            const birth = new Date(this.form.tanggal_lahir + 'T00:00:00');
+            const referenceDate = this.form.tanggal_simulasi
+                ? new Date(this.form.tanggal_simulasi + 'T00:00:00')
+                : new Date();
+
+            if (Number.isNaN(birth.getTime()) || Number.isNaN(referenceDate.getTime())) {
+                return null;
+            }
+
+            let years = referenceDate.getFullYear() - birth.getFullYear();
+            let months = referenceDate.getMonth() - birth.getMonth();
+
+            if (referenceDate.getDate() < birth.getDate()) {
+                months -= 1;
+            }
+            if (months < 0) {
+                years -= 1;
+            }
+
+            return Math.max(0, years);
+        },
+
+        applyAutoProdukByAge() {
+            const produkOptions = Array.isArray(this.options.produk) ? this.options.produk : [];
+            if (produkOptions.length === 0) return;
+
+            const regularOption = produkOptions.find((item) => String(item).trim().toLowerCase() === 'regular') || 'Regular';
+            const platinumOption = produkOptions.find((item) => String(item).trim().toLowerCase() === 'platinum') || 'Platinum';
+
+            const ageYears = this.getCurrentAgeYears();
+            const nextProduk = ageYears !== null && ageYears < 68 ? regularOption : platinumOption;
+
+            if (this.form.produk !== nextProduk) {
+                this.form.produk = nextProduk;
+            }
+        },
+
+        updateRateDefaults() {
+            const productKey = `${this.form.bank_tujuan}-${this.form.produk}-${this.form.jenis_pensiun}`;
+            if (this.form.produk && this.productStructs && this.productStructs[productKey]) {
+                const struct = this.productStructs[productKey];
+
+                if ((this.form.rate_percent_override === null || this.form.rate_percent_override === '' || typeof this.form.rate_percent_override === 'undefined') && struct.rate_percent !== undefined) {
+                    this.form.rate_percent_override = Math.round(Number(struct.rate_percent * 100));
+                }
+
+                if ((this.form.admin_angsuran_percent_override === null || this.form.admin_angsuran_percent_override === '' || typeof this.form.admin_angsuran_percent_override === 'undefined') && struct.admin_angsuran_percent !== undefined) {
+                    this.form.admin_angsuran_percent_override = Math.round(Number(struct.admin_angsuran_percent * 100));
+                }
+            }
+        },
+
+        applyInitialDefaults() {
+            const jenisOptions = Array.isArray(this.options.jenis_pensiun) ? this.options.jenis_pensiun : [];
+            const sendiriOption = jenisOptions.find((item) => String(item).trim().toLowerCase() === 'sendiri');
+            const jenisDefault = sendiriOption || jenisOptions[0] || 'Sendiri';
+
+            const instansiOptions = Array.isArray(this.instansiOptions) ? this.instansiOptions : [];
+            const taspenOption = instansiOptions.find((item) => String(item).trim().toLowerCase() === 'taspen');
+            const instansiDefault = taspenOption || instansiOptions[0] || 'TASPEN';
+
+            const blokirOptions = Array.isArray(this.blokirOptions) ? this.blokirOptions : [];
+            const blokirSatu = blokirOptions.find((item) => String(item).trim() === '1');
+            const blokirDefault = blokirSatu || blokirOptions[0] || '1';
+
+            if (!this.form.jenis_pensiun || !jenisOptions.includes(this.form.jenis_pensiun)) {
+                this.form.jenis_pensiun = jenisDefault;
+            }
+
+            if (!this.form.instansi || !instansiOptions.includes(this.form.instansi)) {
+                this.form.instansi = instansiDefault;
+            }
+
+            if (!this.form.blokir_angsuran || !blokirOptions.includes(String(this.form.blokir_angsuran))) {
+                this.form.blokir_angsuran = String(blokirDefault);
+            }
+
+            if (!this.form.tanggal_simulasi || String(this.form.tanggal_simulasi).trim() === '') {
+                this.form.tanggal_simulasi = new Date().toISOString().slice(0, 10);
+            }
+
+            if (!this.form.mutasi || String(this.form.mutasi).trim() === '') {
+                this.form.mutasi = 'Non Mutasi';
+            }
+
+            if (!this.form.produk || String(this.form.produk).trim() === '') {
+                this.form.produk = 'Platinum';
+            }
+
+            this.applyAutoProdukByAge();
+
+            this.updateRateDefaults();
+
+            if (this.form.rate_percent_override === null || this.form.rate_percent_override === '' || typeof this.form.rate_percent_override === 'undefined') {
+                this.form.rate_percent_override = 16;
+            }
+
+            if (this.form.admin_angsuran_percent_override === null || this.form.admin_angsuran_percent_override === '' || typeof this.form.admin_angsuran_percent_override === 'undefined') {
+                this.form.admin_angsuran_percent_override = 10;
+            }
         },
 
         getRowOptions(row) {
@@ -464,7 +643,15 @@ function kbGoalSeeker() {
                 return;
             }
 
+            if (this.standardCalcAbortController) {
+                this.standardCalcAbortController.abort();
+            }
+
+            this.standardCalcAbortController = new AbortController();
+            this.standardCalcRequestSeq += 1;
+            const requestSeq = this.standardCalcRequestSeq;
             this.isCalculatingStandard = true;
+            this.errorMessage = '';
             try {
                 const response = await fetch(routes.calculate, {
                     method: 'POST',
@@ -473,17 +660,44 @@ function kbGoalSeeker() {
                         'X-CSRF-TOKEN': csrf,
                     },
                     body: JSON.stringify(this.buildStandardPayload()),
+                    signal: this.standardCalcAbortController.signal,
                 });
-                const data = await response.json();
-                if (!response.ok) {
-                    this.standardResult = {};
+
+                const contentType = response.headers.get('content-type') || '';
+                if (!contentType.includes('application/json')) {
+                    if (requestSeq > this.standardCalcLastAppliedSeq) {
+                        this.standardCalcLastAppliedSeq = requestSeq;
+                        this.standardResult = {};
+                        this.errorMessage = 'Server error saat menghitung simulasi standar.';
+                    }
                     return;
                 }
-                this.standardResult = data.data || null;
+
+                const data = await response.json();
+                if (!response.ok) {
+                    if (requestSeq > this.standardCalcLastAppliedSeq) {
+                        this.standardCalcLastAppliedSeq = requestSeq;
+                        this.standardResult = {};
+                        this.errorMessage = data.message || 'Gagal menghitung simulasi standar.';
+                    }
+                    return;
+                }
+
+                if (requestSeq > this.standardCalcLastAppliedSeq) {
+                    this.standardCalcLastAppliedSeq = requestSeq;
+                    this.standardResult = data.data || null;
+                }
             } catch (error) {
-                this.standardResult = {};
+                if (error.name !== 'AbortError' && requestSeq > this.standardCalcLastAppliedSeq) {
+                    this.standardCalcLastAppliedSeq = requestSeq;
+                    this.standardResult = {};
+                    this.errorMessage = 'Terjadi kesalahan saat menghitung simulasi standar.';
+                }
             } finally {
-                this.isCalculatingStandard = false;
+                if (requestSeq >= this.standardCalcLastAppliedSeq) {
+                    this.isCalculatingStandard = false;
+                }
+                this.standardCalcAbortController = null;
             }
         },
 
@@ -566,6 +780,9 @@ function kbGoalSeeker() {
 
                 this.message = data.message || 'Kombinasi ditemukan.';
                 this.checkedCount = Number(data.checked_count || 0);
+                if (Number(data.valid_checked_count || 0) > 0) {
+                    this.message += ` (${Number(data.valid_checked_count || 0)} kombinasi valid diuji)`;
+                }
                 this.targetSummary = `${this.getTargetLabel()} target ${this.formatCurrency(this.form.target_value)} ; hasil ${this.formatCurrency(data.target.result_value)} ; selisih ${this.formatCurrency(data.target.difference)}`;
                 this.paramSummary = (data.selected && Array.isArray(data.selected.adjustable_parameters))
                     ? data.selected.adjustable_parameters.map((item) => this.getParamLabel(item)).join(' + ')
