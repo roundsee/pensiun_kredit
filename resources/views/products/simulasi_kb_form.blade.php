@@ -862,19 +862,19 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
             }
 
             // Samakan dengan Excel/backend:
-            // basis = MIN(E25*C20, (E25-120000)/(1+D35))
+            // basis = MIN(E25*C20, (E25-120000-(10000*D35*5))/(1+D35))
             const kandidatPertama = sisaGaji * ratioGajiMax;
-            const kandidatKedua = (sisaGaji - 120000) / (1 + adminAngsuran);
+            const adminPenalty = 10000 * adminAngsuran * 5;
+            const kandidatKedua = (sisaGaji - 120000 - adminPenalty) / (1 + adminAngsuran);
             const basisAngsuran = Math.min(kandidatPertama, kandidatKedua);
-            const basisAngsuranPokok = basisAngsuran - 10000;
 
-            if (!Number.isFinite(basisAngsuranPokok) || basisAngsuranPokok <= 0) {
+            if (!Number.isFinite(basisAngsuran) || basisAngsuran <= 0) {
                 this.plafondMaxText = '-';
                 return;
             }
 
             const n = tenorInput;
-            const pv = basisAngsuranPokok * ((1 - Math.pow(1 + rateBulanan, -n)) / rateBulanan);
+            const pv = basisAngsuran * ((1 - Math.pow(1 + rateBulanan, -n)) / rateBulanan);
             this.plafondMaxText = Number.isFinite(pv) && pv > 0 ? Math.round(pv) : '-';
         },
 
