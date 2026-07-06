@@ -155,11 +155,13 @@
         .mb-2 {
             margin-bottom: 5px;
         }
+
     </style>
 </head>
 <body>
     <div class="page">
         <!-- HEADER LOGO -->
+         
         <table class="header-table">
             <tr>
                 <td class="logo-left">
@@ -170,9 +172,12 @@
                 </td>
             </tr>
         </table>
+        {{ $kota_tanggal_surat ?? (($kota ?? $kota_surat ?? $kota_ttd ?? 'Bandung') . ', ' . ($tanggal_sppk ?? $tanggal_surat ?? '...')) }}
+        
 
         <!-- NOMOR SURAT -->
         <table class="meta-table">
+            
             <tr>
                 <td style="width: 35px;">No</td>
                 <td style="width: 15px;">:</td>

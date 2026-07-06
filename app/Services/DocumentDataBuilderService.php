@@ -78,6 +78,32 @@ class DocumentDataBuilderService
         }
     }
 
+    private static function formatDateLongIndo(mixed $value): string
+    {
+        if ($value === null) {
+            return '';
+        }
+
+        $text = trim((string) $value);
+        if ($text === '') {
+            return '';
+        }
+
+        try {
+            return \Illuminate\Support\Carbon::createFromFormat('d/m/Y', $text)
+                ->locale('id')
+                ->translatedFormat('d F Y');
+        } catch (\Throwable) {
+            try {
+                return \Illuminate\Support\Carbon::parse($value)
+                    ->locale('id')
+                    ->translatedFormat('d F Y');
+            } catch (\Throwable) {
+                return $text;
+            }
+        }
+    }
+
     private static function toNumeric(mixed $value): float
     {
         $digits = preg_replace('/[^\d]/', '', trim((string) $value));
@@ -157,6 +183,7 @@ class DocumentDataBuilderService
 
     public static function buildSppkData(DataSimulasi $d): array
     {
+        
         $p = $d->pelengkap;
 
         $alamat = self::pick([$p?->alamat], '');
@@ -167,8 +194,9 @@ class DocumentDataBuilderService
         }
 
         $plafondRaw        = self::pick([$p?->plafond, $d->plafond], '');
-        $provisiRaw        = self::pick([$p?->biaya_provisi, $p?->prosentase_provisi, $d->provisi], '');
-        $administrasiRaw   = self::pick([$p?->biaya_administrasi_kredit, $p?->prosentase_administrasi, $d->administrasi], '');
+        // SPPK must use nominal values, prioritize DataSimulasi amounts over percentage fields.
+        $provisiRaw        = self::pick([$d->provisi, $p?->biaya_provisi], '');
+        $administrasiRaw   = self::pick([$d->administrasi, $p?->biaya_administrasi_kredit], '');
         $asuransiRaw       = self::pick([$p?->asuransi_jiwa_kredit, $p?->asuransi, $d->asuransi], '');
         $materaiRaw        = self::pick([$p?->materai], '80000');
         $biayaFlaggingRaw  = self::pick([$p?->biaya_flagging], '');
@@ -202,6 +230,8 @@ class DocumentDataBuilderService
             self::formatDateDisplay($d->tgl_permohonan),
             now()->format('d/m/Y'),
         ]);
+        $kotaSurat = self::pick([$p?->dibuat_di, $p?->kota_kab, $p?->kota], 'Bandung');
+        $kotaSurat = ucwords(strtolower(trim((string) $kotaSurat)));
 
         $rtRw = '_____ / _____';
         if ($p && (trim((string) $p->rt) !== '' || trim((string) $p->rw) !== '')) {
@@ -215,7 +245,11 @@ class DocumentDataBuilderService
 
         return [
             'nomor_sppk'          => self::pick([$p?->no_sppk, $p?->no_pk], '......./SPPK/........./......../' . now()->format('Y')),
+            'kota'                => $kotaSurat,
+            'kota_surat'          => $kotaSurat,
+            'tanggal_sppk'        => $tanggalSurat,
             'tanggal_surat'       => $tanggalSurat,
+            'kota_tanggal_surat'  => $kotaSurat . ', ' . self::formatDateLongIndo($tanggalSurat),
             'nama_debitur'        => self::pick([$p?->nama, $d->nama_debitur]),
             'no_ktp'              => self::pick([$p?->no_ktp]),
             'alamat'              => $alamatLengkap,
@@ -512,6 +546,13 @@ static function  hitungAngsuranAnuitas($pokok, $bungaTahunan, $tenorBulan)
         $plafondRaw = self::pick([$p?->plafond, $d->plafond], '');
         $totalPencairanRaw = self::pick([$p?->total_penerimaan, $d->terima_bersih, $plafondRaw], '');
         $isTakeOver = $variant === 'take_over';
+        $tanggalSuratDisplay = self::pick([
+            self::formatDateDisplay($p?->tanggal),
+            self::formatDateDisplay($p?->tanggal_pk),
+            self::formatDateDisplay($p?->tgl_sppk),
+            now()->format('d/m/Y'),
+        ]);
+        $tanggalSuratLong = self::formatDateLongIndo($tanggalSuratDisplay);
 
         return [
             'jenis_si' => $variant,
@@ -519,12 +560,7 @@ static function  hitungAngsuranAnuitas($pokok, $bungaTahunan, $tenorBulan)
             'perihal' => $isTakeOver
                 ? 'Permohonan Pencairan Fasilitas Kredit Take Over'
                 : 'Permohonan Pencairan Fasilitas Kredit New / Top Up',
-            'tanggal_surat' => self::pick([
-                self::formatDateDisplay($p?->tanggal),
-                self::formatDateDisplay($p?->tanggal_pk),
-                self::formatDateDisplay($p?->tgl_sppk),
-                now()->format('d/m/Y'),
-            ]),
+            'tanggal_surat' => $tanggalSuratLong,
             'tanggal_ttd' => self::pick([
                 self::formatDateDisplay($p?->tanggal),
                 self::formatDateDisplay($p?->tanggal_pk),

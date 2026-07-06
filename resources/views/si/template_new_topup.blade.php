@@ -137,7 +137,7 @@
     </table>
 
     <p>KOPERASI NATA BUANA PASUNDAN</p>
-    <p>...............................</p>
+    <p>{{ ($kota_ttd ?? 'Bandung') . ', ' . ($tanggal_surat ?? '...') }}</p>
 
     <table class="subject">
         <tr><td>No</td><td>:</td><td>{{ $nomor_si }}</td></tr>

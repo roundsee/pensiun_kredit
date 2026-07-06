@@ -31,7 +31,7 @@ class SiController extends Controller
             ->setOption('isRemoteEnabled', true)
             ->setOption('defaultFont', 'serif');
 
-        $filename = 'si_kb_to_' . $dataSimulasi->id . '_' . now()->format('Ymd_His') . '.pdf';
+        $filename = 'si_kb_to_' . $dataSimulasi->id . '_' . now()->format('Ymd_His_u') . '.pdf';
         Storage::put('si/' . $filename, $pdf->output());
 
         return redirect()->route('si.download', [
@@ -60,7 +60,7 @@ class SiController extends Controller
             ->setOption('isRemoteEnabled', true)
             ->setOption('defaultFont', 'serif');
 
-        $filename = 'si_kb_new_topup_' . $dataSimulasi->id . '_' . now()->format('Ymd_His') . '.pdf';
+        $filename = 'si_kb_new_topup_' . $dataSimulasi->id . '_' . now()->format('Ymd_His_u') . '.pdf';
         Storage::put('si/' . $filename, $pdf->output());
 
         return redirect()->route('si.download', [
@@ -77,7 +77,12 @@ class SiController extends Controller
             abort(404, 'File tidak ditemukan.');
         }
 
-        return response()->download(Storage::path($path), $filename);
+        $response = response()->download(Storage::path($path), $filename);
+        $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+        $response->headers->set('Pragma', 'no-cache');
+        $response->headers->set('Expires', '0');
+
+        return $response;
     }
 
     private function findMissingSiFields(DataSimulasi $dataSimulasi): array

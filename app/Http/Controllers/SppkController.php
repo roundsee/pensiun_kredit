@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\DataSimulasi;
 use App\Services\DocumentDataBuilderService;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Log;
 
 class SppkController extends Controller
 {
@@ -30,7 +31,8 @@ class SppkController extends Controller
 
         $data = DocumentDataBuilderService::buildSppkData($dataSimulasi);
         $data['is_preview'] = false;
-
+        Log::info('Generating SPPK for DataSimulasi ID: ' . $dataSimulasi->id);
+        Log::info('Data for SPPK generation: ' . json_encode($data));
         $pdf = Pdf::loadView('sppk.template', $data)
             ->setPaper('a4', 'portrait')
             ->setOption('dpi', 150)

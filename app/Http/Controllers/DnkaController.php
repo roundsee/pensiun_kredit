@@ -1165,10 +1165,10 @@ class DnkaController extends Controller
 
         $namaDebitur = (string) ($dataSimulasi->nama_debitur ?? '');
         $noKtpDebitur = (string) ($pelengkap?->no_ktp ?? '');
-        $tanggalLahirDebitur = (string) ($this->formatDate($dataSimulasi->tanggal_lahir) ?? '');
+        $tanggalLahirDebitur = $this->formatDateYmd($dataSimulasi->tanggal_lahir);
         $namaPasangan = (string) ($pelengkap?->nama_pasangan ?? '');
         $ktpPasangan = (string) ($pelengkap?->ktp_pasangan ?? '');
-        $tanggalLahirPasangan = (string) ($this->formatDate($pelengkap?->tgl_lahir_pasangan) ?? '');
+        $tanggalLahirPasangan = $this->formatDateYmd($pelengkap?->tgl_lahir_pasangan);
         $plafond = $dataSimulasi->plafond ?? '';
         $tenor = $dataSimulasi->tenor ?? '';
 
@@ -1185,6 +1185,19 @@ class DnkaController extends Controller
             'K2' => $tenor,
             'L2' => 10,
         ];
+    }
+
+    private function formatDateYmd(mixed $value): string
+    {
+        if ($value === null || $value === '') {
+            return '';
+        }
+
+        try {
+            return \Illuminate\Support\Carbon::parse($value)->format('Ymd');
+        } catch (\Throwable) {
+            return (string) $value;
+        }
     }
 
     private function buildDataLosBulkForceOverrideCells(): array
@@ -1295,9 +1308,8 @@ class DnkaController extends Controller
         $pelengkap = $dataSimulasi->pelengkap;
 
         $tenor = (int) ($dataSimulasi->tenor ?? 0);
-
-        $jangkaWaktuTahun = ($tenor > 0 && $tenor % 12 === 0) ? (int) ($tenor / 12) : '';
-        $jangkaWaktuBulan = ($tenor > 0 && $tenor % 12 !== 0) ? $tenor : '';
+        $jangkaWaktuTahun = 0;
+        $jangkaWaktuBulan = $tenor;
 
         $sukuBungaRaw = $this->asNumeric($this->firstFilled($pelengkap?->suku_bunga, 0));
         $sukuBunga = is_numeric($sukuBungaRaw) ? (float) $sukuBungaRaw : 0.0;
