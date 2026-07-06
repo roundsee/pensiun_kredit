@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\DataSimulasi;
 use App\Services\DocumentDataBuilderService;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -18,6 +19,15 @@ class PerjanjianKreditController extends Controller
      */
     public function generate(DataSimulasi $dataSimulasi, Request $request)
     {
+        $dataSimulasi->loadMissing('pelengkap');
+
+        $missingFields = $this->findMissingPerjanjianKreditFields($dataSimulasi);
+        if ($missingFields !== []) {
+            return redirect()
+                ->route('data_simulasi.list')
+                ->with('error', 'Perjanjian Kredit tidak bisa digenerate. Lengkapi data berikut: ' . implode(', ', $missingFields));
+        }
+
         // Get version from query parameter, or fall back to saved preference in DB
         $version = $request->query('version', null);
         
@@ -66,5 +76,61 @@ class PerjanjianKreditController extends Controller
         }
 
         return Storage::download($path, $filename);
+    }
+
+    private function findMissingPerjanjianKreditFields(DataSimulasi $dataSimulasi): array
+    {
+        $p = $dataSimulasi->pelengkap;
+
+        return $this->collectMissingFields([
+            'Nama Debitur' => $this->firstFilled($p?->nama, $dataSimulasi->nama_debitur),
+            'No KTP' => $p?->no_ktp,
+            'Tanggal Lahir' => $dataSimulasi->tanggal_lahir,
+            'Alamat' => $p?->alamat,
+            'Instansi' => $dataSimulasi->instansi,
+            'Plafond' => $this->firstFilled($p?->plafond, $dataSimulasi->plafond),
+            'Tenor' => $this->firstFilled($p?->jangka_waktu, $p?->jw, $dataSimulasi->tenor),
+            'No PK/SPPK' => $this->firstFilled($p?->no_pk, $p?->no_sppk),
+            'Tanggal PK/SPPK' => $this->firstFilled($p?->tanggal_pk, $p?->tgl_sppk, $p?->tanggal),
+            'No SKEP' => $p?->no_skep,
+            'Nama Perwakilan KB' => $p?->nama_perwakilan_kb,
+            'Jabatan Perwakilan KB' => $p?->jabatan,
+        ]);
+    }
+
+    private function collectMissingFields(array $requiredFields): array
+    {
+        $missingFields = [];
+        foreach ($requiredFields as $label => $value) {
+            if (!$this->isFilled($value)) {
+                $missingFields[] = $label;
+            }
+        }
+
+        return $missingFields;
+    }
+
+    private function isFilled(mixed $value): bool
+    {
+        if ($value === null) {
+            return false;
+        }
+
+        if (is_string($value)) {
+            return trim($value) !== '';
+        }
+
+        return true;
+    }
+
+    private function firstFilled(mixed ...$values): mixed
+    {
+        foreach ($values as $value) {
+            if ($this->isFilled($value)) {
+                return $value;
+            }
+        }
+
+        return null;
     }
 }

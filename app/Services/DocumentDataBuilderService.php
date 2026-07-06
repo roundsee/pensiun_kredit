@@ -172,8 +172,11 @@ class DocumentDataBuilderService
         $asuransiRaw       = self::pick([$p?->asuransi_jiwa_kredit, $p?->asuransi, $d->asuransi], '');
         $materaiRaw        = self::pick([$p?->materai], '80000');
         $biayaFlaggingRaw  = self::pick([$p?->biaya_flagging], '');
-        $Totalbiaya = $administrasiRaw +$asuransiRaw + $materaiRaw + $biayaFlaggingRaw + $provisiRaw;
-        $totalBiayaRaw     = $Totalbiaya; // self::pick([$p?->total_biaya, $d->total_biaya], '');
+        $totalBiayaRaw     = self::toNumeric($administrasiRaw)
+            + self::toNumeric($asuransiRaw)
+            + self::toNumeric($materaiRaw)
+            + self::toNumeric($biayaFlaggingRaw)
+            + self::toNumeric($provisiRaw);
         $angsuranDimukaRaw = self::pick([$p?->angsuran_dibayar_dimuka, $d->amount_blokir_angsuran], '');
         $totalPenerimaanRaw = self::pick([$p?->total_penerimaan, $d->terima_bersih], '');
         $angsuranPerbulanPmt = self::calculateAngsuranPokokBungaPerbulan($d);
@@ -325,17 +328,17 @@ class DocumentDataBuilderService
             $angsuranGabung = self::formatRp(self::toNumeric($angsuranPerbulanRaw) + self::toNumeric($biayaAdmAngsuranRaw));
         }
 
-            $plafond = $d->plafond ;
+            $plafond = self::asFloat($d->plafond) ?? 0.0;
             $prosentaseProvisi =0.5;// (float) ($this->asNumeric($pelengkap?->prosentase_provisi));
             $prosentaseAdministrasi = 0.5; //(float) ($this->asNumeric($pelengkap?->prosentase_administrasi));
           
-            $sukuBungaTahunan = $p?->suku_bunga;
+            $sukuBungaTahunan = self::asFloat($p?->suku_bunga) ?? 0.0;
             if ($sukuBungaTahunan > 1) {
                 $sukuBungaTahunan /= 100;
             }
 
-            $tenor = $d->tenor;
-            $angsuranPmt = self::pmt($sukuBungaTahunan / 12, $tenor, $plafond);
+            $tenor = (int) (self::asFloat($d->tenor) ?? 0);
+            $angsuranPmt = $tenor > 0 ? self::pmt($sukuBungaTahunan / 12, $tenor, $plafond) : 0.0;
 
             $flagging = 0; //(float) ($this->asNumeric($pelengkap?->biaya_flagging) ?? 0);
             if ($d->instansi === 'TASPEN') {
@@ -345,9 +348,9 @@ class DocumentDataBuilderService
                 $flagging = 250000.0;
             }
 
-            $asuransiJiwa = self::pick([$p?->asuransi_jiwa_kredit, $d->asuransi]); //(float) ($this->asNumeric($this->firstFilled($pelengkap?->asuransi_jiwa_kredit, $dataSimulasi->asuransi)) ?? 0);
-            $materai = self::pick([$p?->materai,80000]); //, (float) ($this->asNumeric($pelengkap->materai) ?? 0);
-            $totalAngsuran = $d->total_angsuran;
+            $asuransiJiwa = self::toNumeric(self::pick([$p?->asuransi_jiwa_kredit, $d->asuransi], '0'));
+            $materai = self::toNumeric(self::pick([$p?->materai], '80000'));
+            $totalAngsuran = self::asFloat($d->total_angsuran) ?? 0.0;
 
             $totalBiayaBank = $plafond * ($prosentaseProvisi / 100) + $plafond * ($prosentaseAdministrasi / 100);
             $totalBiayaMitra = $asuransiJiwa + $flagging + $plafond * (5 / 100) + $materai;
@@ -371,9 +374,9 @@ class DocumentDataBuilderService
             'plafond_kredit_raw'   => self::toNumeric($plafondRaw),
             'jangka_waktu'         => $jangkaWaktu,
             'suku_bunga'           => self::pick([$p?->suku_bunga], '___'),
-            'biaya_provisi'        => self::formatRp($provisiRaw/100 * $plafondRaw),
+            'biaya_provisi'        => self::formatRp((self::toNumeric($provisiRaw) / 100) * self::toNumeric($plafondRaw)),
             'biaya_provisi_raw'    => self::toNumeric($provisiRaw),
-            'biaya_administrasi'   => self::formatRp($administrasiRaw/100 * $plafondRaw),
+            'biaya_administrasi'   => self::formatRp((self::toNumeric($administrasiRaw) / 100) * self::toNumeric($plafondRaw)),
             'biaya_administrasi_raw' => self::toNumeric($administrasiRaw),
             'asuransi_jiwa'        => self::formatRp($asuransiRaw),
             'materai'              => self::formatRp($materaiRaw),
@@ -382,7 +385,7 @@ class DocumentDataBuilderService
             'angsuran_dimuka'      => self::formatRp($angsuranDimukaRaw),
             'total_penerimaan'     => self::formatRp($totalPenerimaan),
             'angsuran_perbulan'    => self::formatRp(floor($angsuranPmt)),
-            'biaya_adm_angsuran'   => self::formatRp(floor($angsuranPerbulanRaw) - floor($angsuranPmt)),
+            'biaya_adm_angsuran'   => self::formatRp(max(0, floor(self::toNumeric($angsuranPerbulanRaw)) - floor($angsuranPmt))),
 
             // ── Pasal 2 – Jangka Waktu ───────────────────────────────────────
             'tgl_mulai'            => $tglMulai,

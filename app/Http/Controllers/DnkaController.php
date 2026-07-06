@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\DataSimulasi;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -11,9 +12,16 @@ use ZipArchive;
 
 class DnkaController extends Controller
 {
-    public function downloadHorizontalTemplate(): BinaryFileResponse
+    public function downloadHorizontalTemplate()
     {
         $dataSimulasi = $this->resolveDataSimulasi();
+
+        $missingFields = $this->findMissingDnkaFields($dataSimulasi);
+        if ($missingFields !== []) {
+            return redirect()
+                ->route('data_simulasi.list')
+                ->with('error', 'DNKA tidak bisa digenerate. Lengkapi data berikut: ' . implode(', ', $missingFields));
+        }
 
         return $this->generateDnkaFromTemplate(
             templateFileName: 'DNKA_Horizontal.xlsx',
@@ -23,9 +31,16 @@ class DnkaController extends Controller
         );
     }
 
-    public function downloadVerticalTemplate(): BinaryFileResponse
+    public function downloadVerticalTemplate()
     {
         $dataSimulasi = $this->resolveDataSimulasi();
+
+        $missingFields = $this->findMissingDnkaFields($dataSimulasi);
+        if ($missingFields !== []) {
+            return redirect()
+                ->route('data_simulasi.list')
+                ->with('error', 'DNKA tidak bisa digenerate. Lengkapi data berikut: ' . implode(', ', $missingFields));
+        }
 
         return $this->generateDnkaFromTemplate(
             templateFileName: 'DNKA_vertical.xlsx',
@@ -35,9 +50,17 @@ class DnkaController extends Controller
         );
     }
 
-    public function downloadDatanominatifTemplate(): BinaryFileResponse
+    public function downloadDatanominatifTemplate()
     {
         $dataSimulasi = $this->resolveDataSimulasi();
+
+        $redirect = $this->guardMissingFields(
+            documentLabel: 'Data Nominatif',
+            missingFields: $this->findMissingDatanominatifFields($dataSimulasi)
+        );
+        if ($redirect) {
+            return $redirect;
+        }
 
         return $this->generateDocumentFromTemplate(
             templateFileName: 'DATA_NOMINATIF.xlsx',
@@ -47,9 +70,17 @@ class DnkaController extends Controller
         );
     }
 
-    public function downloadDataLosBulkTemplate(): BinaryFileResponse
+    public function downloadDataLosBulkTemplate()
     {
         $dataSimulasi = $this->resolveDataSimulasi(requireExplicitId: true);
+
+        $redirect = $this->guardMissingFields(
+            documentLabel: 'Data LOS Bulk',
+            missingFields: $this->findMissingDataLosBulkFields($dataSimulasi)
+        );
+        if ($redirect) {
+            return $redirect;
+        }
 
         return $this->generateDocumentFromTemplate(
             templateFileName: 'Data_Los_bulk.xlsx',
@@ -61,16 +92,32 @@ class DnkaController extends Controller
         );
     }
 
-    public function downloadDataRekeningTemplate(): BinaryFileResponse
+    public function downloadDataRekeningTemplate()
     {
         $dataSimulasi = $this->resolveDataSimulasi();
+
+        $redirect = $this->guardMissingFields(
+            documentLabel: 'Data Rekening',
+            missingFields: $this->findMissingDataRekeningFields($dataSimulasi)
+        );
+        if ($redirect) {
+            return $redirect;
+        }
 
         return $this->generateDataRekeningByHeaderTemplate($dataSimulasi);
     }
 
-    public function downloadRepaymentScheduleTemplate(): BinaryFileResponse
+    public function downloadRepaymentScheduleTemplate()
     {
         $dataSimulasi = $this->resolveDataSimulasi();
+
+        $redirect = $this->guardMissingFields(
+            documentLabel: 'Repayment Schedule',
+            missingFields: $this->findMissingRepaymentScheduleFields($dataSimulasi)
+        );
+        if ($redirect) {
+            return $redirect;
+        }
 
         return $this->generateDocumentFromTemplate(
             templateFileName: 'Repayment_Schedule.xlsx',
@@ -80,16 +127,32 @@ class DnkaController extends Controller
         );
     }
 
-    public function downloadPermohonanCifTemplate(): BinaryFileResponse
+    public function downloadPermohonanCifTemplate()
     {
         $dataSimulasi = $this->resolveDataSimulasi();
+
+        $redirect = $this->guardMissingFields(
+            documentLabel: 'Permohonan CIF',
+            missingFields: $this->findMissingPermohonanCifFields($dataSimulasi)
+        );
+        if ($redirect) {
+            return $redirect;
+        }
 
         return $this->generatePermohonanCifByHeaderTemplate($dataSimulasi);
     }
 
-    public function downloadPelunasanToKbTemplate(): BinaryFileResponse
+    public function downloadPelunasanToKbTemplate()
     {
         $dataSimulasi = $this->resolveDataSimulasi();
+
+        $redirect = $this->guardMissingFields(
+            documentLabel: 'Pelunasan TO KB',
+            missingFields: $this->findMissingPelunasanToKbFields($dataSimulasi)
+        );
+        if ($redirect) {
+            return $redirect;
+        }
 
         return $this->generatePelunasanToKbByHeaderTemplate($dataSimulasi);
     }
@@ -232,6 +295,166 @@ class DnkaController extends Controller
         return $horizontalValues;
     }
 
+    private function findMissingDnkaFields(DataSimulasi $dataSimulasi): array
+    {
+        $pelengkap = $dataSimulasi->pelengkap;
+
+        $requiredFields = [
+            'Nama Debitur' => $this->firstFilled($pelengkap?->nama, $dataSimulasi->nama_debitur),
+            'No KTP' => $pelengkap?->no_ktp,
+            'Tanggal Lahir' => $dataSimulasi->tanggal_lahir,
+            'No HP' => $pelengkap?->no_hp,
+            'Nomor Pensiun' => $dataSimulasi->nomor_pensiun,
+            'No SKEP' => $pelengkap?->no_skep,
+            'Instansi' => $dataSimulasi->instansi,
+            'Nomor PK/SPPK' => $this->firstFilled($pelengkap?->no_pk, $pelengkap?->no_sppk, $pelengkap?->no),
+            'Tanggal PK' => $this->firstFilled($pelengkap?->tanggal_pk, $pelengkap?->tanggal, $pelengkap?->tgl_sppk),
+            'Tenor' => $dataSimulasi->tenor,
+            'Plafond' => $this->firstFilled($pelengkap?->plafond, $dataSimulasi->plafond),
+            'Asuransi Jiwa Kredit' => $this->firstFilled($pelengkap?->asuransi_jiwa_kredit, $dataSimulasi->asuransi),
+            'No Rekening' => $pelengkap?->norek,
+            'Cabang KB' => $pelengkap?->cabang_kb,
+            'Nama AO' => $pelengkap?->nama_ao,
+            'Kode AO' => $pelengkap?->kode_ao,
+        ];
+
+        $missingFields = [];
+        foreach ($requiredFields as $label => $value) {
+            if (!$this->isFilled($value)) {
+                $missingFields[] = $label;
+            }
+        }
+
+        return $missingFields;
+    }
+
+    private function findMissingDatanominatifFields(DataSimulasi $dataSimulasi): array
+    {
+        $pelengkap = $dataSimulasi->pelengkap;
+
+        return $this->collectMissingFields([
+            'Nama Debitur' => $this->firstFilled($pelengkap?->nama, $dataSimulasi->nama_debitur),
+            'No KTP' => $pelengkap?->no_ktp,
+            'Tanggal Lahir' => $dataSimulasi->tanggal_lahir,
+            'No HP' => $pelengkap?->no_hp,
+            'Nomor Pensiun' => $dataSimulasi->nomor_pensiun,
+            'No SKEP' => $pelengkap?->no_skep,
+            'Instansi' => $dataSimulasi->instansi,
+            'Nomor PK/SPPK' => $this->firstFilled($pelengkap?->no_pk, $pelengkap?->no_sppk, $pelengkap?->no),
+            'Tanggal PK' => $this->firstFilled($pelengkap?->tanggal_pk, $pelengkap?->tanggal, $pelengkap?->tgl_sppk),
+            'Tenor' => $dataSimulasi->tenor,
+            'Plafond' => $this->firstFilled($pelengkap?->plafond, $dataSimulasi->plafond),
+            'Asuransi Jiwa Kredit' => $this->firstFilled($pelengkap?->asuransi_jiwa_kredit, $dataSimulasi->asuransi),
+        ]);
+    }
+
+    private function findMissingDataLosBulkFields(DataSimulasi $dataSimulasi): array
+    {
+        $pelengkap = $dataSimulasi->pelengkap;
+
+        return $this->collectMissingFields([
+            'Nama Debitur' => $this->firstFilled($pelengkap?->nama, $dataSimulasi->nama_debitur),
+            'No KTP' => $pelengkap?->no_ktp,
+            'Tanggal Lahir' => $dataSimulasi->tanggal_lahir,
+            'Plafond' => $dataSimulasi->plafond,
+            'Tenor' => $dataSimulasi->tenor,
+        ]);
+    }
+
+    private function findMissingDataRekeningFields(DataSimulasi $dataSimulasi): array
+    {
+        $pelengkap = $dataSimulasi->pelengkap;
+
+        return $this->collectMissingFields([
+            'Nama Debitur' => $this->firstFilled($pelengkap?->nama, $dataSimulasi->nama_debitur),
+            'Nomor Pensiun' => $dataSimulasi->nomor_pensiun,
+            'Instansi' => $dataSimulasi->instansi,
+            'Nomor PK/SPPK' => $this->firstFilled($pelengkap?->no_pk, $pelengkap?->no_sppk, $pelengkap?->no),
+            'Tanggal PK' => $this->firstFilled($pelengkap?->tanggal_pk, $pelengkap?->tgl_sppk, $pelengkap?->tanggal),
+            'Plafond' => $dataSimulasi->plafond,
+            'Tenor' => $dataSimulasi->tenor,
+            'Rekening Debitur' => $pelengkap?->norek,
+            'Kode AO' => $pelengkap?->kode_ao,
+        ]);
+    }
+
+    private function findMissingRepaymentScheduleFields(DataSimulasi $dataSimulasi): array
+    {
+        $pelengkap = $dataSimulasi->pelengkap;
+
+        return $this->collectMissingFields([
+            'Plafond' => $dataSimulasi->plafond,
+            'Tenor' => $dataSimulasi->tenor,
+            'Suku Bunga' => $pelengkap?->suku_bunga,
+            'Tanggal Dropping' => $pelengkap?->tanggal_dropping,
+            'Due Date Pertama' => $pelengkap?->due_date_pertama,
+        ]);
+    }
+
+    private function findMissingPermohonanCifFields(DataSimulasi $dataSimulasi): array
+    {
+        $pelengkap = $dataSimulasi->pelengkap;
+
+        return $this->collectMissingFields([
+            'Nama Debitur' => $this->firstFilled($pelengkap?->nama, $dataSimulasi->nama_debitur),
+            'No KTP' => $pelengkap?->no_ktp,
+            'Tanggal Lahir' => $dataSimulasi->tanggal_lahir,
+            'No HP' => $pelengkap?->no_hp,
+            'Alamat' => $pelengkap?->alamat,
+            'Nama Ibu Kandung' => $pelengkap?->nama_ibu_kandung,
+            'Kode Pos' => $pelengkap?->kode_pos,
+            'Instansi' => $dataSimulasi->instansi,
+        ]);
+    }
+
+    private function findMissingPelunasanToKbFields(DataSimulasi $dataSimulasi): array
+    {
+        $pelengkap = $dataSimulasi->pelengkap;
+
+        return $this->collectMissingFields([
+            'Nama Debitur' => $this->firstFilled($pelengkap?->nama, $dataSimulasi->nama_debitur),
+            'Nomor Pensiun' => $dataSimulasi->nomor_pensiun,
+            'Nominal Pelunasan (OS)' => $dataSimulasi->pelunasan,
+            'Biaya Flagging / Blokir Angsuran' => $this->firstFilled($pelengkap?->biaya_flagging, $dataSimulasi->amount_blokir_angsuran),
+        ]);
+    }
+
+    private function collectMissingFields(array $requiredFields): array
+    {
+        $missingFields = [];
+        foreach ($requiredFields as $label => $value) {
+            if (!$this->isFilled($value)) {
+                $missingFields[] = $label;
+            }
+        }
+
+        return $missingFields;
+    }
+
+    private function guardMissingFields(string $documentLabel, array $missingFields): ?RedirectResponse
+    {
+        if ($missingFields === []) {
+            return null;
+        }
+
+        return redirect()
+            ->route('data_simulasi.list')
+            ->with('error', $documentLabel . ' tidak bisa digenerate. Lengkapi data berikut: ' . implode(', ', $missingFields));
+    }
+
+    private function isFilled(mixed $value): bool
+    {
+        if ($value === null) {
+            return false;
+        }
+
+        if (is_string($value)) {
+            return trim($value) !== '';
+        }
+
+        return true;
+    }
+
     private function buildDatanominatifCellValues(DataSimulasi $dataSimulasi): array
     {
         $pelengkap = $dataSimulasi->pelengkap;
@@ -296,7 +519,7 @@ class DnkaController extends Controller
             }
 
             $asuransiJiwa = (float) ($this->asNumeric($this->firstFilled($pelengkap?->asuransi_jiwa_kredit, $dataSimulasi->asuransi)) ?? 0);
-            $materai = (float) ($this->asNumeric($pelengkap->materai) ?? 0);
+            $materai = (float) ($this->asNumeric($this->firstFilled($pelengkap?->materai, 80000)) ?? 80000);
             $totalAngsuran = (float) ($this->asNumeric($dataSimulasi->total_angsuran) ?? 0);
 
             $totalBiayaBank = $plafond * ($prosentaseProvisi / 100) + $plafond * ($prosentaseAdministrasi / 100);
@@ -517,13 +740,14 @@ class DnkaController extends Controller
         $jangkaWaktuBulan = ($tenor > 0 && $tenor % 12 !== 0) ? $tenor : '';
 
         $sukuBungaRaw = $this->asNumeric($this->firstFilled($pelengkap?->suku_bunga, 0));
-        $sukuBunga = is_numeric($sukuBungaRaw) ? (float) $sukuBungaRaw : '';
-        if (is_numeric($sukuBunga) && $sukuBunga > 1) {
+        $sukuBunga = is_numeric($sukuBungaRaw) ? (float) $sukuBungaRaw : 0.0;
+        if ($sukuBunga > 1) {
             $sukuBunga = $sukuBunga / 100;
         }
-        $bungaPerBulan = is_numeric($sukuBunga) ? $sukuBunga / 12 : '';
+        $bungaPerBulan = $sukuBunga / 12;
       
-        $angsuran = $this->PMT($bungaPerBulan,$tenor,(float) ($this->asNumeric($dataSimulasi->plafond)) ?? 0);
+        $plafond = (float) ($this->asNumeric($dataSimulasi->plafond) ?? 0);
+        $angsuran = $this->PMT($bungaPerBulan, $tenor, $plafond);
         //     pokok: (float) ($this->asNumeric($dataSimulasi->plafond) ?? 0),
         //     bungaTahunan: $sukuBunga,
         //     tenorBulan: $tenor
@@ -533,7 +757,7 @@ class DnkaController extends Controller
         // $adminAngsuran = (float) ($this->asNumeric(
         //     $this->firstFilled($pelengkap?->biaya_administrasi_angsuran_perbulan_baa, $dataSimulasi->biaya_adm_angs)
         // ) ?? 0);
-        $adminAngsuran= (float) ($this->asNumeric($dataSimulasi->plafond)) * $bungaPerBulan;
+        $adminAngsuran = $plafond * $bungaPerBulan;
        // $totalAngsuran = $angsuran + $adminAngsuran;
 
         return [
@@ -550,7 +774,12 @@ class DnkaController extends Controller
 function PMT($rate, $nper, $pv, $fv = 0, $type = 0)
 {
 
-    
+    $rate = is_numeric($rate) ? (float) $rate : 0.0;
+    $nper = is_numeric($nper) ? (float) $nper : 0.0;
+    $pv = is_numeric($pv) ? (float) $pv : 0.0;
+    $fv = is_numeric($fv) ? (float) $fv : 0.0;
+    $type = is_numeric($type) ? (float) $type : 0.0;
+
         Log::alert('Calculating PMT', [
         'rate' => $rate,
         'nper' => $nper,
@@ -558,7 +787,11 @@ function PMT($rate, $nper, $pv, $fv = 0, $type = 0)
         'fv' => $fv,
         'type' => $type
     ]);
-    if ($rate == 0) {
+    if ($nper <= 0) {
+        return 0.0;
+    }
+
+    if (abs($rate) < 1e-12) {
         return -($pv + $fv) / $nper;
     }
 
