@@ -607,10 +607,6 @@ function kbSimulasiForm() {
                 warnings.push(`Sisa gaji akhir di bawah minimum Rp ${Math.round(Number(limits.sisa_gaji_akhir_min || 0)).toLocaleString('id-ID')}`);
             }
 
-            if (limits.terima_bersih_valid === false) {
-                warnings.push('Terima bersih harus lebih besar dari 0');
-            }
-
             return {
                 warning: warnings.length > 0 ? `Data belum valid: ${warnings.join('; ')}` : '',
                 fieldMessages,

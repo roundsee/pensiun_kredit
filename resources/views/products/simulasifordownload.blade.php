@@ -128,7 +128,7 @@
       <tr><td class="label">Tanggal Lahir</td><td>{{ $sim->tanggal_lahir }}</td></tr>
       <tr><td class="label">Umur</td><td>{{ $sim->umur !== null ? $sim->umur . ' thn' : '-' }}</td></tr>
       <tr><td class="label">Instansi</td><td class="highlight">{{ $sim->instansi }}</td></tr>
-      <tr><td class="label">Gaji Pensiun</td><td class="highlight">{{ number_format($sim->terima_bersih, 0, ',', '.') }}</td></tr>
+      <tr><td class="label">Gaji Pensiun</td><td class="highlight">{{ number_format($sim->gaji_pensiun, 0, ',', '.') }}</td></tr>
       <tr><td class="label">Angsuran Lainnya</td><td class="highlight">{{ number_format($sim->angsuran_lain, 0, ',', '.') }}</td></tr>
       <tr><td class="label">Sisa Gaji saat Pengajuan</td><td>{{ number_format($sim->sisa_gaji_saat_pengajuan, 0, ',', '.') }}</td></tr>
       <tr><td class="label">Tenor Max</td><td>{{ $sim->tenor_max }}</td></tr>

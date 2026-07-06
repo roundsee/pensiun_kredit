@@ -652,7 +652,8 @@ public function store(Request $request): JsonResponse
         $sisaGajiAkhirValid = $sisaGajiAkhir >= $sisaGajiAkhirMin;
 
         $terimaBersih = (float) ($result['terima_bersih'] ?? 0);
-        $terimaBersihValid = $terimaBersih > 0;
+        // Temporary business rule: allow negative terima bersih (do not invalidate simulation).
+        $terimaBersihValid = true;
 
         // Plafond max adalah angka turunan/estimasi. Jika hasil aktual masih lolos batas angsuran,
         // sisa gaji akhir, dan terima bersih, jangan blokir hanya karena selisih tipis pada plafond max.
@@ -686,8 +687,7 @@ public function store(Request $request): JsonResponse
                 && $tenorValid
                 && $plafondValid
                 && $totalAngsuranValid
-                && $sisaGajiAkhirValid
-                && $terimaBersihValid,
+                && $sisaGajiAkhirValid,
         ];
     }
 
