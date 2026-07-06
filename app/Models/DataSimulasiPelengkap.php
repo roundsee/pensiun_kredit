@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Carbon\Carbon;
 
 class DataSimulasiPelengkap extends Model
 {
@@ -102,7 +102,6 @@ class DataSimulasiPelengkap extends Model
         'pendidikan',
         'status_kawin',
         'status_rumah',
-        
     ];
 
     protected $casts = [
@@ -145,161 +144,164 @@ class DataSimulasiPelengkap extends Model
         'nominal_penarikan' => 'float',
     ];
 
+    protected static function booted(): void
+    {
+        static::saving(function (self $pelengkap): void {
+            if (empty($pelengkap->suku_bunga)) {
+                $pelengkap->suku_bunga = 10.0;
+            }
+
+            if (empty($pelengkap->materai)) {
+                $pelengkap->materai = 80000.0;
+            }
+
+            if (empty($pelengkap->prosentase_provisi)) {
+                $pelengkap->prosentase_provisi = 0.5;
+            }
+
+            if (empty($pelengkap->prosentase_administrasi)) {
+                $pelengkap->prosentase_administrasi = 0.5;
+            }
+        });
+    }
+
     public function dataSimulasi(): BelongsTo
     {
         return $this->belongsTo(DataSimulasi::class, 'data_simulasi_id');
     }
-// protected static function booted(): void
-// {
-//     static::creating(function ($pelengkap) {
-//         // 1. Generate nomor otomatis jika field belum diisi oleh input user/PDF
-//         if (empty($pelengkap->no_pk)) {
-//             $pelengkap->no_pk = static::generateNomorPK() ?? 'PK.0001/TEMP';
-//         }
-        
-//         if (empty($pelengkap->no_sppk)) {
-//             $pelengkap->no_sppk = static::generateNomorSPPK() ?? '0001/SPPK/TEMP';
-//         }
-        
-//         if (empty($pelengkap->no_si)) {
-//             $pelengkap->no_si = static::generateNomorSI() ?? 'SI-TO.0001/TEMP';
-//         }
 
-//         // 2. Set nilai default finansial jika belum terisi
-//         if (empty($pelengkap->suku_bunga)) {
-//             $pelengkap->suku_bunga = 10.0;
-//         }
-//         if (empty($pelengkap->materai)) {
-//             $pelengkap->materai = 80000.0;
-//         }
-//         if (empty($pelengkap->prosentase_provisi)) {
-//             $pelengkap->prosentase_provisi = 0.5;
-//         }
-//         if (empty($pelengkap->prosentase_administrasi)) {
-//             $pelengkap->prosentase_administrasi = 0.5;
-//         }
-        
-//         \Illuminate\Support\Facades\Log::info("Auto-fill creating event berhasil dijalankan untuk DataSimulasi ID: {$pelengkap->data_simulasi_id}");
-//     });
-// }
+    public static function applyDefaultDocumentNumbers(self $pelengkap): void
+    {
+        if (empty($pelengkap->no_pk)) {
+            $pelengkap->no_pk = static::generateNomorPK();
+        }
 
-// public static function generateNomorSI(): string
-//     {
-//         $now = Carbon::now();
-//         $tahun = $now->year;
-//         $bulan = $now->month;
+        if (empty($pelengkap->no_sppk)) {
+            $pelengkap->no_sppk = static::generateNomorSPPK();
+        }
 
-//         // 1. Konversi angka bulan ke Romawi
-//         $romawi = static::konversiKeRomawi($bulan);
+        if (empty($pelengkap->no_si)) {
+            $pelengkap->no_si = static::generateNomorSI();
+        }
 
-//         // 2. Ambil nomor urut terakhir di tahun berjalan
-//         // Diasumsikan nomor urut reset setiap pergantian tahun
-//         // $terakhir = static::whereYear('created_at', $tahun)
-//         //     ->latest('id')
-//         //     ->first();
-// $terakhir = static::whereYear('created_at', $tahun)
-//         ->whereNotNull('no_si')
-//         ->where('no_si', '!=', '')
-//         ->latest('id')
-//         ->first();            
+        if (empty($pelengkap->suku_bunga)) {
+            $pelengkap->suku_bunga = 10.0;
+        }
 
-//         if ($terakhir) {
-//             // Ambil string nomor lama, misal dari "SI-TO.0001/..." diambil "0001"
-//             $nomorLama = explode('/', $terakhir->no_si)[0]; // Hasil: "SI-TO.0001"
-//             $urutLama = (int) explode('.', $nomorLama)[1]; // Hasil: 1
-//             $urutBaru = $urutLama + 1;
-//         } else {
-//             $urutBaru = 1;
-//         }
+        if (empty($pelengkap->materai)) {
+            $pelengkap->materai = 80000.0;
+        }
 
-//         // 3. Tambahkan leading zero agar menjadi 4 digit (0001, 0002, dst)
-//         $noUrutStr = str_pad($urutBaru, 4, '0', STR_PAD_LEFT);
+        if (empty($pelengkap->prosentase_provisi)) {
+            $pelengkap->prosentase_provisi = 0.5;
+        }
 
-//         // 4. Gabungkan sesuai format permintaan Anda
-//         return "SI-TO.{$noUrutStr}/NBP_CH.KB/{$romawi}/{$tahun}";
-//     }
-// public static function generateNomorPK(): string
-//     {
-//         $now = Carbon::now();
-//         $tahun = $now->year;
-//         $bulan = $now->month;
+        if (empty($pelengkap->prosentase_administrasi)) {
+            $pelengkap->prosentase_administrasi = 0.5;
+        }
+    }
 
-//         // 1. Konversi angka bulan ke Romawi
-//         $romawi = static::konversiKeRomawi($bulan);
+    public static function generateNomorSI(): string
+    {
+        $now = Carbon::now();
+        $tahun = $now->year;
+        $bulan = $now->month;
+        $romawi = static::konversiKeRomawi($bulan);
 
-//         // 2. Ambil nomor urut terakhir di tahun berjalan
-//         // Diasumsikan nomor urut reset setiap pergantian tahun
-//         // $terakhir = static::whereYear('created_at', $tahun)
-//         //     ->latest('id')
-//         //     ->first();
-// $terakhir = static::whereYear('created_at', $tahun)
-//         ->whereNotNull('no_pk')
-//         ->where('no_si', '!=', '')
-//         ->latest('id')
-//         ->first();
+        $terakhir = static::query()
+            ->whereBetween('created_at', ["{$tahun}-01-01 00:00:00", "{$tahun}-12-31 23:59:59"])
+            ->whereNotNull('no_si')
+            ->where('no_si', '!=', '')
+            ->orderBy('id', 'desc')
+            ->first(['no_si']);
 
-//         if ($terakhir) {
-//             // Ambil string nomor lama, misal dari "SI-TO.0001/..." diambil "0001"
-//             $nomorLama = explode('/', $terakhir->no_pk)[0]; // Hasil: "SI-TO.0001"
-//             $urutLama = (int) explode('.', $nomorLama)[1]; // Hasil: 1
-//             $urutBaru = $urutLama + 1;
-//         } else {
-//             $urutBaru = 1;
-//         }
+        $urutBaru = 1;
 
-//         // 3. Tambahkan leading zero agar menjadi 4 digit (0001, 0002, dst)
-//         $noUrutStr = str_pad($urutBaru, 4, '0', STR_PAD_LEFT);
+        if ($terakhir) {
+            $nomorLama = explode('/', $terakhir->no_si)[0];
+            if (preg_match('/(\d+)/', $nomorLama, $matches)) {
+                $urutBaru = (int) $matches[1] + 1;
+            }
+        }
 
-//         // 4. Gabungkan sesuai format permintaan Anda
-//         return "PK.{$noUrutStr}/NBP_CH.KB/{$romawi}/{$tahun}";
-//     }
+        $noUrutStr = str_pad($urutBaru, 4, '0', STR_PAD_LEFT);
 
-//  public static function generateNomorSPPK(): string
-//     {
-//         $now = Carbon::now();
-//         $tahun = $now->year;
-//         $bulan = $now->month;
+        return "SI-TO.{$noUrutStr}/NBP_CH.KB/{$romawi}/{$tahun}";
+    }
 
-//         // 1. Konversi angka bulan ke Romawi
-//         $romawi = static::konversiKeRomawi($bulan);
+    public static function generateNomorPK(): string
+    {
+        $now = Carbon::now();
+        $tahun = $now->year;
+        $bulan = $now->month;
+        $romawi = static::konversiKeRomawi($bulan);
 
-//         // 2. Ambil nomor urut terakhir di tahun berjalan
-//         // Diasumsikan nomor urut reset setiap pergantian tahun
-//         // $terakhir = static::whereYear('created_at', $tahun)
-//         //     ->latest('id')
-//         //     ->first();
-// $terakhir = static::whereYear('created_at', $tahun)
-//         ->whereNotNull('no_sppk')
-//         ->where('no_sppk', '!=', '')
-//         ->latest('id')
-//         ->first();
-//         if ($terakhir) {
-//             // Ambil string nomor lama, misal dari "SI-TO.0001/..." diambil "0001"
-//             $nomorLama = explode('/', $terakhir->no_sppk)[0]; // Hasil: "SI-TO.0001"
-//             $urutLama = (int) explode('.', $nomorLama)[1]; // Hasil: 1
-//             $urutBaru = $urutLama + 1;
-//         } else {
-//             $urutBaru = 1;
-//         }
+        $terakhir = static::query()
+            ->whereBetween('created_at', ["{$tahun}-01-01 00:00:00", "{$tahun}-12-31 23:59:59"])
+            ->whereNotNull('no_pk')
+            ->where('no_pk', '!=', '')
+            ->orderBy('id', 'desc')
+            ->first(['no_pk']);
 
-//         // 3. Tambahkan leading zero agar menjadi 4 digit (0001, 0002, dst)
-//         $noUrutStr = str_pad($urutBaru, 4, '0', STR_PAD_LEFT);
+        $urutBaru = 1;
 
-//         // 4. Gabungkan sesuai format permintaan Anda
-//         return "{$noUrutStr}/SPPK/KNBP-KB/{$romawi}/{$tahun}";
-//     }
-   
+        if ($terakhir) {
+            $nomorLama = explode('/', $terakhir->no_pk)[0];
+            if (preg_match('/(\d+)/', $nomorLama, $matches)) {
+                $urutBaru = (int) $matches[1] + 1;
+            }
+        }
 
-//     /**
-//      * Helper untuk mengubah angka bulan menjadi string Romawi
-//      */
-//     private static function konversiKeRomawi(int $bulan): string
-//     {
-//         $map = [
-//             1 => 'I', 2 => 'II', 3 => 'III', 4 => 'IV', 5 => 'V', 6 => 'VI',
-//             7 => 'VII', 8 => 'VIII', 9 => 'IX', 10 => 'X', 11 => 'XI', 12 => 'XII'
-//         ];
+        $noUrutStr = str_pad($urutBaru, 4, '0', STR_PAD_LEFT);
 
-//         return $map[$bulan] ?? 'I';
-//     }    
- }
+        return "PK.{$noUrutStr}/NBP_CH.KB/{$romawi}/{$tahun}";
+    }
+
+    public static function generateNomorSPPK(): string
+    {
+        $now = Carbon::now();
+        $tahun = $now->year;
+        $bulan = $now->month;
+        $romawi = static::konversiKeRomawi($bulan);
+
+        $terakhir = static::query()
+            ->whereBetween('created_at', ["{$tahun}-01-01 00:00:00", "{$tahun}-12-31 23:59:59"])
+            ->whereNotNull('no_sppk')
+            ->where('no_sppk', '!=', '')
+            ->orderBy('id', 'desc')
+            ->first(['no_sppk']);
+
+        $urutBaru = 1;
+
+        if ($terakhir) {
+            $nomorLama = explode('/', $terakhir->no_sppk)[0];
+            if (preg_match('/(\d+)/', $nomorLama, $matches)) {
+                $urutBaru = (int) $matches[1] + 1;
+            }
+        }
+
+        $noUrutStr = str_pad($urutBaru, 4, '0', STR_PAD_LEFT);
+
+        return "{$noUrutStr}/SPPK/KNBP-KB/{$romawi}/{$tahun}";
+    }
+
+    private static function konversiKeRomawi(int $bulan): string
+    {
+        $map = [
+            1 => 'I',
+            2 => 'II',
+            3 => 'III',
+            4 => 'IV',
+            5 => 'V',
+            6 => 'VI',
+            7 => 'VII',
+            8 => 'VIII',
+            9 => 'IX',
+            10 => 'X',
+            11 => 'XI',
+            12 => 'XII',
+        ];
+
+        return $map[$bulan] ?? 'I';
+    }
+}

@@ -655,9 +655,6 @@ class SimulationController extends Controller
         $flagging = $this->resolveFlaggingByInstansi((string) ($payload['instansi'] ?? ''));
 
         $upsertPayload = [
-            'no_pk'       => self::generateNomorPK(),
-            'no_sppk'     => self::generateNomorSPPK(),
-            'no_si'       => $this->generateNomorSI(),
             'suku_bunga'  => 10,
             'prosentaseprovisi'=>0.5,
             'prosentaseadmini'=>0.5, 

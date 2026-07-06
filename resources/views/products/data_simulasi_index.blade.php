@@ -140,23 +140,24 @@
                                                     {{ $row->pelengkap ? 'Edit Pelengkap' : 'Input Pelengkap' }}
                                                 </a>
                                                 <a href="{{ route('data_simulasi.idpb.upload_form', $row) }}" class="btn btn-sm btn-outline-dark">Upload IDPB</a>
-                                                <a href="{{ route('permohonan_cif.download_template', ['data_simulasi_id' => $row->id]) }}" class="btn btn-sm btn-outline-dark">Permohonan CIF</a>
-                                                <a href="{{ route('pelunasan_to_kb.download_template', ['data_simulasi_id' => $row->id]) }}" class="btn btn-sm btn-outline-dark">Pelunasan TO KB</a>
-                                                <a href="{{ route('dnka.horizontal.download_template', ['data_simulasi_id' => $row->id]) }}" class="btn btn-sm btn-outline-success">DNKA Horizontal</a>
-                                                <a href="{{ route('dnka.vertical.download_template', ['data_simulasi_id' => $row->id]) }}" class="btn btn-sm btn-outline-success">DNKA Vertical</a>
-                                                <a href="{{ route('datanominatif.download_template', ['data_simulasi_id' => $row->id]) }}" class="btn btn-sm btn-outline-secondary">Data Nominatif</a>
-                                                <a href="{{ route('data_los_bulk.download_template', ['data_simulasi_id' => $row->id]) }}" class="btn btn-sm btn-outline-secondary">Data LOS Bulk</a>
-                                                <a href="{{ route('data_rekening.download_template', ['data_simulasi_id' => $row->id]) }}" class="btn btn-sm btn-outline-secondary">Data Rekening</a>
-                                                <a href="{{ route('repayment_schedule.download_template', ['data_simulasi_id' => $row->id]) }}" class="btn btn-sm btn-outline-secondary">Repayment Schedule</a>
+                                                <a href="{{ route('excel_bundle.preview', ['data_simulasi_id' => $row->id, 'focus' => 'permohonan_cif']) }}" class="btn btn-sm btn-outline-dark">Preview Permohonan CIF</a>
+                                                <a href="{{ route('excel_bundle.preview', ['data_simulasi_id' => $row->id, 'focus' => 'pelunasan_to_kb']) }}" class="btn btn-sm btn-outline-dark">Preview Pelunasan TO KB</a>
+                                                <a href="{{ route('excel_bundle.preview', ['data_simulasi_id' => $row->id, 'focus' => 'dnka_horizontal']) }}" class="btn btn-sm btn-outline-success">Preview DNKA Horizontal</a>
+                                                <a href="{{ route('excel_bundle.preview', ['data_simulasi_id' => $row->id, 'focus' => 'dnka_vertical']) }}" class="btn btn-sm btn-outline-success">Preview DNKA Vertical</a>
+                                                <a href="{{ route('excel_bundle.preview', ['data_simulasi_id' => $row->id, 'focus' => 'data_nominatif']) }}" class="btn btn-sm btn-outline-secondary">Preview Data Nominatif</a>
+                                                <a href="{{ route('excel_bundle.preview', ['data_simulasi_id' => $row->id, 'focus' => 'data_los_bulk']) }}" class="btn btn-sm btn-outline-secondary">Preview Data LOS Bulk</a>
+                                                <a href="{{ route('excel_bundle.preview', ['data_simulasi_id' => $row->id, 'focus' => 'data_rekening']) }}" class="btn btn-sm btn-outline-secondary">Preview Data Rekening</a>
+                                                <a href="{{ route('excel_bundle.preview', ['data_simulasi_id' => $row->id, 'focus' => 'repayment_schedule']) }}" class="btn btn-sm btn-outline-secondary">Preview Repayment Schedule</a>
+                                                <a href="{{ route('excel_bundle.download', ['data_simulasi_id' => $row->id]) }}" class="btn btn-sm btn-success">Download Excel Bundle</a>
                                                 <a href="{{ route('perjanjian_kredit.generate', $row) }}" class="btn btn-sm btn-outline-primary">PK Standard</a>
                                                 <a href="{{ route('perjanjian_kredit.generate', $row) }}?version=kb" class="btn btn-sm btn-outline-info">PK KB Version</a>
                                                 <a href="{{ route('si.generate_to', $row) }}" class="btn btn-sm btn-outline-warning">SI TO</a>
                                                 <a href="{{ route('si.generate_new_topup', $row) }}" class="btn btn-sm btn-outline-warning">SI New/Topup</a>
                                                 <a href="{{ route('sppk.generate', $row) }}" class="btn btn-sm btn-outline-primary">SPPK</a>
-                                                <form action="{{ route('data_simulasi.destroy', $row) }}" method="POST" onsubmit="return confirm('Yakin hapus data simulasi ini?')">
+                                                <form action="{{ route('data_simulasi.back_to_trial', $row) }}" method="POST" onsubmit="return confirm('Yakin kembalikan data simulasi ini ke Trial?')">
                                                     @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="btn btn-sm btn-danger">Hapus</button>
+                                                    @method('PATCH')
+                                                    <button type="submit" class="btn btn-sm btn-danger">Back to Trial</button>
                                                 </form>
                                             </div>
                                         @endif

@@ -55,6 +55,7 @@ Route::get('/data-simulasi/trial', [DataSimulasiController::class, 'trialIndex']
 Route::patch('/data-simulasi/{dataSimulasi}/confirm', [DataSimulasiController::class, 'confirm'])->name('data_simulasi.confirm')->middleware('auth');
 Route::get('/data-simulasi/{dataSimulasi}/edit', [DataSimulasiController::class, 'edit'])->name('data_simulasi.edit')->middleware('auth');
 Route::put('/data-simulasi/{dataSimulasi}', [DataSimulasiController::class, 'update'])->name('data_simulasi.update')->middleware('auth');
+Route::patch('/data-simulasi/{dataSimulasi}/back-to-trial', [DataSimulasiController::class, 'backToTrial'])->name('data_simulasi.back_to_trial')->middleware('auth');
 Route::get('/data-simulasi/{dataSimulasi}/pelengkap', [DataSimulasiController::class, 'editPelengkap'])->name('data_simulasi.pelengkap.edit')->middleware('auth');
 Route::put('/data-simulasi/{dataSimulasi}/pelengkap', [DataSimulasiController::class, 'updatePelengkap'])->name('data_simulasi.pelengkap.update')->middleware('auth');
 Route::post('/data-simulasi/{dataSimulasi}/pelengkap/ocr-pdf', [DataSimulasiController::class, 'extractPelengkapFromPdf'])->name('data_simulasi.pelengkap.ocr_pdf')->middleware('auth');
@@ -102,6 +103,8 @@ Route::get('/data-rekening/download-template', [DnkaController::class, 'download
 Route::get('/repayment-schedule/download-template', [DnkaController::class, 'downloadRepaymentScheduleTemplate'])->name('repayment_schedule.download_template')->middleware('auth');
 Route::get('/permohonan-cif/download-template', [DnkaController::class, 'downloadPermohonanCifTemplate'])->name('permohonan_cif.download_template')->middleware('auth');
 Route::get('/pelunasan-to-kb/download-template', [DnkaController::class, 'downloadPelunasanToKbTemplate'])->name('pelunasan_to_kb.download_template')->middleware('auth');
+Route::get('/excel-bundle/preview', [DnkaController::class, 'previewExcelBundle'])->name('excel_bundle.preview')->middleware('auth');
+Route::get('/excel-bundle/download', [DnkaController::class, 'downloadExcelBundle'])->name('excel_bundle.download')->middleware('auth');
 
 // Channeling loan operations
 Route::post('/loans/propose', [LoanOperationController::class, 'propose'])->name('loans.propose')->middleware('auth');

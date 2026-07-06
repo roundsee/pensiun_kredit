@@ -6,6 +6,7 @@ use App\Models\DataSimulasi;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Request;
+use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use ZipArchive;
@@ -155,6 +156,565 @@ class DnkaController extends Controller
         }
 
         return $this->generatePelunasanToKbByHeaderTemplate($dataSimulasi);
+    }
+
+    public function previewExcelBundle(): View
+    {
+        $dataSimulasi = $this->resolveDataSimulasi(requireExplicitId: true);
+        $focus = (string) Request::input('focus', '');
+
+        $validationRows = $this->collectExcelBundleValidationRows($dataSimulasi);
+        $previewRowsByFocus = $this->collectExcelBundlePreviewRows($dataSimulasi);
+        $allValid = collect($validationRows)->every(fn (array $row) => $row['missing_fields'] === []);
+
+        return view('products.excel_bundle_preview', [
+            'dataSimulasi' => $dataSimulasi,
+            'validationRows' => $validationRows,
+            'previewRowsByFocus' => $previewRowsByFocus,
+            'allValid' => $allValid,
+            'focus' => $focus,
+        ]);
+    }
+
+    public function downloadExcelBundle()
+    {
+        $dataSimulasi = $this->resolveDataSimulasi(requireExplicitId: true);
+        $validationRows = $this->collectExcelBundleValidationRows($dataSimulasi);
+
+        $invalidRows = array_values(array_filter($validationRows, fn (array $row) => $row['missing_fields'] !== []));
+        if ($invalidRows !== []) {
+            $messages = [];
+            foreach ($invalidRows as $row) {
+                $messages[] = $row['sheet_name'] . ' => ' . implode(', ', $row['missing_fields']);
+            }
+
+            return redirect()
+                ->route('excel_bundle.preview', ['data_simulasi_id' => $dataSimulasi->id])
+                ->with('error', 'Excel Bundle belum bisa digenerate. Data belum lengkap: ' . implode(' | ', $messages));
+        }
+
+        $tempGeneratedPaths = [];
+        $ioFactoryClass = 'PhpOffice\\PhpSpreadsheet\\IOFactory';
+        $spreadsheetClass = 'PhpOffice\\PhpSpreadsheet\\Spreadsheet';
+        $worksheetClass = 'PhpOffice\\PhpSpreadsheet\\Worksheet\\Worksheet';
+
+        if (!class_exists($ioFactoryClass) || !class_exists($spreadsheetClass)) {
+            return redirect()
+                ->route('excel_bundle.preview', ['data_simulasi_id' => $dataSimulasi->id])
+                ->with('error', 'Excel Bundle tidak bisa dibuat karena PhpSpreadsheet belum tersedia di server.');
+        }
+
+        try {
+            $dataRekeningTemplatePath = storage_path('upload/Data_rekening.xlsx');
+            $permohonanCifTemplatePath = storage_path('upload/permohonan_cif.xlsx');
+            $pelunasanTemplatePath = storage_path('upload/Pelunasan_TO_KB.xlsx');
+
+            $dataRekeningHeaderData = $this->extractHeaderCellMap($dataRekeningTemplatePath);
+            $permohonanCifHeaderData = $this->extractHeaderCellMap($permohonanCifTemplatePath);
+            $pelunasanHeaderData = $this->extractHeaderCellMap($pelunasanTemplatePath);
+
+            $sheetSpecs = [
+                [
+                    'sheet_name' => 'DNKA VERTIKAL',
+                    'path' => $this->createFilledWorkbookFromTemplate(
+                        templateFileName: 'DNKA_vertical.xlsx',
+                        cellValues: $this->buildVerticalCellValues($dataSimulasi),
+                        forceCellOverrides: ['I17', 'I18'],
+                        applyToAllWorksheets: false,
+                        downloadPrefix: 'bundle_dnka_vertical'
+                    ),
+                ],
+                [
+                    'sheet_name' => 'DNKA HORIZONTAL',
+                    'path' => $this->createFilledWorkbookFromTemplate(
+                        templateFileName: 'DNKA_Horizontal.xlsx',
+                        cellValues: $this->buildHorizontalCellValues($dataSimulasi),
+                        forceCellOverrides: [],
+                        applyToAllWorksheets: false,
+                        downloadPrefix: 'bundle_dnka_horizontal'
+                    ),
+                ],
+                [
+                    'sheet_name' => 'DATA LOS BULK',
+                    'path' => $this->createFilledWorkbookFromTemplate(
+                        templateFileName: 'Data_Los_bulk.xlsx',
+                        cellValues: $this->buildDataLosBulkCellValues($dataSimulasi),
+                        forceCellOverrides: $this->buildDataLosBulkForceOverrideCells(),
+                        applyToAllWorksheets: true,
+                        downloadPrefix: 'bundle_data_los_bulk'
+                    ),
+                ],
+                [
+                    'sheet_name' => 'REPAYMENT SCHEDULE',
+                    'path' => $this->createFilledWorkbookFromTemplate(
+                        templateFileName: 'Repayment_Schedule.xlsx',
+                        cellValues: $this->buildRepaymentScheduleCellValues($dataSimulasi),
+                        forceCellOverrides: [],
+                        applyToAllWorksheets: false,
+                        downloadPrefix: 'bundle_repayment_schedule'
+                    ),
+                ],
+                [
+                    'sheet_name' => 'DATA REKENING',
+                    'path' => $this->createFilledWorkbookFromTemplate(
+                        templateFileName: 'Data_rekening.xlsx',
+                        cellValues: $this->buildDataRekeningHeaderMappedCellValues(
+                            $dataRekeningHeaderData['header_map'] ?? [],
+                            (($dataRekeningHeaderData['header_row'] ?? 1) + 1),
+                            $dataSimulasi
+                        ),
+                        forceCellOverrides: [],
+                        applyToAllWorksheets: false,
+                        downloadPrefix: 'bundle_data_rekening'
+                    ),
+                ],
+                [
+                    'sheet_name' => 'PERMOHONAN CIF',
+                    'path' => $this->createFilledWorkbookFromTemplate(
+                        templateFileName: 'permohonan_cif.xlsx',
+                        cellValues: $this->buildPermohonanCifHeaderMappedCellValues(
+                            $permohonanCifHeaderData['header_map'] ?? [],
+                            (($permohonanCifHeaderData['header_row'] ?? 1) + 1),
+                            $dataSimulasi
+                        ),
+                        forceCellOverrides: [],
+                        applyToAllWorksheets: false,
+                        downloadPrefix: 'bundle_permohonan_cif'
+                    ),
+                ],
+                [
+                    'sheet_name' => 'PELUNASAN TO KB',
+                    'path' => $this->createFilledWorkbookFromTemplate(
+                        templateFileName: 'Pelunasan_TO_KB.xlsx',
+                        cellValues: $this->buildPelunasanToKbHeaderMappedCellValues(
+                            $pelunasanHeaderData['header_map'] ?? [],
+                            (($pelunasanHeaderData['header_row'] ?? 1) + 1),
+                            $dataSimulasi
+                        ),
+                        forceCellOverrides: [],
+                        applyToAllWorksheets: false,
+                        downloadPrefix: 'bundle_pelunasan_to_kb'
+                    ),
+                ],
+            ];
+
+            foreach ($sheetSpecs as $spec) {
+                $tempGeneratedPaths[] = $spec['path'];
+            }
+
+            $bundleSpreadsheet = new $spreadsheetClass();
+            $bundleSpreadsheet->removeSheetByIndex(0);
+
+            foreach ($sheetSpecs as $spec) {
+                $sourceSpreadsheet = $ioFactoryClass::load($spec['path']);
+                $sourceSheet = $sourceSpreadsheet->getSheet(0);
+
+                if (!$sourceSheet instanceof $worksheetClass) {
+                    $sourceSpreadsheet->disconnectWorksheets();
+                    continue;
+                }
+
+                $bundleSpreadsheet->addExternalSheet(clone $sourceSheet);
+                $newSheet = $bundleSpreadsheet->getSheet($bundleSpreadsheet->getSheetCount() - 1);
+                $newSheet->setTitle($spec['sheet_name']);
+
+                $sourceSpreadsheet->disconnectWorksheets();
+                unset($sourceSpreadsheet);
+            }
+
+            $tempDir = storage_path('app/temp');
+            if (!is_dir($tempDir)) {
+                mkdir($tempDir, 0755, true);
+            }
+
+            $downloadName = 'excel_bundle_' . $dataSimulasi->id . '_' . now()->format('Ymd_His') . '.xlsx';
+            $bundlePath = $tempDir . '/' . $downloadName;
+            $bundleWriter = $ioFactoryClass::createWriter($bundleSpreadsheet, 'Xlsx');
+            $bundleWriter->setPreCalculateFormulas(false);
+            $bundleWriter->save($bundlePath);
+            $bundleSpreadsheet->disconnectWorksheets();
+            unset($bundleSpreadsheet);
+
+            foreach ($tempGeneratedPaths as $tempGeneratedPath) {
+                if (is_file($tempGeneratedPath)) {
+                    @unlink($tempGeneratedPath);
+                }
+            }
+
+            return response()->download(
+                $bundlePath,
+                $downloadName,
+                [
+                    'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                ]
+            )->deleteFileAfterSend(true);
+        } catch (\Throwable $e) {
+            foreach ($tempGeneratedPaths as $tempGeneratedPath) {
+                if (is_file($tempGeneratedPath)) {
+                    @unlink($tempGeneratedPath);
+                }
+            }
+
+            Log::error('Excel bundle generation failed', [
+                'data_simulasi_id' => $dataSimulasi->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return redirect()
+                ->route('excel_bundle.preview', ['data_simulasi_id' => $dataSimulasi->id])
+                ->with('error', 'Gagal membuat Excel Bundle: ' . $e->getMessage());
+        }
+    }
+
+    private function createFilledWorkbookFromTemplate(
+        string $templateFileName,
+        array $cellValues,
+        array $forceCellOverrides,
+        bool $applyToAllWorksheets,
+        string $downloadPrefix
+    ): string {
+        $templatePath = storage_path('upload/' . $templateFileName);
+
+        if (!file_exists($templatePath)) {
+            abort(Response::HTTP_NOT_FOUND, 'Template tidak ditemukan: ' . $templateFileName);
+        }
+
+        $tempDir = storage_path('app/temp');
+        if (!is_dir($tempDir)) {
+            mkdir($tempDir, 0755, true);
+        }
+
+        $tempPath = $tempDir . '/' . $downloadPrefix . '_' . now()->format('Ymd_His_u') . '.xlsx';
+        if (!copy($templatePath, $tempPath)) {
+            abort(Response::HTTP_INTERNAL_SERVER_ERROR, 'Gagal menyalin template: ' . $templateFileName);
+        }
+
+        $effectiveForceCellOverrides = array_values(array_unique([
+            ...array_keys($cellValues),
+            ...$forceCellOverrides,
+        ]));
+
+        $this->applyCellValuesToSheetXml($tempPath, $cellValues, $effectiveForceCellOverrides, $applyToAllWorksheets);
+
+        return $tempPath;
+    }
+
+    private function collectExcelBundleValidationRows(DataSimulasi $dataSimulasi): array
+    {
+        return [
+            [
+                'sheet_name' => 'DNKA VERTIKAL',
+                'focus_key' => 'dnka_vertical',
+                'missing_fields' => $this->findMissingDnkaFields($dataSimulasi),
+            ],
+            [
+                'sheet_name' => 'DNKA HORIZONTAL',
+                'focus_key' => 'dnka_horizontal',
+                'missing_fields' => $this->findMissingDnkaFields($dataSimulasi),
+            ],
+            [
+                'sheet_name' => 'DATA LOS BULK',
+                'focus_key' => 'data_los_bulk',
+                'missing_fields' => $this->findMissingDataLosBulkFields($dataSimulasi),
+            ],
+            [
+                'sheet_name' => 'REPAYMENT SCHEDULE',
+                'focus_key' => 'repayment_schedule',
+                'missing_fields' => $this->findMissingRepaymentScheduleFields($dataSimulasi),
+            ],
+            [
+                'sheet_name' => 'DATA REKENING',
+                'focus_key' => 'data_rekening',
+                'missing_fields' => $this->findMissingDataRekeningFields($dataSimulasi),
+            ],
+            [
+                'sheet_name' => 'PERMOHONAN CIF',
+                'focus_key' => 'permohonan_cif',
+                'missing_fields' => $this->findMissingPermohonanCifFields($dataSimulasi),
+            ],
+            [
+                'sheet_name' => 'PELUNASAN TO KB',
+                'focus_key' => 'pelunasan_to_kb',
+                'missing_fields' => $this->findMissingPelunasanToKbFields($dataSimulasi),
+            ],
+        ];
+    }
+
+    private function collectExcelBundlePreviewRows(DataSimulasi $dataSimulasi): array
+    {
+        $dataRekeningHeaderData = $this->extractHeaderCellMap(storage_path('upload/Data_rekening.xlsx'));
+        $permohonanCifHeaderData = $this->extractHeaderCellMap(storage_path('upload/permohonan_cif.xlsx'));
+        $pelunasanHeaderData = $this->extractHeaderCellMap(storage_path('upload/Pelunasan_TO_KB.xlsx'));
+
+        return [
+            'dnka_vertical' => $this->buildPreviewRows(
+                $this->buildVerticalCellValues($dataSimulasi),
+                $this->getDnkaVerticalPreviewLabels()
+            ),
+            'dnka_horizontal' => $this->buildPreviewRows(
+                $this->buildHorizontalCellValues($dataSimulasi),
+                $this->getDnkaHorizontalPreviewLabels()
+            ),
+            'data_los_bulk' => $this->buildPreviewRows(
+                $this->buildDataLosBulkCellValues($dataSimulasi),
+                $this->getDataLosBulkPreviewLabels()
+            ),
+            'repayment_schedule' => $this->buildPreviewRows(
+                $this->buildRepaymentScheduleCellValues($dataSimulasi),
+                $this->getRepaymentSchedulePreviewLabels()
+            ),
+            'data_rekening' => $this->buildPreviewRows(
+                $this->buildDataRekeningHeaderMappedCellValues(
+                    $dataRekeningHeaderData['header_map'] ?? [],
+                    (($dataRekeningHeaderData['header_row'] ?? 1) + 1),
+                    $dataSimulasi
+                ),
+                $this->buildHeaderLabelMap($dataRekeningHeaderData['header_map'] ?? [])
+            ),
+            'permohonan_cif' => $this->buildPreviewRows(
+                $this->buildPermohonanCifHeaderMappedCellValues(
+                    $permohonanCifHeaderData['header_map'] ?? [],
+                    (($permohonanCifHeaderData['header_row'] ?? 1) + 1),
+                    $dataSimulasi
+                ),
+                $this->buildHeaderLabelMap($permohonanCifHeaderData['header_map'] ?? [])
+            ),
+            'pelunasan_to_kb' => $this->buildPreviewRows(
+                $this->buildPelunasanToKbHeaderMappedCellValues(
+                    $pelunasanHeaderData['header_map'] ?? [],
+                    (($pelunasanHeaderData['header_row'] ?? 1) + 1),
+                    $dataSimulasi
+                ),
+                $this->getPelunasanToKbPreviewLabels()
+            ),
+            'data_nominatif' => $this->buildPreviewRows(
+                $this->buildDatanominatifCellValues($dataSimulasi),
+                $this->getDatanominatifPreviewLabels()
+            ),
+        ];
+    }
+
+    private function buildPreviewRows(array $cellValues, array $labelsByCell = []): array
+    {
+        uksort($cellValues, fn (string $a, string $b) => $this->compareCellRef($a, $b));
+
+        $rows = [];
+        foreach ($cellValues as $cell => $value) {
+            if (is_bool($value)) {
+                $display = $value ? 'true' : 'false';
+            } elseif ($value === null) {
+                $display = '';
+            } elseif (is_scalar($value)) {
+                $display = (string) $value;
+            } else {
+                $display = json_encode($value);
+            }
+
+            $rows[] = [
+                'label' => $labelsByCell[$cell] ?? $cell,
+                'cell' => $cell,
+                'value' => $display,
+            ];
+        }
+
+        return $rows;
+    }
+
+    private function buildHeaderLabelMap(array $headerMap): array
+    {
+        $labelMap = [];
+        foreach ($headerMap as $cell => $header) {
+            $labelMap[$cell] = $this->humanizeHeaderLabel((string) $header);
+        }
+
+        return $labelMap;
+    }
+
+    private function humanizeHeaderLabel(string $header): string
+    {
+        $normalized = $this->normalizeHeader($header);
+
+        $map = [
+            'no' => 'No',
+            'namadebitur' => 'Nama Debitur',
+            'nopensiun' => 'Nomor Pensiun',
+            'pengelolapensiun' => 'Pengelola Pensiun',
+            'nomorpksesuaiformat' => 'Nomor PK',
+            'tanggalakadawalsesuaiformat' => 'Tanggal Akad Awal',
+            'tanggalakadakhirsesuaiformat' => 'Tanggal Akad Akhir',
+            'tanggalpembayarankewajiban' => 'Tanggal Pembayaran Kewajiban',
+            'plafondkredit' => 'Plafond Kredit',
+            'tenor' => 'Tenor',
+            'sukubungakredit' => 'Suku Bunga Kredit',
+            'ratedenda' => 'Rate Denda',
+            'kewajibanperbulan' => 'Kewajiban Per Bulan',
+            'keteranganjeniskredittopuptakeovernew' => 'Keterangan Jenis Kredit',
+            'kantorbayarsebelumnyakhusustakeover' => 'Kantor Bayar Sebelumnya',
+            'kodeao' => 'Kode AO',
+            'kodecabangdanlokasikredit' => 'Kode Cabang dan Lokasi Kredit',
+            'giromitra' => 'Giro Mitra',
+            'mitrachanneling' => 'Mitra Channeling',
+            'rekeningdebitur' => 'Rekening Debitur',
+            'noagm' => 'No AGM',
+            'ketrcrs' => 'Keterangan CRS',
+            'tanggaldrop' => 'Tanggal Drop',
+            'nomorpkspkkode' => 'Nomor PK/SPPK',
+            'tanggalpk' => 'Tanggal PK',
+            'tanggalsppk' => 'Tanggal SPPK',
+        ];
+
+        if (isset($map[$normalized])) {
+            return $map[$normalized];
+        }
+
+        $label = preg_replace('/([a-z])([A-Z])/', '$1 $2', $header) ?? $header;
+        $label = str_replace(['_', '-'], ' ', $label);
+        $label = trim(preg_replace('/\s+/', ' ', $label) ?? $label);
+
+        return $label !== '' ? ucwords($label) : $header;
+    }
+
+    private function getDnkaVerticalPreviewLabels(): array
+    {
+        return [
+            'D3' => 'Tanggal Cetak',
+            'I6' => 'Nama Debitur',
+            'I7' => 'No KTP',
+            'I8' => 'Tanggal Lahir',
+            'I9' => 'No HP',
+            'I10' => 'Nomor Pensiun',
+            'I11' => 'No SKEP',
+            'I12' => 'Instansi',
+            'I13' => 'No PK',
+            'I14' => 'Tanggal PK',
+            'I15' => 'Tenor',
+            'I16' => 'Plafond',
+            'I17' => 'Biaya Provisi',
+            'I18' => 'Biaya Administrasi',
+            'I19' => 'Total Biaya Bank',
+            'I20' => 'Asuransi Jiwa',
+            'I21' => 'Flagging',
+            'I22' => 'Materai',
+            'I23' => 'Total Biaya Mitra',
+            'I24' => 'Total Angsuran',
+            'I25' => 'Sisa Penerimaan',
+            'I26' => 'Angsuran PMT',
+            'I27' => 'Selisih Angsuran',
+            'I28' => 'Angsuran Total',
+            'I29' => 'No Rekening',
+            'I30' => 'Cabang KB',
+            'I31' => 'Nama AO',
+            'I32' => 'Kode AO',
+            'I33' => 'Keterangan',
+            'I34' => 'Kantor Bayar',
+            'I35' => 'Pelunasan',
+            'I36' => 'Pelunasan Nilai',
+        ];
+    }
+
+    private function getDnkaHorizontalPreviewLabels(): array
+    {
+        return [
+            'C3' => 'Tanggal Cetak',
+            'C7' => 'Nama Debitur',
+            'D7' => 'No KTP',
+            'E7' => 'Tanggal Lahir',
+            'F7' => 'No HP',
+            'G7' => 'Nomor Pensiun',
+            'H7' => 'No SKEP',
+            'I7' => 'Instansi',
+            'J7' => 'No PK',
+            'K7' => 'Tanggal PK',
+            'L7' => 'Tenor',
+            'M7' => 'Plafond',
+            'N7' => 'Biaya Provisi',
+            'O7' => 'Biaya Administrasi',
+            'P7' => 'Total Biaya Bank',
+            'Q7' => 'Asuransi Jiwa',
+            'R7' => 'Flagging',
+            'S7' => 'Materai',
+            'T7' => 'Total Biaya Mitra',
+            'U7' => 'Total Angsuran',
+            'V7' => 'Sisa Penerimaan',
+            'W7' => 'Angsuran PMT',
+            'X7' => 'Selisih Angsuran',
+            'Y7' => 'Angsuran Total',
+            'Z7' => 'No Rekening',
+            'AA7' => 'Cabang KB',
+            'AB7' => 'Nama AO',
+            'AC7' => 'Kode AO',
+            'AD7' => 'Keterangan',
+            'AE7' => 'Kantor Bayar',
+            'AF7' => 'Pelunasan',
+            'AG7' => 'Pelunasan Nilai',
+        ];
+    }
+
+    private function getDataLosBulkPreviewLabels(): array
+    {
+        return [
+            'C2' => 'Nama Debitur',
+            'D2' => 'No KTP',
+            'E2' => 'Tanggal Lahir',
+            'F2' => 'Nama Pasangan',
+            'G2' => 'KTP Pasangan',
+            'H2' => 'Tanggal Lahir Pasangan',
+            'I2' => 'Currency',
+            'J2' => 'Plafond',
+            'K2' => 'Tenor',
+            'L2' => 'Kode',
+        ];
+    }
+
+    private function getRepaymentSchedulePreviewLabels(): array
+    {
+        return [
+            'D4' => 'Plafond',
+            'D5' => 'Jangka Waktu Tahun',
+            'D6' => 'Jangka Waktu Bulan',
+            'D7' => 'Suku Bunga',
+            'D8' => 'Bunga Per Bulan',
+            'D9' => 'Angsuran',
+            'D10' => 'Tanggal Dropping',
+            'D11' => 'Due Date Pertama',
+        ];
+    }
+
+    private function getDatanominatifPreviewLabels(): array
+    {
+        return [
+            'B7' => 'Tanggal Cetak',
+            'H10' => 'Nama Debitur',
+            'H11' => 'No KTP',
+            'H12' => 'Tanggal Lahir',
+            'H13' => 'No HP',
+            'H14' => 'Nomor Pensiun',
+            'H15' => 'No SKEP',
+            'H16' => 'Instansi',
+            'H17' => 'No PK/SPPK',
+            'H18' => 'Tanggal PK/SPPK',
+            'H19' => 'Plafond',
+            'H20' => 'Jangka Waktu',
+            'H21' => 'Biaya Provisi',
+            'H22' => 'Biaya Administrasi',
+            'H23' => 'Total Biaya Bank',
+            'H24' => 'Administrasi %',
+            'H25' => 'Asuransi Jiwa Kredit',
+        ];
+    }
+
+    private function getPelunasanToKbPreviewLabels(): array
+    {
+        return [
+            'A3' => 'No',
+            'B3' => 'Nama Debitur',
+            'C3' => 'Nomor Pensiun',
+            'D3' => 'Outstanding / Pelunasan',
+            'E3' => 'Flagging / Blokir Angsuran',
+            'F3' => 'Bunga Berjalan',
+            'G3' => 'Jumlah',
+            'G6' => 'Total Jumlah',
+        ];
     }
 
     private function resolveDataSimulasi(bool $requireExplicitId = false): DataSimulasi

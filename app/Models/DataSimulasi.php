@@ -90,28 +90,21 @@ class DataSimulasi extends Model
         return $this->hasOne('App\\Models\\DataSimulasiPelengkap', 'data_simulasi_id');
     }
 
-// protected static function booted(): void
-// {
-//     static::created(function (DataSimulasi $dataSimulasi) {
-//         // Ambil nomor otomatis ke dalam variabel dulu untuk memastikan nilainya keluar
-//         $noPk   = \App\Models\DataSimulasiPelengkap::generateNomorPK() ?? 'PK.0001/TEMP';
-//         $noSppk = \App\Models\DataSimulasiPelengkap::generateNomorSPPK() ?? '0001/SPPK/TEMP';
-//         $noSi   = \App\Models\DataSimulasiPelengkap::generateNomorSI() ?? 'SI-TO.0001/TEMP';
-        
-//         // PERBAIKAN: Kutipan (") dan kurung penutup ");" sudah ditambahkan dengan benar
-//         Log::info("Generated nomor otomatis untuk DataSimulasi ID {$dataSimulasi->id}: no_pk={$noPk}, no_sppk={$noSppk}, no_si={$noSi}");
 
-//         // Auto insert ke DataSimulasiPelengkap
-//         \App\Models\DataSimulasiPelengkap::create([
-//             'data_simulasi_id'        => $dataSimulasi->id, 
-//             'no_pk'                   => $noPk, 
-//             'no_sppk'                 => $noSppk,
-//             'no_si'                   => $noSi,
-//             'suku_bunga'              => 10.0,
-//             'materai'                 => 80000.0,
-//             'prosentase_provisi'      => 0.5,
-//             'prosentase_administrasi' => 0.5,
-//         ]);
-//     });
-// }
+    protected static function booted(): void
+    {
+        static::created(function (DataSimulasi $dataSimulasi): void {
+            if ($dataSimulasi->pelengkap()->exists()) {
+                return;
+            }
+
+            DataSimulasiPelengkap::create([
+                'data_simulasi_id' => $dataSimulasi->id,
+                'suku_bunga' => 10.0,
+                'materai' => 80000.0,
+                'prosentase_provisi' => 0.5,
+                'prosentase_administrasi' => 0.5,
+            ]);
+        });
+    }
 }

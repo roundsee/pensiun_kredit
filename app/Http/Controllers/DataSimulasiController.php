@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\DataSimulasi;
+use App\Models\DataSimulasiPelengkap;
 use App\Models\MailMergeTemplate;
 use App\Services\PdfTextExtractionService;
 use Illuminate\Http\Request;
@@ -54,6 +55,17 @@ class DataSimulasiController extends Controller
 
     public function confirm(DataSimulasi $dataSimulasi)
     {
+        $pelengkap = $dataSimulasi->pelengkap;
+        if (!$pelengkap) {
+            $pelengkap = new DataSimulasiPelengkap([
+                'data_simulasi_id' => $dataSimulasi->id,
+            ]);
+        }
+
+        DataSimulasiPelengkap::applyDefaultDocumentNumbers($pelengkap);
+        $pelengkap->data_simulasi_id = $dataSimulasi->id;
+        $pelengkap->save();
+
         $dataSimulasi->update([
             'status' => 'confirmed',
         ]);
@@ -61,6 +73,17 @@ class DataSimulasiController extends Controller
         return redirect()
             ->route('data_simulasi.trial.list')
             ->with('success', 'Status simulasi berhasil diubah menjadi confirmed.');
+    }
+
+    public function backToTrial(DataSimulasi $dataSimulasi)
+    {
+        $dataSimulasi->update([
+            'status' => 'trial',
+        ]);
+
+        return redirect()
+            ->route('data_simulasi.trial.list')
+            ->with('success', 'Data simulasi berhasil dikembalikan ke Trial.');
     }
 
     public function edit(DataSimulasi $dataSimulasi)
