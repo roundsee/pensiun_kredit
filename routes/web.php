@@ -17,6 +17,7 @@ use App\Http\Controllers\KbSimulationController;
 use App\Http\Controllers\MailMergeController;
 use App\Http\Controllers\SimulationController;
 use App\Http\Controllers\PicNbpController;
+use App\Http\Controllers\BanpotController;
 
 Route::get('/__ping', fn () => response('ok', 200));
 
@@ -152,3 +153,9 @@ Route::get('/mail-merge/templates/{mailMergeTemplate}/download/{dataSimulasi}', 
 
 // Petugas NBP (PIC)
 Route::resource('/pic-nbp', PicNbpController::class)->middleware('auth')->names('pic_nbp');
+
+// Banpot import
+Route::get('/banpot', [BanpotController::class, 'list'])->name('banpot.index')->middleware('auth');
+Route::get('/banpot/import', [BanpotController::class, 'create'])->name('banpot.create')->middleware('auth');
+Route::post('/banpot/preview', [BanpotController::class, 'preview'])->name('banpot.preview')->middleware('auth');
+Route::post('/banpot', [BanpotController::class, 'store'])->name('banpot.store')->middleware('auth');

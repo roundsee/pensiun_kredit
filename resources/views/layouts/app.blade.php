@@ -34,6 +34,9 @@
                             <a class="nav-link" href="{{ route('data_simulasi.list') }}">Data Simulasi</a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link" href="{{ route('banpot.index') }}">List Banpot</a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link" href="{{ route('pic_nbp.index') }}">Petugas NBP</a>
                         </li>
                         <li class="nav-item">
