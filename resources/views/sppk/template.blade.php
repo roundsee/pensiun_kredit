@@ -260,7 +260,7 @@
             </tr>
             <tr>
                 <td>19.</td>
-                <td>19.	Denda Keterlambatan Angsuran</td>
+                <td>Denda Keterlambatan Angsuran</td>
                 <td>:</td>
                 <td>
                     Denda keterlambatan angsuran dikenakan sebesar 4% dari nilai angsuran (pokok+bunga)
