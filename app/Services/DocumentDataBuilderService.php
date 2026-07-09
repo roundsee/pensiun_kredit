@@ -271,6 +271,10 @@ class DocumentDataBuilderService
             'total_biaya'         => self::formatRp($totalBiayaRaw),
             'angsuran_dimuka'     => self::formatRp($angsuranDimukaRaw),
             'total_penerimaan'    => self::formatRp($totalPenerimaanRaw),
+            'total_terbilang'  => self::pick([
+                            $p?->total_penerimaan,
+                            self::terbilang($totalPenerimaanRaw) . ' Rupiah',
+                        ]),            
             'angsuran_perbulan'   => self::formatRp($angsuranPerbulanRaw),
             'biaya_adm_angsuran'  => self::formatRp($biayaAdmAngsuranRaw),
             'angsuran_terbilang'  => self::pick([

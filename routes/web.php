@@ -18,6 +18,7 @@ use App\Http\Controllers\MailMergeController;
 use App\Http\Controllers\SimulationController;
 use App\Http\Controllers\PicNbpController;
 use App\Http\Controllers\BanpotController;
+use App\Http\Controllers\NominatifController;
 
 Route::get('/__ping', fn () => response('ok', 200));
 
@@ -159,3 +160,8 @@ Route::get('/banpot', [BanpotController::class, 'list'])->name('banpot.index')->
 Route::get('/banpot/import', [BanpotController::class, 'create'])->name('banpot.create')->middleware('auth');
 Route::post('/banpot/preview', [BanpotController::class, 'preview'])->name('banpot.preview')->middleware('auth');
 Route::post('/banpot', [BanpotController::class, 'store'])->name('banpot.store')->middleware('auth');
+
+// Initial Nominatif import
+Route::get('/nominatif/import-initial', [NominatifController::class, 'create'])->name('nominatif.initial.create')->middleware('auth');
+Route::post('/nominatif/import-initial/preview', [NominatifController::class, 'previewInitial'])->name('nominatif.initial.preview')->middleware('auth');
+Route::post('/nominatif/import-initial', [NominatifController::class, 'storeInitial'])->name('nominatif.initial.store')->middleware('auth');

@@ -205,9 +205,9 @@
 
         <!-- PARAGRAF 2 -->
         <p>
-            Menunjuk surat saudara/i tanggal {{ $tanggal_surat ?? '…/…/….' }} perihal permohonan kredit, dengan ini kami
-            beritahukan bahwa permohonan kredit saudara/i, pada prinsipnya telah disetujui oleh KB Bank
-            selaku pemberi kredit, dengan perincian sebagai berikut:
+            Sehubungan dengan surat permohonan saudara/i tertanggal {{ $tanggal_surat ?? '…/…/….' }} perihal permohonan kredit, maka dengan ini
+            kami menyampaikan Surat Persetujuan Pemberian Fasilitas Kredit (selanjutnya disebut sebagai SPPK), dengan
+            ketentuan dan persyaratan sebagai berikut:
         </p>
 
         <!-- TABEL DETAIL KREDIT -->
@@ -224,7 +224,7 @@
             <tr><td>10.</td><td>Biaya Flagging</td><td>:</td><td>{{ $biaya_flagging ?? 'Rp. ...............................' }}</td></tr>
             <tr><td>11.</td><td>Total Biaya</td><td>:</td><td>{{ $total_biaya ?? 'Rp. ...............................' }}</td></tr>
             <tr><td>12.</td><td>Angsuran Dibayar Dimuka</td><td>:</td><td>{{ $angsuran_dimuka ?? 'Rp. ...............................' }}</td></tr>
-            <tr><td>13.</td><td>Total Penerimaan</td><td>:</td><td>{{ $total_penerimaan ?? 'Rp. ...............................' }}</td></tr>
+            <tr><td>13.</td><td>Total Penerimaan</td><td>:</td><td>{{ $total_penerimaan ?? 'Rp. ...............................' }}  ({{ $total_terbilang ?? '....................................................................... Rupiah' }})</td></tr>
             <tr><td>14.</td><td>Angsuran (Pokok + Bunga) Perbulan</td><td>:</td><td>{{ $angsuran_perbulan ?? 'Rp. ...............................' }}</td></tr>
             <tr><td>15.</td><td>Biaya Administrasi Angsuran Perbulan</td><td>:</td><td>{{ $biaya_adm_angsuran ?? 'Rp. ...............................' }}</td></tr>
             <tr>
@@ -244,7 +244,8 @@
                     a. Asli Surat Pernyataan kuasa Potong Gaji dari Debitur tertanggal : {{ $tgl_surat_kuasa ?? '…./…./….' }} atas nama : {{ $nama_debitur ?? '.............' }}<br>
                     b. Asli Surat Keputusan (SK) Pensiunan Nomor : {{ $no_sk_pensiun ?? '..........................' }}<br>
                     &nbsp;&nbsp;&nbsp;Tertanggal : {{ $tgl_sk_pensiun ?? '…./…./….' }} atas nama {{ $nama_debitur ?? '.....................' }}<br>
-                    c. Asli/copy Bukti Sertifikat Kepesertaan Asuransi Jiwa Kredit atas nama {{ $nama_debitur ?? '..........................' }}
+                    c. Asli/copy Bukti Sertifikat Kepesertaan Asuransi Jiwa Kredit atas nama {{ $nama_debitur ?? '..........................' }}<br>
+                    
                 </td>
             </tr>
             <tr>
@@ -252,20 +253,31 @@
                 <td>Pelunasan Dipercepat</td>
                 <td>:</td>
                 <td>
-                    a. Debitur akan dikenakan denda/penalti sebesar 10% dari sisa Outstanding Kredit dan wajib mengganti biaya lainnya dikecualikan untuk Top Up kredit.<br>
-                    b. Denda keterlambatan angsuran dikenakan sebesar 4% dari nilai angsuran (pokok+bunga).
+                    a. Debitur  akan dikenakan denda/penalti sebesar 10% dari sisa Outstanding Kredit dan wajib mengganti biaya lainnya dikecualikan untuk Top Up kredit.
+                    b. Mengganti biaya lain-lain.
+                    c. Pelaksanaan pelunasan hanya dapat dilakukan dari tanggal 1 sampai dengan tanggal 10 tiap bulan.
+                    d. Apabila pengajuan pelunsan diatas tanggal 10, maka pelunasan akan dilakukan / direalisasikan pada bulan berikutnya
                 </td>
             </tr>
+            <tr>
+                <td>19.</td>
+                <td>19.	Denda Keterlambatan Angsuran</td>
+                <td>:</td>
+                <td>
+                    Denda keterlambatan angsuran dikenakan sebesar 4% dari nilai angsuran (pokok+bunga)
+                </td>
+            </tr>
+
         </table>
 
         <!-- PARAGRAF PENUTUP -->
-        <p>
-            Hal-hal lain yang belum diatur dalam SPPK ini, akan diatur dan ditentukan kemudian di dalam Perjanjian Kredit.
+        <p style="text-align: justify;">
+            Ketentuan dan persyaratan dalam SPPK ini merupakan satu kesatuan dengan perjanjian kredit berikut perubahannya, sebagai realisasi permohonan fasilitas kredit dan tidak dapat dipisahkan antara satu dengan lainnya. Hal-hal lain 
+            yang belum diatur dalam SPPK ini, akan diatur dan ditentukan kemudian di dalam Perjanjian Kredit. Pemberian Kredit tunduk pada ketentuan yang telah dan akan berlaku di PT Bank KB Indonesia Tbk serta ketentuan perundang-undangan yang berlaku. Apabila dikemudian hari terdapat keliruan atau kesalahan pada surat Keputusan ini, maka akan dilakukan perbaikan/perubahan sebagaimana mestinya. Disamping itu perlu kami beritahukan bahwa dalam rangka penerapan Good Corporate Covernance (GCG) di PT Bank KB Indonesia Tbk diharapkan kerjasama Saudara untuk tidak memberikan sesuatu berupa apapun kepada pegawai PT Bank KB Indonesia Tbk dan/atau Mitra Channeling terkait langsung maupun tidak langsung dengan pemberian fasilitas kredit oleh PT Bank KB Indonesia Tbk, baik sebelum maupun sesudah penerimaan fasilitas kredit.
         </p>
 
-        <p>
-            Demikian kami sampaikan. Apabila saudara/i setuju dengan ketentuan di atas, maka sebagai bukti persetujuan,
-            saudara/i diminta untuk menandatangani dan selanjutnya mengembalikan kepada kami.
+        <p >
+            Demikian kami sampaikan, apabila saudara/I telah memahami dan setuju dengan ketentuan di atas, maka sebagai bukti persetujuan, saudara/i dapat menandatangani dan selanjutnya mengembalikan kepada kami paling lambat 14 hari setelah surat ini diterbitkan.
         </p>
 
         <p style="margin-top: 5px;">
@@ -283,12 +295,19 @@
                 </td>
                 <td class="right">
                     <p>Kreditur<br>
-                    KOPERASI NATA BUANA PASUNDAN<br>
-                    Untuk dan atas nama KB Bank</p>
+                    PT. Bank KB Indonesia Tbk<br>
+                    </p>
                     <div class="sig-gap"></div>
                     <p>( ..........................…………………… )<br>
                     ({{ $nama_kuasa_kb_bank ?? '…………' }})<br>
-                    (selaku kuasa KB Bank)</p>
+                    Kuasa Kreditur </p>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <p>Tembusan :<br>
+                    - KB Bank Cabang (Sesuai Cabang Pengajuan)<br>
+                    - Cabang Mitra Channeling</p>
                 </td>
             </tr>
         </table>
