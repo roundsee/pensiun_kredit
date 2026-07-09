@@ -8,6 +8,60 @@ class DocumentDataBuilderService
 {
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
+    private static function parseAmount(mixed $value): ?float
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (is_int($value) || is_float($value)) {
+            return (float) $value;
+        }
+
+        $text = trim((string) $value);
+        if ($text === '') {
+            return null;
+        }
+
+        $text = preg_replace('/[^0-9,.-]/', '', $text);
+        if ($text === null || $text === '' || $text === '-' || $text === ',' || $text === '.') {
+            return null;
+        }
+
+        $hasComma = str_contains($text, ',');
+        $hasDot = str_contains($text, '.');
+
+        if ($hasComma && $hasDot) {
+            $lastComma = strrpos($text, ',');
+            $lastDot = strrpos($text, '.');
+
+            if ($lastComma !== false && $lastDot !== false && $lastComma > $lastDot) {
+                // Indonesian style: 1.234.567,89
+                $text = str_replace('.', '', $text);
+                $text = str_replace(',', '.', $text);
+            } else {
+                // International style: 1,234,567.89
+                $text = str_replace(',', '', $text);
+            }
+        } elseif ($hasComma) {
+            if (preg_match('/^-?\d{1,3}(,\d{3})+$/', $text) === 1) {
+                // Comma thousands separator.
+                $text = str_replace(',', '', $text);
+            } else {
+                // Comma decimal separator.
+                $text = str_replace(',', '.', $text);
+            }
+        } elseif ($hasDot) {
+            if (preg_match('/^-?\d{1,3}(\.\d{3})+$/', $text) === 1) {
+                // Dot thousands separator.
+                $text = str_replace('.', '', $text);
+            }
+            // Otherwise keep dot as decimal separator.
+        }
+
+        return is_numeric($text) ? (float) $text : null;
+    }
+
     private static function pick(array $values, string $default = '_______________'): string
     {
         foreach ($values as $value) {
@@ -39,12 +93,14 @@ class DocumentDataBuilderService
             return $text;
         }
 
-        $digits = preg_replace('/[^\d]/', '', $text);
-        if ($digits === '') {
+        $amount = self::parseAmount($value);
+        if ($amount === null) {
             return 'Rp. _______________';
         }
 
-        return 'Rp. ' . number_format((float) $digits, 0, ',', '.');
+        $whole = $amount >= 0 ? floor($amount) : ceil($amount);
+
+        return 'Rp. ' . number_format($whole, 0, ',', '.');
     }
 
     private static function formatAngsuranGabung(DataSimulasi $d): string
@@ -106,13 +162,7 @@ class DocumentDataBuilderService
 
     private static function toNumeric(mixed $value): float
     {
-        $digits = preg_replace('/[^\d]/', '', trim((string) $value));
-
-        if ($digits === '') {
-            return 0;
-        }
-
-        return (float) $digits;
+        return self::parseAmount($value) ?? 0.0;
     }
 
     private static function asFloat(mixed $value): ?float
@@ -206,7 +256,7 @@ class DocumentDataBuilderService
             + self::toNumeric($biayaFlaggingRaw)
             + self::toNumeric($provisiRaw);
         $angsuranDimukaRaw = self::pick([$p?->angsuran_dibayar_dimuka, $d->amount_blokir_angsuran], '');
-        $totalPenerimaanRaw = self::pick([$p?->total_penerimaan, $d->terima_bersih], '');
+        $totalPenerimaanRaw = self::pick([$d->terima_bersih, $p?->total_penerimaan], '');
         $angsuranPerbulanPmt = self::calculateAngsuranPokokBungaPerbulan($d);
         $angsuranPerbulanRaw = self::pick([
             is_numeric($angsuranPerbulanPmt) ? (string) round($angsuranPerbulanPmt) : null,
