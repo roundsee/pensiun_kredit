@@ -222,8 +222,13 @@ class DocumentDataBuilderService
 
     private static function terbilang(mixed $value): string
     {
+        $amount = self::parseAmount($value);
+        $whole = $amount === null
+            ? 0
+            : (int) ($amount >= 0 ? floor($amount) : ceil($amount));
+
         if (function_exists('terbilang_id')) {
-            return terbilang_id($value);
+            return terbilang_id((string) $whole);
         }
 
         return 'Nol';
@@ -321,10 +326,7 @@ class DocumentDataBuilderService
             'total_biaya'         => self::formatRp($totalBiayaRaw),
             'angsuran_dimuka'     => self::formatRp($angsuranDimukaRaw),
             'total_penerimaan'    => self::formatRp($totalPenerimaanRaw),
-            'total_terbilang'  => self::pick([
-                            $p?->total_penerimaan,
-                            self::terbilang($totalPenerimaanRaw) . ' Rupiah',
-                        ]),            
+            'total_terbilang'  => self::terbilang($totalPenerimaanRaw) . ' Rupiah',
             'angsuran_perbulan'   => self::formatRp($angsuranPerbulanRaw),
             'biaya_adm_angsuran'  => self::formatRp($biayaAdmAngsuranRaw),
             'angsuran_terbilang'  => self::pick([
