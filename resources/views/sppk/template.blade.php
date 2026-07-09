@@ -199,8 +199,7 @@
 
         <!-- PARAGRAF 1 -->
         <p>
-            Untuk dan atas nama PT Bank KB Indonesia Tbk. ("KB Bank"), dengan ini kami selaku
-            wakil/kuasa dan Mitra Channeling dari KB Bank, menyampaikan hal sebagai berikut:
+            Untuk dan atas nama PT Bank KB Indonesia Tbk., dengan ini kami selaku wakil/kuasa dan Mitra Channeling dari PT Bank KB Indonesia Tbk, menyampaikan hal sebagai berikut 
         </p>
 
         <!-- PARAGRAF 2 -->
