@@ -298,7 +298,7 @@
                     PT. Bank KB Indonesia Tbk<br>
                     </p>
                     <div class="sig-gap"></div>
-                    <p>( ..........................…………………… )<br>
+                    <p>( .........................…………………… )<br>
                     ({{ $nama_kuasa_kb_bank ?? '…………' }})<br>
                     Kuasa Kreditur </p>
                 </td>
