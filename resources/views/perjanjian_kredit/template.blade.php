@@ -535,7 +535,69 @@
                 <td class="col-value"><span style="color: #000;">32133</span></td>
             </tr>
         </table>
-
+<div class="pihak-title">2. <span class="underline">Kreditur :</span></div>
+        <table class="table-detail">
+            <tr>
+                <td class="col-label">Kreditur</td>
+                <td class="col-separator">:</td>
+                <td class="col-value text-bold">PT Bank KB Indonesia Tbk</td>
+            </tr>
+            <tr>
+                <td class="col-label">Alamat</td>
+                <td class="col-separator">:</td>
+                <td class="col-value">Jl. M.T. Haryono Kav. 50-51 Jakarta Selatan 12770</td>
+            </tr>
+            <tr>
+                <td class="col-label">Telepon</td>
+                <td class="col-separator">:</td>
+                <td class="col-value">021-7988266</td>
+            </tr>
+            <tr class="text-red">
+                <td class="col-label">Fax.</td>
+                <td class="col-separator">:</td>
+                <td class="col-value">021-7980625</td>
+            </tr>
+            <tr>
+                <td class="col-label">E-mail</td>
+                <td class="col-separator">:</td>
+                <td class="col-value text-link">channeling@kbbank.co.id</td>
+            </tr>
+        </table>
+    </div>
+    <div class="pihak-title">3. <span class="underline">Kuasa Kreditur :</span></div>
+        <table class="table-detail">
+            <tr class="text-red">
+                <td class="col-label">Kuasa Kreditur</td>
+                <td class="col-separator">:</td>
+                <td class="col-value">Koperasi Nata Buana Pasundan</td>
+            </tr>
+            <tr>
+                <td class="col-label">Alamat</td>
+                <td class="col-separator">:</td>
+                <td class="col-value">Alamat</td>
+            </tr>
+            <tr>
+                <td class="col-label">Telepon</td>
+                <td class="col-separator">:</td>
+                <td class="col-value">32123</td>
+            </tr>
+            <tr class="text-red">
+                <td class="col-label">Fax.</td>
+                <td class="col-separator">:</td>
+                <td class="col-value">2132132</td>
+            </tr>
+            <tr>
+                <td class="col-label">E-mail</td>
+                <td class="col-separator">:</td>
+                <td class="col-value text-link">abc@home.com</td>
+            </tr>
+            <tr>
+                <td class="col-label">Up.</td>
+                <td class="col-separator">:</td>
+                <td class="col-value">NAma</td>
+            </tr>
+        </table>
+    </div>
 <p class="pasal-title">Pasal 10<br>Hukum Yang Berlaku Dan Domisili Hukum</p>
     <ol class="num">
         <li>Perjanjian ini tunduk pada dan karenanya harus ditafsirkan berdasarkan hukum Republik Indonesia.</li>
