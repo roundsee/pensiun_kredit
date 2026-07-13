@@ -156,6 +156,39 @@
             overflow-wrap: anywhere;
             word-break: break-word;
         }
+.pihak-title {
+            font-weight: normal;
+            margin-bottom: 8px;
+        }
+        .underline {
+            text-decoration: underline;
+        }
+
+        /* Tabel Data - Cara paling aman untuk PDF */
+        .table-detail {
+            width: 100%;
+            border-collapse: collapse;
+            margin-left: 20px; /* Memberikan efek indentasi di kiri */
+        }
+
+        .table-detail td {
+            padding-top: 2px;
+            padding-bottom: 2px;
+            vertical-align: top; /* Memastikan teks panjang tetap rapi di atas */
+        }
+
+        /* Mengunci lebar kolom dengan persentase/pixel agar konsisten di PDF */
+        .col-label {
+            width: 200px; 
+        }
+        .col-separator {
+            width: 15px;
+            text-align: left;
+        }
+        .col-value {
+            /* Sisa ruang otomatis terisi */
+        }
+
     </style>
 </head>
 <body>
@@ -188,10 +221,10 @@
 
     <ol class="roman">
         <li>
-            (Nama Debitur <span class="blank">{{ $nama_debitur }}</span>),
+            {{ $nama_debitur }},
             pemegang Kartu Tanda Penduduk (KTP) No.
             <span class="blank">{{ $no_ktp }}</span>,
-            bertempat tinggal di (Alamat <span class="blank">{{ $alamat }}</span>),
+            bertempat tinggal di {{ $alamat }},
             RT <span class="blank">{{ $rt_rw }}</span>,
             Desa/Kel. <span class="blank">{{ $desa_kel }}</span>,
             Kec. <span class="blank">{{ $kecamatan }}</span>,
@@ -205,7 +238,9 @@
              berdasarkan Surat Kuasa Substitusi dari Koperasi Nata Buana Pasundan, Nomor {{$nomor_substitusi_pic}} tanggal {{$tanggal_substitusi_pic}}. Surat Kuasa dari KB Bank kepada Koperasi Nata Buana Pasundan Nomor SKU.0030/PDI/I/2026
              tanggal 02/02/2026, no.040/PKS-NBP/I/2026 dan no. PKS.001/CPA II/II/2026 Perjanjian Kerjasama Penerusan Pinjaman (Channeling) antara KB Bank dengan Mitra Channeling tertanggal 02/01/2026,
             berikut perubahan, perpanjangan dan penambahannya, dari dan karenanya sah dan berwenang untuk bertindak dan atas nama serta mewakili KB Bank
-            (selanjutnya disebut "<strong>Kreditur</strong>").                       
+            (selanjutnya disebut "<strong>Kreditur</strong>").
+            
+            PT Bank KB Indonesia Tbk suatu Perseroan terbatas berkedudukan di Jakarta, dalam hal ini diwakili oleh [.......nama pejabat/petugas mitra channeling......] dalam jabatannya sebagai [........nama jabatan........] di [.......nama mitra channeling........], dalam hal ini bertindak selaku Mitra Channeling sekaligus kuasa PT Bank KB Indonesia Tbk berdasarkan Surat Kuasa dari [.......nama mitra channeling........],  Nomor [...........................] tanggal [........................] jo. Surat Kuasa Substitusi dari PT Bank KB Indonesia Tbk kepada [.......nama mitra channeling........]  Nomor [...........................]  tanggal [........................] jo. Perjanjian Kerjasama Penerusan Pinjaman (Channeling) antara PT Bank KB Indonesia Tbk dengan [.......nama mitra channeling........] Nomor [...........................] tanggal [........................], berikut perubahan, perpanjangan dan penambahannya, oleh karenanya sah, berwenang, dan dengan ini bertindak untuk dan atas nama serta mewakili PT Bank KB Indonesia Tbk (selanjutnya disebut “Kreditur”).
         </li>
     </ol>
 
@@ -244,13 +279,22 @@
             dengan ketentuan :
             <table style="width:100%; margin: 6px 0 6px 20px;">
                 <tr><td style="width:220px;">a. Plafond Kredit</td><td>: <strong>{{ $plafond_kredit }}</strong></td></tr>
-                <tr><td>b. Jangka Waktu</td><td>: <strong>{{ $jangka_waktu }}</strong> Bulan</td></tr>
-                <tr><td>c. Suku Bunga</td><td>: <strong>{{ $suku_bunga }}</strong>% Effectif p.a</td></tr>
-                <tr><td>d. Jenis Fasilitas</td><td>: Kredit Konsumtif</td></tr>
-                <tr><td>e. Bentuk Fasilitas</td><td>: Installment</td></tr>
-                <tr><td>f. Biaya Provisi</td><td>: <strong>{{ number_format((float) $biaya_provisi_raw, 0, ',', '.') }}</strong></td></tr>
-                <tr><td>g. Biaya Administrasi Kredit</td><td>: <strong>{{ number_format((float) $biaya_administrasi_raw, 0, ',', '.') }}</strong></td></tr>
-                <tr><td>h. Asuransi Jiwa Kredit</td><td>: <strong>{{ $asuransi_jiwa }}</strong></td></tr>
+            <tr><td>a.</td><td>Plafond Kredit</td><td>:</td><td>{{ $plafond_kredit ?? 'Rp. ...............................' }}</td></tr>
+            <tr><td>b.</td><td>Jangka Waktu</td><td>:</td><td>{{ $jangka_waktu ?? '............................' }} Bulan</td></tr>
+            <tr><td>c.</td><td>Suku Bunga</td><td>:</td><td>{{ $suku_bunga ?? '.................' }}% Effectif p.a</td></tr>
+            <tr><td>d.</td><td>Jenis Fasilitas</td><td>:</td><td>Kredit Konsumtif</td></tr>
+            <tr><td>e.</td><td>Bentuk Fasilitas</td><td>:</td><td>Installment</td></tr>
+            <tr><td>f.</td><td>Biaya Provisi</td><td>:</td><td>{{ $biaya_provisi ?? 'Rp. ...............................' }}</td></tr>
+            <tr><td>g.</td><td>Biaya Administrasi Kredit</td><td>:</td><td>{{ $biaya_administrasi ?? 'Rp. ...............................' }}</td></tr>
+            <tr><td>h.</td><td>Asuransi Jiwa Kredit</td><td>:</td><td>{{ $asuransi_jiwa ?? 'Rp. ...............................' }}</td></tr>
+            <tr><td>i.</td><td>Materai</td><td>:</td><td>{{ $materai ?? 'Rp. ...............................' }}</td></tr>
+            <tr><td>j.</td><td>Biaya Flagging</td><td>:</td><td>{{ $biaya_flagging ?? 'Rp. ...............................' }}</td></tr>
+            <tr><td>k.</td><td>Total Biaya</td><td>:</td><td>{{ $total_biaya ?? 'Rp. ...............................' }}</td></tr>
+            <tr><td>l.</td><td>Angsuran Dibayar Dimuka</td><td>:</td><td>{{ $angsuran_dimuka ?? 'Rp. ...............................' }}</td></tr>
+            <tr><td>m.</td><td>Total Penerimaan</td><td>:</td><td>{{ $total_penerimaan ?? 'Rp. ...............................' }}  ({{ $total_terbilang ?? '....................................................................... Rupiah' }})</td></tr>
+            <tr><td>n.</td><td>Angsuran (Pokok + Bunga) Perbulan</td><td>:</td><td>{{ $angsuran_perbulan ?? 'Rp. ...............................' }}</td></tr>
+            <tr><td>o.</td><td>Biaya Administrasi Angsuran Perbulan</td><td>:</td><td>{{ $biaya_adm_angsuran ?? 'Rp. ...............................' }}</td></tr>
+
             </table>
         </li>
     </ol>
@@ -258,16 +302,6 @@
 
 {{-- ═══════════════════════════ HALAMAN 2 ═══════════════════════════ --}}
 <div class="page">
-    <table style="width:100%; margin: 6px 0 16px 20px;">
-        <tr><td style="width:220px;">i. Materai</td><td>: <strong>{{ $materai }}</strong></td></tr>
-        <tr><td>j. Biaya Flagging</td><td>: <strong>{{ $biaya_flagging }}</strong></td></tr>
-        <tr><td>k. Total Biaya</td><td>: <strong>{{ $total_biaya }}</strong></td></tr>
-        <tr><td>l. Angsuran Dibayar Dimuka</td><td>: <strong>{{ $angsuran_dimuka }}</strong></td></tr>
-        <tr><td>m. Total Penerimaan (Dana Yang Diterima)</td><td>: <strong>{{ $total_penerimaan }}</strong></td></tr>
-        <tr><td>n. Angsuran (Pokok + Bunga) Perbulan</td><td>: <strong>{{ $angsuran_perbulan }}</strong></td></tr>
-        <tr><td>o. Biaya Administrasi Angsuran Perbulan</td><td>: <strong>{{ $biaya_adm_angsuran }}</strong></td></tr>
-    </table>
-
     <ol class="num" start="2">
         <li>
             Dalam hal terjadi perubahan suku bunga yang menambah biaya Debitur sebagaimana
@@ -293,11 +327,20 @@
             yang telah disepakati Para Pihak.
         </li>
         <li>
-            Pembayaran angsuran dilakukan dalam <strong>{{ $angsuran_total_bulan }}</strong> kali angsuran
-            yang harus dibayar sesuai dengan tanggal pembayaran manfaat pensiun/ gaji karyawan
-            tiap bulannya untuk selanjutnya dilakukan pembayaran kewajiban pada bulan berkenaan
-            dan harus sudah lunas selambat-lambatnya tanggal <span class="blank">{{ $tgl_lunas }}</span>.
+            Pembayaran Angsuran dilakukan melalui pemotongan gaji / manfaat pensiun dari rekening Debitur 
+            sesuai dengan kantor bayar untuk selanjutnya di pindahkanbukukan / ditransfer ke rekening master 
+            kredit (rekening pasif/escrow mitra channeling) di PT Bank KB Indonesia Tbk 
+            nomor ………………. atas nama …………………………….. untuk selanjutnya akan dilakukan pendebetan angsuran 
+            kewajiban sesuai dengan tanggal yang telah di tetapkan.
+
         </li>
+        <li>
+            Pembayaran angsuran dilakukan dalam ...... kali angsuran yang harus dibayar sesuai dengan tanggal 
+            pembayaran manfaat pensiun/ gaji karyawan tiap bulannya untuk selanjutnya dilakukan pembayaran kewajiban 
+            pada bulan berkenaan dan harus sudah lunas selambat-lambatnya tanggal 00 Juni 2026.
+
+        </li>
+
         <li>
             Dalam hal Debitur terlambat melakukan pembayaran dari tanggal yang telah
             ditentukan/ditetapkan, maka Debitur akan dikenakan Denda Keterlambatan
@@ -388,10 +431,7 @@
     <p class="pasal-title">Pasal 5<br>Jaminan</p>
 
     <p>
-        Untuk menjamin pembayaran hutang pokok, bunga dan pembayaran lainnya sebagaimana
-        tercantum dalam Perjanjian ini, Debitur setuju dan sepakat memberikan jaminan kepada
-        Kreditur berupa uang pensiun debitur setiap bulan, dan oleh karenanya Debitur dengan ini
-        telah menyerahkan kepada Kreditur dokumen jaminan berupa :
+        Segala harta kekayaan Debitur, baik yang bergerak maupun yang tidak bergerak, baik yang sudah ada maupun yang akan ada di kemudian hari, menjadi jaminan bagi pelunasan seluruh kewajiban kredit/utang Debitur yang timbul karena Perjanjian ini. Guna lebih menjamin pembayaran kembali pembayaran hutang pokok, bunga dan pembayaran lainnya sebagaimana tercantum dalam Perjanjian ini, Debitur setuju dan sepakat memberikan jaminan kepada Kreditur berupa uang pensiun debitur setiap bulan, dan oleh karenanya Debitur dengan ini telah menyerahkan  kepada Kreditur dokumen jaminan berupa 
     </p>
 
     <ol class="num">
@@ -421,8 +461,8 @@
         <li>Debitur dengan ini menyatakan dan menjamin akan mengganti segala kerugian yang diderita oleh Kreditur sehubungan dengan adanya tuntutan atau gugatan dari pihak ketiga yang diakibatkan oleh karena adanya keterangan/pernyataan yang tidak benar yang disampaikan Debitur kepada Kreditur.</li>
         <li>Debitur menyatakan dan menjamin bahwa apa yang dijaminkan dalam Perjanjian ini adalah benar merupakan hak dan kewenangan Debitur sendiri dan tidak sedang terikat sebagai jaminan dan tidak akan dialihkan haknya pada pihak lain sampai dengan seluruh hutang Debitur dinyatakan lunas oleh Kreditur.</li>
         <li>Apabila debitur janda atau duda penerima manfaat pensiun menikah kembali, maka wajib melunasi seluruh fasilitas kredit.</li>
-        <li>Debitur dengan ini menyatakan telah mengetahui dan memahami bahwa dana pencairan kredit yang diterima Debitur adalah berasal atau bersumber dari PT Bank KB Indonesia Tbk, yang diproses melalui Mitra Channeling dalam hal ini adalah Koperasi Nata Buana Pasundan.</li>
-        <li>Debitur dengan ini menyatakan telah mengetahui, mengaku dan sepakat bahwa PT Bank KB Indonesia Tbk selaku Kreditur, berdasarkan pertimbangannya, dapat dan berwenang untuk menentukan menyimpan seluruh asli dan copy dari dokumen kredit dan dokumen jaminan untuk disimpan di kantor PT Bank KB Indonesia Tbk.</li>
+        <li>Debitur dengan ini menyatakan telah mengetahui dan memahami bahwa dana pencairan kredit yang diterima Debitur adalah berasal atau bersumber dari PT Bank KB Indonesia Tbk, yang  diproses melalui Mitra Channeling dalam hal ini adalah Koperasi Nata Buana Pasundan.</li>
+        <li>10.	Debitur dengan ini menyatakan telah mengetahui, mengaku dan sepakat bahwa PT Bank KB Indonesia Tbk selaku Kreditur, berdasarkan pertimbangannya,  dapat dan berwenang untuk menentukan menyimpan seluruh  asli dan copy dari dokumen kredit dan dokumen jaminan untuk disimpan di kantor PT Bank KB Indonesia Tbk.</li>
         <li>Debitur dengan ini menyatakan dan menjamin untuk tidak memindahkan/mengalihkan kantor bayar uang pensiun debitur pada kantor bayar selain PT. Bank KB Indonesia, Tbk yang telah disepakati oleh Kreditur dan Debitur yang telah menerima surat kuasa pemotongan uang pensiun sampai dengan seluruh hutang Debitur dinyatakan lunas oleh Kreditur.</li>
         <li>Uang pencairan kredit yang di transfer ke rekening Debitur, sepenuhnya menjadi tanggung jawab Debitur. Jika Debitur gagal take over atau melakukan penyalahgunaan uang tersebut untuk diluar dari maksud dari Perjanjian ini, maka Debitur bersedia dituntut atau diproses secara hukum.</li>
         <li>Apabila terjadi kejadian gagal debet yang menimbulkan kondisi kredit tidak lancar, maka debitur harus bersedia dilakukan pemotongan pada gaji bulan berikutnya.</li>
@@ -452,6 +492,8 @@
         <li>Debitur wajib mengijinkan Kreditur untuk melakukan pemeriksaan atas kekayaan dan/ usaha Debitur serta dan memeriksa pembukuan, catatan-catatan dan administrasi Debitur dan membuat salinan-salinan atau foto copy atau catatan-catatan dari padanya.</li>
         <li>Seluruh lampiran-lampiran Perjanjian ini termasuk namun tidak terbatas pada Perjanjian kerjasama, surat pernyataan, persetujuan dan kuasa pendebetan rekening, merupakan suatu kesatuan dan bagian yang tidak terpisahkan dengan Perjanjian.</li>
         <li>Hal-hal yang belum diatur dalam Perjanjian ini serta perubahan dan/atau penambahan akan ditentukan kemudian antara para pihak serta dituangkan secara tertulis dalam suatu Addendum yang ditandatangani bersama oleh para pihak serta merupakan bagian dan satu kesatuan yang tidak dapat dipisahkan dan mempunyai kekuatan hukum yang sama dengan Perjanjian ini, kecuali untuk hal-hal yang telah disetujui oleh Debitur yang dituangkan di dalam Perjanjian ini, persetujuan mana dianggap telah diberikan dengan ditandatanganinya Perjanjian Kredit.</li>
+        <li>Apabila karena suatu perubahan peraturan perundang-undangan atau kebijakan pemerintah atau keputusan badan peradilan atau arbitase atau karena alasan apapun, salah satu atau lebih dari ketentuan dalam Perjanjian ini menjadi atau dinyatakan tidak sah, tidak berlaku, tidak mengikat atau tidak dapat dilaksanakan, maka ketentuan-ketentuan lain dalam Perjanjian ini dinyatakan tetap berlaku dan mengikat Para Pihak dan dapat dilaksanakannya ketentuan-ketentuan lainnya yang terdapat dalam Perjanjian ini tidak akan dipengaruhi atau dihalangi dengan cara apapun. </li>
+        <li>10.	Para Pihak setuju untuk menggantikan ketentuan yang dinyatakan tidak sah, tidak berlaku, tidak mengikat atau tidak dapat dilaksanakan tersebut dengan ketentuan yang sah, mengikat dan dapat dilaksanakan. Untuk itu Debitur akan melaksanakan dan menyerahkan dokumen-dokumen tambahan bila diminta oleh Kreditur untuk memberlakukan setiap ketentuan Perjanjian ini yang dinyatakan tidak sah, tidak berlaku, tidak mengikat atau tidak dapat dilaksanakan.</li>
     </ol>
 </div>
 
@@ -460,14 +502,52 @@
 
 
 
-    <p class="pasal-title">Pasal 9<br>Hukum Yang Berlaku Dan Domisili Hukum</p>
+    <p class="pasal-title">Pasal 9<br>Pemberitahuan dan Korespondensi/p>
 
+<div class="pihak-title">1. <span class="underline">Debitur :</span></div>
+        <table class="table-detail">
+            <tr>
+                <td class="col-label">Nama Debitur</td>
+                <td class="col-separator">:</td>
+                <td class="col-value">Anama</td>
+            </tr>
+            <tr>
+                <td class="col-label">Alamat Debitur</td>
+                <td class="col-separator">:</td>
+                <td class="col-value">Alamat</td>
+            </tr>
+            <tr>
+                <td class="col-label">Telepon Debitur</td>
+                <td class="col-separator">:</td>
+                <td class="col-value">1356465</td>
+            </tr>
+            <tr class="text-red">
+                <td class="col-label">Nama Pasangan / Ahli Waris</td>
+                <td class="col-separator">:</td>
+                <td class="col-value">Pasangan</td>
+            </tr>
+            <tr class="text-red">
+                <td class="col-label">Alamat Pasangan / Ahli Waris</td>
+                <td class="col-separator">:</td>
+                <td class="col-value"><span style="color: #000;">Alamat</span></td>
+            </tr>
+            <tr class="text-red">
+                <td class="col-label">Telepon Pasangan / Ahli Waris</td>
+                <td class="col-separator">:</td>
+                <td class="col-value"><span style="color: #000;">32133</span></td>
+            </tr>
+        </table>
+    </div>
+
+<p class="pasal-title">Pasal 10<br>Hukum Yang Berlaku Dan Domisili Hukum</p>
     <ol class="num">
         <li>Perjanjian ini tunduk pada dan karenanya harus ditafsirkan berdasarkan hukum Republik Indonesia.</li>
         <li>Perjanjian ini telah disesuaikan dengan ketentuan peraturan perundang-undangan termasuk ketentuan peraturan Otoritas Jasa Keuangan.</li>
         <li>Untuk pelaksanaan Perjanjian ini dan segala akibatnya para pihak memilih tempat tinggal yang tetap dan tidak berubah di kantor Panitera Pengadilan Negeri domisili tergugat, dengan tidak mengurangi hak Kreditur untuk memohon pelaksanaan/eksekusi dari Perjanjian ini atau mengajukan tuntutan hukum terhadap Debitur melalui Pengadilan-Pengadilan Negeri lainnya dalam wilayah Republik Indonesia.</li>
     </ol>
-
+<p style="margin-top: 16px;">
+        Sebelum menandatangani Perjanjian ini, Para Pihak telah membaca dan sepenuhnya memahami setiap dan segala ketentuan dalam Perjanjian.
+    </p>
     <p style="margin-top: 16px;">
         Demikian Perjanjian ini dibuat dan ditandatangani oleh para pihak pada hari ini dan tanggal
         sebagaimana disebutkan diawal Perjanjian ini dalam keadaan sadar dan tanpa ada paksaan
