@@ -19,6 +19,7 @@ use App\Http\Controllers\SimulationController;
 use App\Http\Controllers\PicNbpController;
 use App\Http\Controllers\BanpotController;
 use App\Http\Controllers\NominatifController;
+use Illuminate\Support\Facades\Log;
 
 Route::get('/__ping', fn () => response('ok', 200));
 
@@ -106,7 +107,27 @@ Route::get('/repayment-schedule/download-template', [DnkaController::class, 'dow
 Route::get('/permohonan-cif/download-template', [DnkaController::class, 'downloadPermohonanCifTemplate'])->name('permohonan_cif.download_template')->middleware('auth');
 Route::get('/pelunasan-to-kb/download-template', [DnkaController::class, 'downloadPelunasanToKbTemplate'])->name('pelunasan_to_kb.download_template')->middleware('auth');
 Route::get('/excel-bundle/preview', [DnkaController::class, 'previewExcelBundle'])->name('excel_bundle.preview')->middleware('auth');
-Route::get('/excel-bundle/download', [DnkaController::class, 'downloadExcelBundle'])->name('excel_bundle.download')->middleware('auth');
+Route::get('/excel-bundle/download', function () {
+    $context = [
+        'query' => request()->query(),
+        'path' => request()->path(),
+        'user_id' => auth()->id(),
+    ];
+
+    try {
+        Log::channel('single')->info('excel_bundle.download route hit', $context);
+    } catch (\Throwable) {
+        // Ignore logger channel failures.
+    }
+
+    @file_put_contents(
+        storage_path('logs/excel_bundle_debug.log'),
+        '[' . now()->format('Y-m-d H:i:s') . '] excel_bundle.download route hit ' . json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . PHP_EOL,
+        FILE_APPEND
+    );
+
+    return app(DnkaController::class)->downloadExcelBundle();
+})->name('excel_bundle.download')->middleware('auth');
 
 // Channeling loan operations
 Route::post('/loans/propose', [LoanOperationController::class, 'propose'])->name('loans.propose')->middleware('auth');

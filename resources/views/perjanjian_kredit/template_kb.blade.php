@@ -217,15 +217,10 @@
              tanggal 02/02/2026
             jo. Surat Kuasa Substitusi dari PT Bank KB Indonesia Tbk kepada
             <span class="blank">Koperasi Nata Buana Pasundan</span> Nomor NBP.01.0030/PIC/II/2026
-             tanggal  02/02/2026
-            jo. Perjanjian Kerjasama Penerusan Pinjaman (Channeling) antara PT Bank KB Indonesia Tbk
-            dengan <span class="blank">Koperasi Nata Buana Pasundan</span> Nomor
-            no. PKS.001/CPA II/I/2026 tanggal 02/01/2026,
-            berikut perubahan, perpanjangan dan penambahannya, oleh karenanya sah, berwenang, dan
-            dengan ini bertindak untuk dan atas nama serta mewakili PT Bank KB Indonesia Tbk
+             tanggal  02/02/2026 no. 040/PKS-NBP/I/2026 dan no. PKS.001/CPA II/II/2026.
+            Perjanjian Kerjasama Penerusan Pinjaman (Channeling) tertanggal 02/01/2026. 
+            berikut perubahan, perpanjangan dan penambahannya, dari dan karenanya sa dan berwenanng untuk bertindak dan atas nama serta mewakili KB Bank 
             (selanjutnya disebut "<strong>Kreditur</strong>").
-
-                       
         </li>
     </ol>
 

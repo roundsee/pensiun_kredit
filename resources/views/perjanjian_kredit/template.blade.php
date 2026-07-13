@@ -243,7 +243,17 @@
             berikut perubahan, perpanjangan dan penambahannya, dari dan karenanya sah dan berwenang untuk bertindak dan atas nama serta mewakili KB Bank
             (selanjutnya disebut "<strong>Kreditur</strong>").
             
-            PT Bank KB Indonesia Tbk suatu Perseroan terbatas berkedudukan di Jakarta, dalam hal ini diwakili oleh [.......nama pejabat/petugas mitra channeling......] dalam jabatannya sebagai [........nama jabatan........] di [.......nama mitra channeling........], dalam hal ini bertindak selaku Mitra Channeling sekaligus kuasa PT Bank KB Indonesia Tbk berdasarkan Surat Kuasa dari [.......nama mitra channeling........],  Nomor [...........................] tanggal [........................] jo. Surat Kuasa Substitusi dari PT Bank KB Indonesia Tbk kepada [.......nama mitra channeling........]  Nomor [...........................]  tanggal [........................] jo. Perjanjian Kerjasama Penerusan Pinjaman (Channeling) antara PT Bank KB Indonesia Tbk dengan [.......nama mitra channeling........] Nomor [...........................] tanggal [........................], berikut perubahan, perpanjangan dan penambahannya, oleh karenanya sah, berwenang, dan dengan ini bertindak untuk dan atas nama serta mewakili PT Bank KB Indonesia Tbk (selanjutnya disebut “Kreditur”).
+            PT Bank KB Indonesia Tbk suatu Perseroan terbatas berkedudukan di Jakarta, dalam hal ini 
+            diwakili oleh {{ $nama_perwakilan_kb }} dalam jabatannya sebagai {{ $jabatan }} di Koperasi Nata Buana Pasundan, 
+            dalam hal ini bertindak selaku Mitra Channeling sekaligus kuasa PT Bank KB Indonesia Tbk berdasarkan Surat Kuasa 
+            dari Koperasi Nata Buana Pasundan,  Nomor [...........................] tanggal [........................] jo. 
+            Surat Kuasa Substitusi dari PT Bank KB Indonesia Tbk kepada [.......nama mitra channeling........]  
+            Nomor [...........................]  tanggal [........................] jo. 
+            Perjanjian Kerjasama Penerusan Pinjaman (Channeling) antara PT Bank KB Indonesia Tbk 
+            dengan [.......nama mitra channeling........] Nomor [...........................] 
+            tanggal [........................], 
+            berikut perubahan, perpanjangan dan penambahannya, oleh karenanya sah, berwenang, dan dengan ini 
+            bertindak untuk dan atas nama serta mewakili PT Bank KB Indonesia Tbk (selanjutnya disebut “Kreditur”).
         </li>
     </ol>
 

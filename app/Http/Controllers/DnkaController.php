@@ -13,6 +13,25 @@ use ZipArchive;
 
 class DnkaController extends Controller
 {
+    private function traceExcelBundle(string $message, array $context = []): void
+    {
+        try {
+            Log::channel('single')->info($message, $context);
+        } catch (\Throwable) {
+            // Ignore channel issues and continue with direct file fallback.
+        }
+
+        $line = sprintf(
+            "[%s] %s %s%s",
+            now()->format('Y-m-d H:i:s'),
+            $message,
+            $context !== [] ? json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : '{}',
+            PHP_EOL
+        );
+
+        @file_put_contents(storage_path('logs/excel_bundle_debug.log'), $line, FILE_APPEND);
+    }
+
     public function downloadHorizontalTemplate()
     {
         $dataSimulasi = $this->resolveDataSimulasi();
@@ -178,9 +197,11 @@ class DnkaController extends Controller
 
     public function downloadExcelBundle()
     {
+        $this->traceExcelBundle('Starting Excel bundle download process');
         $dataSimulasi = $this->resolveDataSimulasi(requireExplicitId: true);
+        $this->traceExcelBundle('Starting Excel bundle generation', ['data_simulasi_id' => $dataSimulasi->id]);
         $validationRows = $this->collectExcelBundleValidationRows($dataSimulasi);
-
+        $this->traceExcelBundle('Validation rows collected', ['validation_rows' => $validationRows]);
         $invalidRows = array_values(array_filter($validationRows, fn (array $row) => $row['missing_fields'] !== []));
         if ($invalidRows !== []) {
             $messages = [];
@@ -194,10 +215,15 @@ class DnkaController extends Controller
         }
 
         $tempGeneratedPaths = [];
+        $sourceSpreadsheets = [];
         $ioFactoryClass = 'PhpOffice\\PhpSpreadsheet\\IOFactory';
         $spreadsheetClass = 'PhpOffice\\PhpSpreadsheet\\Spreadsheet';
         $worksheetClass = 'PhpOffice\\PhpSpreadsheet\\Worksheet\\Worksheet';
-
+        $this->traceExcelBundle('Checking PhpSpreadsheet classes', [
+            'ioFactoryClass_exists' => class_exists($ioFactoryClass),
+            'spreadsheetClass_exists' => class_exists($spreadsheetClass),
+            'worksheetClass_exists' => class_exists($worksheetClass),
+        ]);
         if (!class_exists($ioFactoryClass) || !class_exists($spreadsheetClass)) {
             return redirect()
                 ->route('excel_bundle.preview', ['data_simulasi_id' => $dataSimulasi->id])
@@ -206,13 +232,18 @@ class DnkaController extends Controller
 
         try {
             $dataRekeningTemplatePath = storage_path('upload/Data_rekening.xlsx');
+            
             $permohonanCifTemplatePath = storage_path('upload/permohonan_cif.xlsx');
             $pelunasanTemplatePath = storage_path('upload/Pelunasan_TO_KB.xlsx');
 
             $dataRekeningHeaderData = $this->extractHeaderCellMap($dataRekeningTemplatePath);
             $permohonanCifHeaderData = $this->extractHeaderCellMap($permohonanCifTemplatePath);
             $pelunasanHeaderData = $this->extractHeaderCellMap($pelunasanTemplatePath);
-
+            $this->traceExcelBundle('Header cell maps extracted', [
+                'data_rekening' => $dataRekeningHeaderData,
+                'permohonan_cif' => $permohonanCifHeaderData,
+                'pelunasan_to_kb' => $pelunasanHeaderData,
+            ]);
             $sheetSpecs = [
                 [
                     'sheet_name' => 'DNKA VERTIKAL',
@@ -297,7 +328,7 @@ class DnkaController extends Controller
                     ),
                 ],
             ];
-
+            $this->traceExcelBundle('Sheet specifications prepared', ['sheet_specs' => $sheetSpecs]);
             foreach ($sheetSpecs as $spec) {
                 $tempGeneratedPaths[] = $spec['path'];
             }
@@ -314,12 +345,8 @@ class DnkaController extends Controller
                     continue;
                 }
 
-                $bundleSpreadsheet->addExternalSheet(clone $sourceSheet);
-                $newSheet = $bundleSpreadsheet->getSheet($bundleSpreadsheet->getSheetCount() - 1);
-                $newSheet->setTitle($spec['sheet_name']);
-
-                $sourceSpreadsheet->disconnectWorksheets();
-                unset($sourceSpreadsheet);
+                $bundleSpreadsheet->addExternalSheet($sourceSheet);
+                $sourceSpreadsheets[] = $sourceSpreadsheet;
             }
 
             $tempDir = storage_path('app/temp');
@@ -335,6 +362,11 @@ class DnkaController extends Controller
             $bundleSpreadsheet->disconnectWorksheets();
             unset($bundleSpreadsheet);
 
+            foreach ($sourceSpreadsheets as $sourceSpreadsheet) {
+                $sourceSpreadsheet->disconnectWorksheets();
+            }
+            $sourceSpreadsheets = [];
+
             foreach ($tempGeneratedPaths as $tempGeneratedPath) {
                 if (is_file($tempGeneratedPath)) {
                     @unlink($tempGeneratedPath);
@@ -349,6 +381,10 @@ class DnkaController extends Controller
                 ]
             )->deleteFileAfterSend(true);
         } catch (\Throwable $e) {
+            foreach ($sourceSpreadsheets as $sourceSpreadsheet) {
+                $sourceSpreadsheet->disconnectWorksheets();
+            }
+
             foreach ($tempGeneratedPaths as $tempGeneratedPath) {
                 if (is_file($tempGeneratedPath)) {
                     @unlink($tempGeneratedPath);
@@ -356,6 +392,10 @@ class DnkaController extends Controller
             }
 
             Log::error('Excel bundle generation failed', [
+                'data_simulasi_id' => $dataSimulasi->id,
+                'error' => $e->getMessage(),
+            ]);
+            $this->traceExcelBundle('Excel bundle generation failed', [
                 'data_simulasi_id' => $dataSimulasi->id,
                 'error' => $e->getMessage(),
             ]);
