@@ -215,7 +215,6 @@ class DnkaController extends Controller
         }
 
         $tempGeneratedPaths = [];
-        $sourceSpreadsheets = [];
         $ioFactoryClass = 'PhpOffice\\PhpSpreadsheet\\IOFactory';
         $spreadsheetClass = 'PhpOffice\\PhpSpreadsheet\\Spreadsheet';
         $worksheetClass = 'PhpOffice\\PhpSpreadsheet\\Worksheet\\Worksheet';
@@ -337,16 +336,31 @@ class DnkaController extends Controller
             $bundleSpreadsheet->removeSheetByIndex(0);
 
             foreach ($sheetSpecs as $spec) {
+                $this->traceExcelBundle('Loading source sheet for bundle', [
+                    'sheet_name' => $spec['sheet_name'],
+                    'path' => $spec['path'],
+                    'path_exists' => is_file($spec['path']),
+                ]);
                 $sourceSpreadsheet = $ioFactoryClass::load($spec['path']);
                 $sourceSheet = $sourceSpreadsheet->getSheet(0);
 
                 if (!$sourceSheet instanceof $worksheetClass) {
+                    $this->traceExcelBundle('Skipping source sheet because worksheet is invalid', [
+                        'sheet_name' => $spec['sheet_name'],
+                    ]);
                     $sourceSpreadsheet->disconnectWorksheets();
                     continue;
                 }
 
                 $bundleSpreadsheet->addExternalSheet($sourceSheet);
-                $sourceSpreadsheets[] = $sourceSpreadsheet;
+                $this->traceExcelBundle('Source sheet added to bundle', [
+                    'sheet_name' => $spec['sheet_name'],
+                    'worksheet_title' => $sourceSheet->getTitle(),
+                ]);
+
+                // Free memory early; addExternalSheet already copies the worksheet into bundleSpreadsheet.
+                $sourceSpreadsheet->disconnectWorksheets();
+                unset($sourceSheet, $sourceSpreadsheet);
             }
 
             $tempDir = storage_path('app/temp');
@@ -359,13 +373,12 @@ class DnkaController extends Controller
             $bundleWriter = $ioFactoryClass::createWriter($bundleSpreadsheet, 'Xlsx');
             $bundleWriter->setPreCalculateFormulas(false);
             $bundleWriter->save($bundlePath);
+            $this->traceExcelBundle('Bundle workbook saved', [
+                'bundle_path' => $bundlePath,
+                'bundle_exists' => is_file($bundlePath),
+            ]);
             $bundleSpreadsheet->disconnectWorksheets();
             unset($bundleSpreadsheet);
-
-            foreach ($sourceSpreadsheets as $sourceSpreadsheet) {
-                $sourceSpreadsheet->disconnectWorksheets();
-            }
-            $sourceSpreadsheets = [];
 
             foreach ($tempGeneratedPaths as $tempGeneratedPath) {
                 if (is_file($tempGeneratedPath)) {
@@ -381,10 +394,6 @@ class DnkaController extends Controller
                 ]
             )->deleteFileAfterSend(true);
         } catch (\Throwable $e) {
-            foreach ($sourceSpreadsheets as $sourceSpreadsheet) {
-                $sourceSpreadsheet->disconnectWorksheets();
-            }
-
             foreach ($tempGeneratedPaths as $tempGeneratedPath) {
                 if (is_file($tempGeneratedPath)) {
                     @unlink($tempGeneratedPath);
@@ -394,10 +403,16 @@ class DnkaController extends Controller
             Log::error('Excel bundle generation failed', [
                 'data_simulasi_id' => $dataSimulasi->id,
                 'error' => $e->getMessage(),
+                'error_class' => get_class($e),
+                'error_file' => $e->getFile(),
+                'error_line' => $e->getLine(),
             ]);
             $this->traceExcelBundle('Excel bundle generation failed', [
                 'data_simulasi_id' => $dataSimulasi->id,
                 'error' => $e->getMessage(),
+                'error_class' => get_class($e),
+                'error_file' => $e->getFile(),
+                'error_line' => $e->getLine(),
             ]);
 
             return redirect()
