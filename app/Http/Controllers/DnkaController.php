@@ -386,6 +386,23 @@ class DnkaController extends Controller
                 }
             }
 
+            if (!is_file($bundlePath) || !is_readable($bundlePath)) {
+                throw new \RuntimeException('Bundle file tidak dapat dibaca untuk proses download.');
+            }
+
+            $bundleSize = @filesize($bundlePath);
+            $this->traceExcelBundle('Preparing bundle download response', [
+                'bundle_path' => $bundlePath,
+                'bundle_size' => $bundleSize === false ? null : $bundleSize,
+                'bundle_readable' => is_readable($bundlePath),
+                'download_name' => $downloadName,
+            ]);
+
+            // Guard against accidental output before binary response which can corrupt XLSX download.
+            while (ob_get_level() > 0) {
+                @ob_end_clean();
+            }
+
             return response()->download(
                 $bundlePath,
                 $downloadName,
