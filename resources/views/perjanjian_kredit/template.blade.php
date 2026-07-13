@@ -168,6 +168,7 @@
         .table-detail {
             width: 100%;
             border-collapse: collapse;
+            table-layout: auto;
             margin-left: 20px; /* Memberikan efek indentasi di kiri */
         }
 
@@ -175,6 +176,8 @@
             padding-top: 2px;
             padding-bottom: 2px;
             vertical-align: top; /* Memastikan teks panjang tetap rapi di atas */
+            overflow-wrap: normal;
+            word-break: normal;
         }
 
         /* Mengunci lebar kolom dengan persentase/pixel agar konsisten di PDF */
@@ -277,24 +280,22 @@
         <li>
             Atas permohonan Debitur, Kreditur setuju memberikan fasilitas kredit kepada Debitur
             dengan ketentuan :
-            <table style="width:100%; margin: 6px 0 6px 20px;">
-                <tr><td style="width:220px;">a. Plafond Kredit</td><td>: <strong>{{ $plafond_kredit }}</strong></td></tr>
-            <tr><td>a.</td><td>Plafond Kredit</td><td>:</td><td>{{ $plafond_kredit ?? 'Rp. ...............................' }}</td></tr>
-            <tr><td>b.</td><td>Jangka Waktu</td><td>:</td><td>{{ $jangka_waktu ?? '............................' }} Bulan</td></tr>
-            <tr><td>c.</td><td>Suku Bunga</td><td>:</td><td>{{ $suku_bunga ?? '.................' }}% Effectif p.a</td></tr>
-            <tr><td>d.</td><td>Jenis Fasilitas</td><td>:</td><td>Kredit Konsumtif</td></tr>
-            <tr><td>e.</td><td>Bentuk Fasilitas</td><td>:</td><td>Installment</td></tr>
-            <tr><td>f.</td><td>Biaya Provisi</td><td>:</td><td>{{ $biaya_provisi ?? 'Rp. ...............................' }}</td></tr>
-            <tr><td>g.</td><td>Biaya Administrasi Kredit</td><td>:</td><td>{{ $biaya_administrasi ?? 'Rp. ...............................' }}</td></tr>
-            <tr><td>h.</td><td>Asuransi Jiwa Kredit</td><td>:</td><td>{{ $asuransi_jiwa ?? 'Rp. ...............................' }}</td></tr>
-            <tr><td>i.</td><td>Materai</td><td>:</td><td>{{ $materai ?? 'Rp. ...............................' }}</td></tr>
-            <tr><td>j.</td><td>Biaya Flagging</td><td>:</td><td>{{ $biaya_flagging ?? 'Rp. ...............................' }}</td></tr>
-            <tr><td>k.</td><td>Total Biaya</td><td>:</td><td>{{ $total_biaya ?? 'Rp. ...............................' }}</td></tr>
-            <tr><td>l.</td><td>Angsuran Dibayar Dimuka</td><td>:</td><td>{{ $angsuran_dimuka ?? 'Rp. ...............................' }}</td></tr>
-            <tr><td>m.</td><td>Total Penerimaan</td><td>:</td><td>{{ $total_penerimaan ?? 'Rp. ...............................' }}  ({{ $total_terbilang ?? '....................................................................... Rupiah' }})</td></tr>
-            <tr><td>n.</td><td>Angsuran (Pokok + Bunga) Perbulan</td><td>:</td><td>{{ $angsuran_perbulan ?? 'Rp. ...............................' }}</td></tr>
-            <tr><td>o.</td><td>Biaya Administrasi Angsuran Perbulan</td><td>:</td><td>{{ $biaya_adm_angsuran ?? 'Rp. ...............................' }}</td></tr>
-
+            <table class="table-detail" style="margin: 6px 0 6px 20px;">
+                <tr><td class="col-label">a. Plafond Kredit</td><td class="col-separator">:</td><td class="col-value" colspan="2">{{ $plafond_kredit ?? 'Rp. ...............................' }}</td></tr>
+                <tr><td class="col-label">b. Jangka Waktu</td><td class="col-separator">:</td><td class="col-value" colspan="2">{{ $jangka_waktu ?? '............................' }} Bulan</td></tr>
+                <tr><td class="col-label">c. Suku Bunga</td><td class="col-separator">:</td><td class="col-value" colspan="2">{{ $suku_bunga ?? '.................' }}% Effectif p.a</td></tr>
+                <tr><td class="col-label">d. Jenis Fasilitas</td><td class="col-separator">:</td><td class="col-value" colspan="2">Kredit Konsumtif</td></tr>
+                <tr><td class="col-label">e. Bentuk Fasilitas</td><td class="col-separator">:</td><td class="col-value" colspan="2">Installment</td></tr>
+                <tr><td class="col-label">f. Biaya Provisi</td><td class="col-separator">:</td><td class="col-value" colspan="2">{{ $biaya_provisi ?? 'Rp. ...............................' }}</td></tr>
+                <tr><td class="col-label">g. Biaya Administrasi Kredit</td><td class="col-separator">:</td><td class="col-value" colspan="2">{{ $biaya_administrasi ?? 'Rp. ...............................' }}</td></tr>
+                <tr><td class="col-label">h. Asuransi Jiwa Kredit</td><td class="col-separator">:</td><td class="col-value" colspan="2">{{ $asuransi_jiwa ?? 'Rp. ...............................' }}</td></tr>
+                <tr><td class="col-label">i. Materai</td><td class="col-separator">:</td><td class="col-value" colspan="2">{{ $materai ?? 'Rp. ...............................' }}</td></tr>
+                <tr><td class="col-label">j. Biaya Flagging</td><td class="col-separator">:</td><td class="col-value" colspan="2">{{ $biaya_flagging ?? 'Rp. ...............................' }}</td></tr>
+                <tr><td class="col-label">k. Total Biaya</td><td class="col-separator">:</td><td class="col-value" colspan="2">{{ $total_biaya ?? 'Rp. ...............................' }}</td></tr>
+                <tr><td class="col-label">l. Angsuran Dibayar Dimuka</td><td class="col-separator">:</td><td class="col-value" colspan="2">{{ $angsuran_dimuka ?? 'Rp. ...............................' }}</td></tr>
+                <tr><td class="col-label">m. Total Penerimaan</td><td class="col-separator">:</td><td class="col-value" colspan="2">{{ $total_penerimaan ?? 'Rp. ...............................' }} ({{ $total_terbilang ?? '....................................................................... Rupiah' }})</td></tr>
+                <tr><td class="col-label">n. Angsuran (Pokok + Bunga) Perbulan</td><td class="col-separator">:</td><td class="col-value" colspan="2">{{ $angsuran_perbulan ?? 'Rp. ...............................' }}</td></tr>
+                <tr><td class="col-label">o. Biaya Administrasi Angsuran Perbulan</td><td class="col-separator">:</td><td class="col-value" colspan="2">{{ $biaya_adm_angsuran ?? 'Rp. ...............................' }}</td></tr>
             </table>
         </li>
     </ol>
@@ -462,7 +463,7 @@
         <li>Debitur menyatakan dan menjamin bahwa apa yang dijaminkan dalam Perjanjian ini adalah benar merupakan hak dan kewenangan Debitur sendiri dan tidak sedang terikat sebagai jaminan dan tidak akan dialihkan haknya pada pihak lain sampai dengan seluruh hutang Debitur dinyatakan lunas oleh Kreditur.</li>
         <li>Apabila debitur janda atau duda penerima manfaat pensiun menikah kembali, maka wajib melunasi seluruh fasilitas kredit.</li>
         <li>Debitur dengan ini menyatakan telah mengetahui dan memahami bahwa dana pencairan kredit yang diterima Debitur adalah berasal atau bersumber dari PT Bank KB Indonesia Tbk, yang  diproses melalui Mitra Channeling dalam hal ini adalah Koperasi Nata Buana Pasundan.</li>
-        <li>10.	Debitur dengan ini menyatakan telah mengetahui, mengaku dan sepakat bahwa PT Bank KB Indonesia Tbk selaku Kreditur, berdasarkan pertimbangannya,  dapat dan berwenang untuk menentukan menyimpan seluruh  asli dan copy dari dokumen kredit dan dokumen jaminan untuk disimpan di kantor PT Bank KB Indonesia Tbk.</li>
+        <li>Debitur dengan ini menyatakan telah mengetahui, mengaku dan sepakat bahwa PT Bank KB Indonesia Tbk selaku Kreditur, berdasarkan pertimbangannya, dapat dan berwenang untuk menentukan menyimpan seluruh asli dan copy dari dokumen kredit dan dokumen jaminan untuk disimpan di kantor PT Bank KB Indonesia Tbk.</li>
         <li>Debitur dengan ini menyatakan dan menjamin untuk tidak memindahkan/mengalihkan kantor bayar uang pensiun debitur pada kantor bayar selain PT. Bank KB Indonesia, Tbk yang telah disepakati oleh Kreditur dan Debitur yang telah menerima surat kuasa pemotongan uang pensiun sampai dengan seluruh hutang Debitur dinyatakan lunas oleh Kreditur.</li>
         <li>Uang pencairan kredit yang di transfer ke rekening Debitur, sepenuhnya menjadi tanggung jawab Debitur. Jika Debitur gagal take over atau melakukan penyalahgunaan uang tersebut untuk diluar dari maksud dari Perjanjian ini, maka Debitur bersedia dituntut atau diproses secara hukum.</li>
         <li>Apabila terjadi kejadian gagal debet yang menimbulkan kondisi kredit tidak lancar, maka debitur harus bersedia dilakukan pemotongan pada gaji bulan berikutnya.</li>
@@ -493,16 +494,13 @@
         <li>Seluruh lampiran-lampiran Perjanjian ini termasuk namun tidak terbatas pada Perjanjian kerjasama, surat pernyataan, persetujuan dan kuasa pendebetan rekening, merupakan suatu kesatuan dan bagian yang tidak terpisahkan dengan Perjanjian.</li>
         <li>Hal-hal yang belum diatur dalam Perjanjian ini serta perubahan dan/atau penambahan akan ditentukan kemudian antara para pihak serta dituangkan secara tertulis dalam suatu Addendum yang ditandatangani bersama oleh para pihak serta merupakan bagian dan satu kesatuan yang tidak dapat dipisahkan dan mempunyai kekuatan hukum yang sama dengan Perjanjian ini, kecuali untuk hal-hal yang telah disetujui oleh Debitur yang dituangkan di dalam Perjanjian ini, persetujuan mana dianggap telah diberikan dengan ditandatanganinya Perjanjian Kredit.</li>
         <li>Apabila karena suatu perubahan peraturan perundang-undangan atau kebijakan pemerintah atau keputusan badan peradilan atau arbitase atau karena alasan apapun, salah satu atau lebih dari ketentuan dalam Perjanjian ini menjadi atau dinyatakan tidak sah, tidak berlaku, tidak mengikat atau tidak dapat dilaksanakan, maka ketentuan-ketentuan lain dalam Perjanjian ini dinyatakan tetap berlaku dan mengikat Para Pihak dan dapat dilaksanakannya ketentuan-ketentuan lainnya yang terdapat dalam Perjanjian ini tidak akan dipengaruhi atau dihalangi dengan cara apapun. </li>
-        <li>10.	Para Pihak setuju untuk menggantikan ketentuan yang dinyatakan tidak sah, tidak berlaku, tidak mengikat atau tidak dapat dilaksanakan tersebut dengan ketentuan yang sah, mengikat dan dapat dilaksanakan. Untuk itu Debitur akan melaksanakan dan menyerahkan dokumen-dokumen tambahan bila diminta oleh Kreditur untuk memberlakukan setiap ketentuan Perjanjian ini yang dinyatakan tidak sah, tidak berlaku, tidak mengikat atau tidak dapat dilaksanakan.</li>
+        <li>Para Pihak setuju untuk menggantikan ketentuan yang dinyatakan tidak sah, tidak berlaku, tidak mengikat atau tidak dapat dilaksanakan tersebut dengan ketentuan yang sah, mengikat dan dapat dilaksanakan. Untuk itu Debitur akan melaksanakan dan menyerahkan dokumen-dokumen tambahan bila diminta oleh Kreditur untuk memberlakukan setiap ketentuan Perjanjian ini yang dinyatakan tidak sah, tidak berlaku, tidak mengikat atau tidak dapat dilaksanakan.</li>
     </ol>
 </div>
 
 {{-- ═══════════════════════════ HALAMAN 6 ═══════════════════════════ --}}
 <div class="page">
-
-
-
-    <p class="pasal-title">Pasal 9<br>Pemberitahuan dan Korespondensi/p>
+    <p class="pasal-title">Pasal 9<br>Pemberitahuan dan Korespondensi</p>
 
 <div class="pihak-title">1. <span class="underline">Debitur :</span></div>
         <table class="table-detail">
@@ -537,7 +535,6 @@
                 <td class="col-value"><span style="color: #000;">32133</span></td>
             </tr>
         </table>
-    </div>
 
 <p class="pasal-title">Pasal 10<br>Hukum Yang Berlaku Dan Domisili Hukum</p>
     <ol class="num">
