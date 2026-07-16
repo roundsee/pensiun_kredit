@@ -37,6 +37,11 @@ class UserSeeder extends Seeder
     {
         return [
             [
+                'name' => 'Admin NBP',
+                'email' => 'admin@nbp.com',
+                'role' => User::ROLE_SUPERVISOR,
+            ],
+            [
                 'name' => 'Test Marketing',
                 'email' => 'test@example.com',
                 'role' => User::ROLE_MARKETING,

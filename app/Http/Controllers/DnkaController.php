@@ -15,21 +15,7 @@ class DnkaController extends Controller
 {
     private function traceExcelBundle(string $message, array $context = []): void
     {
-        try {
-            Log::channel('single')->info($message, $context);
-        } catch (\Throwable) {
-            // Ignore channel issues and continue with direct file fallback.
-        }
-
-        $line = sprintf(
-            "[%s] %s %s%s",
-            now()->format('Y-m-d H:i:s'),
-            $message,
-            $context !== [] ? json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : '{}',
-            PHP_EOL
-        );
-
-        @file_put_contents(storage_path('logs/excel_bundle_debug.log'), $line, FILE_APPEND);
+        // Debug logging disabled.
     }
 
     public function downloadHorizontalTemplate()

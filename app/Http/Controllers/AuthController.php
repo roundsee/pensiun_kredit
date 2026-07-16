@@ -2,11 +2,41 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
+    public function apiMobileLogin(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'email' => ['required', 'email'],
+            'password' => ['required', 'string'],
+        ]);
+
+        $user = User::query()->where('email', $validated['email'])->first();
+
+        if (! $user || ! Hash::check($validated['password'], $user->password)) {
+            return response()->json([
+                'message' => 'Email atau password salah.',
+            ], 401);
+        }
+
+        return response()->json([
+            'message' => 'Login berhasil.',
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->roleSlug(),
+            ],
+            'can_manage_endpoint' => strtolower((string) $user->email) === 'admin@nbp.com',
+        ]);
+    }
+
     public function showLoginForm()
     {
         return view('auth.login');

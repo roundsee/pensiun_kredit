@@ -99,6 +99,52 @@ class KbSimulationController extends Controller
         return view('products.simulasi_kb_form', compact('options', 'productStructs', 'initialData', 'userRole', 'canEditPricing'));
     }
 
+    public function mobileConfig(): JsonResponse
+    {
+        $options = $this->kbSimulationExcelService->getSelectOptions();
+        $productStructs = ProductStruct::query()
+            ->orderBy('sort_order')
+            ->get([
+                'produk',
+                'tenor_max',
+                'usia_max',
+                'usia_masuk_min',
+                'usia_masuk_max',
+                'rate_percent',
+                'dbr_percent',
+                'admin_angsuran_percent',
+                'provisi_percent',
+                'admin_percent',
+                'blokir_angsuran',
+            ])
+            ->mapWithKeys(function (ProductStruct $item) {
+                return [
+                    $item->produk => [
+                        'tenor_max' => (int) ($item->tenor_max ?? 0),
+                        'usia_max' => (int) ($item->usia_max ?? 0),
+                        'usia_masuk_min' => (int) ($item->usia_masuk_min ?? 0),
+                        'usia_masuk_max' => (int) ($item->usia_masuk_max ?? 0),
+                        'rate_percent' => (float) ($item->rate_percent ?? 0),
+                        'dbr_percent' => (float) ($item->dbr_percent ?? 0),
+                        'admin_angsuran_percent' => (float) ($item->admin_angsuran_percent ?? 0),
+                        'provisi_percent' => (float) ($item->provisi_percent ?? 0),
+                        'admin_percent' => (float) ($item->admin_percent ?? 0),
+                        'blokir_angsuran' => (int) ($item->blokir_angsuran ?? 0),
+                    ],
+                ];
+            })
+            ->all();
+
+        return response()->json([
+            'options' => $options,
+            'product_structs' => $productStructs,
+            'permissions' => [
+                'role' => 'mobile',
+                'can_edit_pricing' => true,
+            ],
+        ]);
+    }
+
     public function goalSeekerIndex()
     {
         $options = $this->kbSimulationExcelService->getSelectOptions();
@@ -903,6 +949,10 @@ public function store(Request $request): JsonResponse
 
     private function ensurePricingOverridesAuthorized(Request $request): void
     {
+        if ($request->is('api/mobile/*')) {
+            return;
+        }
+
         if (! $this->hasPricingOverrideInput($request)) {
             return;
         }
