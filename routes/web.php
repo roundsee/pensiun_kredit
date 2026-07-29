@@ -21,6 +21,8 @@ use App\Http\Controllers\BanpotController;
 use App\Http\Controllers\NominatifController;
 
 Route::get('/__ping', fn () => response('ok', 200));
+Route::get('/simulasi', [KbSimulationController::class, 'SimulasiMarketing'])->name('simulasi');
+
 
 Route::put('/product-templates/{product_template}', [ProductTemplateController::class, 'update'])->name('product_templates.update')->middleware('auth');
 

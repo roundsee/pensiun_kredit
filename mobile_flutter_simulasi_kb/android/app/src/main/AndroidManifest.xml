@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:label="mobile_flutter_simulasi_kb"
         android:name="${applicationName}"

@@ -99,6 +99,85 @@ class KbSimulationController extends Controller
         return view('products.simulasi_kb_form', compact('options', 'productStructs', 'initialData', 'userRole', 'canEditPricing'));
     }
 
+    public function SimulasiMarketing(Request $request)
+    {
+        $options = $this->kbSimulationExcelService->getSelectOptions();
+        $productStructs = ProductStruct::query()
+            ->orderBy('sort_order')
+            ->get([
+                'produk',
+                'tenor_max',
+                'usia_max',
+                'usia_masuk_min',
+                'usia_masuk_max',
+                'rate_percent',
+                'dbr_percent',
+                'admin_angsuran_percent',
+                'provisi_percent',
+                'admin_percent',
+                'blokir_angsuran',
+            ])
+            ->mapWithKeys(function (ProductStruct $item) {
+                return [
+                    $item->produk => [
+                        'tenor_max' => (int) ($item->tenor_max ?? 0),
+                        'usia_max' => (int) ($item->usia_max ?? 0),
+                        'usia_masuk_min' => (int) ($item->usia_masuk_min ?? 0),
+                        'usia_masuk_max' => (int) ($item->usia_masuk_max ?? 0),
+                        'rate_percent' => (float) ($item->rate_percent ?? 0),
+                        'dbr_percent' => (float) ($item->dbr_percent ?? 0),
+                        'admin_angsuran_percent' => (float) ($item->admin_angsuran_percent ?? 0),
+                        'provisi_percent' => (float) ($item->provisi_percent ?? 0),
+                        'admin_percent' => (float) ($item->admin_percent ?? 0),
+                        'blokir_angsuran' => (int) ($item->blokir_angsuran ?? 0),
+                    ],
+                ];
+            })
+            ->all();
+
+        /** @var User|null $user */
+        $user = Auth::user();
+
+        $userRole = $user?->roleSlug() ?? User::ROLE_MARKETING;
+        $canEditPricing = $user?->canEditKbPricing() ?? false;
+
+        $initialData = null;
+        $editId = $request->query('edit_data_simulasi');
+        if ($editId !== null && $editId !== '') {
+            $record = DataSimulasi::query()->find($editId);
+            if ($record) {
+                $initialData = [
+                    'id' => $record->id,
+                    'produk' => $record->produk,
+                    'jenis_pensiun' => $record->jenis_pensiun,
+                    'mutasi' => $record->mutasi,
+                    'bank_tujuan' => $record->bank_tujuan,
+                    'bank_asal' => $record->bank_asal,
+                    'keterangan' => $record->keterangan,
+                    'nama_debitur' => $record->nama_debitur,
+                    'tanggal_simulasi' => optional($record->tgl_permohonan)?->toDateString(),
+                    'tanggal_lahir' => optional($record->tanggal_lahir)?->toDateString(),
+                    'nomor_pensiun' => $record->nomor_pensiun,
+                    'instansi' => $record->instansi,
+                    'gaji_pensiun' => $record->gaji_pensiun,
+                    'angsuran_lainnya' => null,
+                    'blokir_angsuran' => $record->blokir_angsuran,
+                    'umur_text' => $record->umur !== null ? ((int) $record->umur . ' thn') : null,
+                    'tenor_max' => $record->tenor_max,
+                    'tenor' => $record->tenor,
+                    'plafond' => $record->plafond,
+                    'pelunasan' => $record->pelunasan,
+                    'nama_marketing' => $record->nama_marketing,
+                    'kode_area' => $record->kode_area,
+                    'rate_percent_override' => $record->rate_percent_override,
+                    'admin_angsuran_percent_override' => $record->admin_angsuran_percent_override,
+                ];
+            }
+        }
+
+        return view('products.simulasi_marketing_form', compact('options', 'productStructs', 'initialData', 'userRole', 'canEditPricing'));
+    }
+
     public function mobileConfig(): JsonResponse
     {
         $options = $this->kbSimulationExcelService->getSelectOptions();

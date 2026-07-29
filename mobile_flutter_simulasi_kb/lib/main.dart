@@ -64,6 +64,8 @@ class _SimulationPageState extends State<SimulationPage> {
   static const _loginEmailPrefKey = 'kb_simulasi_login_email';
   static const _defaultBaseUrl = 'https://kredit.natabuanapasundan.com/api/mobile/kb-simulasi';
   static const _adminEmail = 'admin@nbp.com';
+  static const double _defaultRatePercent = 16;
+  static const double _defaultAdminAngsuranPercent = 10;
 
   final DateFormat _dateFormat = DateFormat('yyyy-MM-dd');
   final NumberFormat _idrFormat = NumberFormat.currency(
@@ -118,8 +120,6 @@ class _SimulationPageState extends State<SimulationPage> {
     RowDef(label: 'Angsuran Lainnya', type: FieldType.integer, key: 'angsuran_lainnya'),
     RowDef(label: 'Sisa Gaji saat Pengajuan', type: FieldType.output, key: 'sisa_gaji_saat_pengajuan', format: 'currency'),
     RowDef(label: 'Tenor Max', type: FieldType.output, key: 'tenor_max', format: 'months'),
-    RowDef(label: 'Rate (%) Override', type: FieldType.number, key: 'rate_percent_override', onlyRoleCanEditPricing: true),
-    RowDef(label: 'Adm Angsuran (%) Override', type: FieldType.integer, key: 'admin_angsuran_percent_override', onlyRoleCanEditPricing: true),
     RowDef(label: 'Tenor', type: FieldType.integer, key: 'tenor'),
     RowDef(label: 'Plafond Max', type: FieldType.output, key: 'plafond_max', format: 'currency'),
     RowDef(label: 'Plafond', type: FieldType.integer, key: 'plafond'),
@@ -146,6 +146,7 @@ class _SimulationPageState extends State<SimulationPage> {
   ];
 
   Map<String, List<String>> _options = {};
+  Map<String, dynamic> _productStructs = {};
   Map<String, dynamic> _result = {};
   Map<String, dynamic>? _limits;
   bool _loadingConfig = false;
@@ -362,9 +363,11 @@ class _SimulationPageState extends State<SimulationPage> {
       final jsonMap = jsonDecode(response.body) as Map<String, dynamic>;
       final optionsMap = (jsonMap['options'] as Map<String, dynamic>? ?? {})
           .map((k, v) => MapEntry(k, (v as List<dynamic>).map((e) => '$e').toList()));
+      final productStructs = jsonMap['product_structs'] as Map<String, dynamic>? ?? {};
 
       setState(() {
         _options = optionsMap;
+        _productStructs = productStructs;
         _canEditPricing = (jsonMap['permissions']?['can_edit_pricing'] as bool?) ?? true;
         _applyDefaultValues();
         _message = 'Konfigurasi berhasil dimuat';
@@ -387,6 +390,20 @@ class _SimulationPageState extends State<SimulationPage> {
     _form['instansi'] = _pickDefault(['TASPEN', 'ASABRI'], 'TASPEN');
     _form['mutasi'] = _pickDefault(['Mutasi', 'Non Mutasi'], 'Non Mutasi');
     _form['blokir_angsuran'] = '1';
+    _syncPricingOverridesFromConfig();
+  }
+
+  void _syncPricingOverridesFromConfig() {
+    final produk = '${_form['produk'] ?? ''}';
+    final struct = _productStructs[produk] as Map<String, dynamic>?;
+
+    final rate = _toNum(struct?['rate_percent']);
+    final admin = _toNum(struct?['admin_angsuran_percent']);
+
+    _form['rate_percent_override'] =
+        (rate > 0 ? rate : _defaultRatePercent).toString();
+    _form['admin_angsuran_percent_override'] =
+        (admin > 0 ? admin : _defaultAdminAngsuranPercent).toString();
   }
 
   String _pickDefault(List<String>? values, String fallback) {
@@ -417,6 +434,7 @@ class _SimulationPageState extends State<SimulationPage> {
       if (key == 'tanggal_lahir' || key == 'tanggal_simulasi') {
         _autoSetProdukByAge();
       }
+      _syncPricingOverridesFromConfig();
       _error = '';
       _message = '';
     });
@@ -858,9 +876,7 @@ class _SimulationPageState extends State<SimulationPage> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            _isLoggedIn
-                                ? 'Endpoint disembunyikan untuk akun $_loggedInEmail'
-                                : 'Endpoint disembunyikan. Login sebagai admin@nbp.com untuk melihat.',
+                            'Endpoint disembunyikan.',
                           ),
                         ),
                         if (_calculating)
