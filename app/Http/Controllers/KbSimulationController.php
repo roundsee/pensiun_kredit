@@ -477,6 +477,52 @@ class KbSimulationController extends Controller
         ]);
     }
 
+    public function calculatesimulasi(Request $request): JsonResponse
+    {
+        $this->ensurePricingOverridesAuthorized($request);
+
+        $input = $request->validate($this->calculateRules());
+
+        $input = array_merge([
+            'produk' => 'Platinum',
+            'jenis_pensiun' => 'Sendiri',
+            'bank_asal' => 'BANK BUKOPIN',
+            'bank_tujuan' => 'KB',
+            'keterangan' => '',
+            'nama_debitur' => '-',
+            'tanggal_simulasi' => now()->toDateString(),
+            'tanggal_lahir' => null,
+            'nomor_pensiun' => '-',
+            'instansi' => 'TASPEN',
+            'gaji_pensiun' => 0,
+            'angsuran_lainnya' => 0,
+            'tenor' => null,
+            'plafond' => null,
+            'nama_marketing' => '-',
+            'kode_area' => '-',
+        ], $input);
+
+        $cacheKey = 'kb_simulasi_calc_' . sha1(json_encode($input));
+
+        try {
+            $result = Cache::remember($cacheKey, now()->addSeconds(30), function () use ($input) {
+                return $this->kbSimulationExcelService->calculate($input);
+            });
+        } catch (\Throwable $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+            ], 422);
+        }
+
+        $limitChecks = $this->buildLimitChecks($input, $result);
+
+        return response()->json([
+            'message' => 'Perhitungan simulasi berhasil.',
+            'data' => $result,
+            'display' => $this->buildDisplayResult($result),
+            'limits' => $limitChecks,
+        ]);
+    }
     public function calculate(Request $request): JsonResponse
     {
         $this->ensurePricingOverridesAuthorized($request);

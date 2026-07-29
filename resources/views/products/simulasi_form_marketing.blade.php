@@ -155,7 +155,7 @@
         'can_edit_pricing' => (bool) ($canEditPricing ?? false),
     ];
     $kbSimulasiRoutes = [
-        'calculate' => route('kb_simulasi.calculate'),
+        'calculate' => route('calculatesimulasi'),
         'store' => route('kb_simulasi.store'),
         'downloadPdf' => route('kb_simulasi.download_pdf'),
         'updateBase' => url('/data-simulasi'),
