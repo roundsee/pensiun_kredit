@@ -28,6 +28,11 @@ return Application::configure(basePath: dirname(__DIR__))
                      Request::HEADER_X_FORWARDED_PROTO
         );
     })
+    ->withMiddleware(function (Middleware $middleware) {
+    $middleware->validateCsrfTokens(except: [
+        'calculatesimulasi', // Pengecualian CSRF khusus endpoint hitung
+    ]);
+})
     ->withExceptions(function (Exceptions $exceptions) {
         //
     })->create();
