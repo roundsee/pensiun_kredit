@@ -175,7 +175,7 @@ class KbSimulationController extends Controller
             }
         }
 
-        return view('products.simulasi_marketing_form', compact('options', 'productStructs', 'initialData', 'userRole', 'canEditPricing'));
+        return view('products.simulasi_form_marketing', compact('options', 'productStructs', 'initialData', 'userRole', 'canEditPricing'));
     }
 
     public function mobileConfig(): JsonResponse
