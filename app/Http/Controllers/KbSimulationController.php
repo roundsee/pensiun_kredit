@@ -479,7 +479,7 @@ class KbSimulationController extends Controller
 
     public function calculatesimulasi(Request $request): JsonResponse
     {
-        $this->ensurePricingOverridesAuthorized($request);
+        //$this->ensurePricingOverridesAuthorized($request);
 
         $input = $request->validate($this->calculateRules());
 
@@ -626,6 +626,64 @@ public function store(Request $request): JsonResponse
             'display' => $this->buildDisplayResult($result),
         ], 201);
     }
+
+public function storesimulasi(Request $request): JsonResponse
+    {
+       // $this->ensurePricingOverridesAuthorized($request);
+        Log::info('Storing KB simulation data...');
+        $isClientSide = $request->boolean('client_side_calculation');
+        Log::info('Client side calculation: ' . ($isClientSide ? 'true' : 'false'));
+        
+        $validator = Validator::make($request->all(), $this->storeRules());
+        if ($validator->fails()) {
+            Log::error('VALIDASI GAGAL DI FIELD: ' . json_encode($validator->errors()->toArray()));
+            return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
+        }
+        $input = $validator->validated();        
+        Log::info('Input data: ' . json_encode($input));
+
+        if ($isClientSide) {
+            Log::info('Validating client result data...');
+            $clientResult = $request->validate($this->clientResultRules());
+            $result = array_merge($input, $clientResult);
+        } else {
+            Log::info('Calculating KB simulation data...');
+            try {
+                $result = $this->kbSimulationExcelService->calculate($input);
+            } catch (\Throwable $e) {
+                Log::error('Error during KB simulation calculation: ' . $e->getMessage());
+                return response()->json([
+                    'message' => $e->getMessage(),
+                ], 422);
+            }
+        }
+
+        // ==================== LANGSUNG MERGE DAN SAVE ====================
+        // Gabungkan data input (nama, no pensiun, dll) dan hasil perhitungan keuangan
+        $persistPayload = array_merge($input, $result);
+
+        // Bersihkan field pembantu yang tidak ada di kolom database Anda
+        unset(
+            $persistPayload['umur_text'], 
+            $persistPayload['usia_lunas_text'], 
+            $persistPayload['angsuran_lainnya'],
+            $persistPayload['client_side_calculation']
+        );
+
+        $persistPayload['status'] = 'trial';
+
+        // Langsung simpan ke database tanpa limitcheck
+        $saved = DataSimulasi::query()->create($persistPayload);
+        Log::info('Data simulasi KB berhasil disimpan dengan ID: ' . $saved->id);
+        // =================================================================
+
+        return response()->json([
+            'message' => 'Data simulasi KB berhasil disimpan.',
+            'id' => $saved->id,
+            'data' => $saved,
+            'display' => $this->buildDisplayResult($result),
+        ], 201);
+    }    
     // public function store(Request $request): JsonResponse
     // {
     //     Log::Info('Storing KB simulation data...');
@@ -686,6 +744,88 @@ public function store(Request $request): JsonResponse
     // }
 
     public function downloadPdf(Request $request)
+{
+    // Gunakan validator manual agar jika ada field kurang tidak langsung melempar error HTML Redirect
+    //$validator = \Illuminate\Support\Facades\Validator::make($request->all(), $this->calculateRules());
+    
+    // Ambil data yang lolos validasi, atau ambil langsung dari request jika ada yang miss
+    //$input = $request->all();
+
+    // Pastikan data personal dasar terisi aman sebagai fallback
+    // $input = array_merge([
+    //     'produk' => 'Platinum',
+    //     'jenis_pensiun' => 'Sendiri',
+    //     'bank_tujuan' => 'KB',
+    //     'bank_asal' => '',
+    //     'nama_debitur' => '-',
+    //     'tanggal_simulasi' => now()->toDateString(),
+    //     'tanggal_lahir' => null,
+    //     'nomor_pensiun' => '-',
+    //     'instansi' => 'TASPEN',
+    //     'gaji_pensiun' => 0,
+    //     'angsuran_lainnya' => 0,
+    //     'tenor' => 1,
+    //     'plafond' => 0,
+    //     'nama_marketing' => '-',
+    //     'kode_area' => '-',
+    // ], $input);
+    $validated = $request->validate([
+        'id' => ['required', 'integer', 'exists:data_simulasi,id'],
+    ]);
+
+    $sim = DataSimulasi::query()->find($validated['id']);
+    if ($sim === null) {
+        return response()->json([
+            'message' => 'Data simulasi tidak ditemukan.',
+        ], 404);
+    }
+
+    // if ($isClientSide) {
+    //     $result = $input; // Jika client-side, gunakan langsung gabungan data dari frontend
+    // } else {
+    //     try {
+    //         // Hitung ulang via excel service untuk memastikan kecocokan angka
+    //         $result = $this->kbSimulationExcelService->calculate($input);
+    //     } catch (\Throwable $e) {
+    //         // Catat ke log file jika excel service mendadak error
+    //         \Illuminate\Support\Facades\Log::error('PDF Calculation Fail: ' . $e->getMessage());
+    //         return response()->json(['message' => 'Gagal menghitung ulang simulasi untuk PDF: ' . $e->getMessage()], 422);
+    //     }
+    // }
+
+    // // Prepare objects expected by the legacy blade `simulasifordownload`
+    // $simArray = array_merge($input, $result); // Merge agar semua field bersatu aman
+    // $simArray['notas'] = $request->input('nomor_pensiun') ?? $result['nomor_pensiun'] ?? '-';
+    // $simArray['created_at'] = \Illuminate\Support\Carbon::parse($input['tanggal_simulasi'] ?? now());
+    // $simArray['usia'] = $result['umur'] ?? null;
+    // $simArray['instansi'] = $input['instansi'] ?? ($result['instansi'] ?? null);
+    // $simArray['product_kode'] = $input['product_kode'] ?? $input['produk'] ?? null;
+    //$sim = (object) $simArray;
+
+   
+
+    // load logo
+    $logoPath = public_path('image/logo_nbp.png');
+    $logo = '';
+    if (file_exists($logoPath)) {
+        $logo = base64_encode(file_get_contents($logoPath));
+    }
+    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('products.simulasifordownload', [
+        'sim' => $sim,
+        'logo' => $logo,
+        'generatedAt' => now(),
+    ])->setPaper('a4', 'portrait');
+
+    $filename = 'simulasi-kb-' . now()->format('Ymd-His') . '.pdf';
+
+    $binary = $pdf->output();
+    return response($binary, 200)
+        ->header('Content-Type', 'application/pdf')
+        ->header('Content-Disposition', "attachment; filename=\"{$filename}\"")
+        ->header('Content-Length', strlen($binary));
+}
+
+public function downloadPdfSImulasi(Request $request)
 {
     // Gunakan validator manual agar jika ada field kurang tidak langsung melempar error HTML Redirect
     //$validator = \Illuminate\Support\Facades\Validator::make($request->all(), $this->calculateRules());

@@ -72,11 +72,6 @@
                     <div class="alert alert-info mb-3" x-show="shouldShowMessages() && message" x-text="message"></div>
                     <div class="alert alert-danger mb-3" x-show="shouldShowMessages() && errorMessage" x-text="errorMessage"></div>
 
-                    <div class="d-flex justify-content-end gap-2 mb-3">
-                        <a href="{{ route('kb_simulasi.goal_seeker') }}" class="btn btn-sm btn-outline-primary">Goal Seeker</a>
-                        <a href="{{ route('data_simulasi.trial.list') }}" class="btn btn-sm btn-outline-secondary">Lihat Trial Data Simulasi</a>
-                    </div>
-
                     <div class="kb-sheet-wrap">
                         <table class="kb-sheet-table">
                             <tbody>
@@ -135,12 +130,6 @@
                         </button>
                         <button class="btn btn-outline-danger" type="button" @click="downloadPdf" :disabled="!hasil || isDownloading" x-text="isDownloading ? 'Menyiapkan PDF...' : 'Download PDF'"></button>
                     </div>
-                    <div class="mt-3">
-                        <label class="form-label fw-semibold">Keterangan Trial</label>
-                        <textarea class="form-control kb-trial-note" rows="3" x-model="form.keterangan" placeholder="Contoh: debitur minta sisa gaji akhir nya minimal 250rb"></textarea>
-                        <div class="form-text">Keterangan ini akan tampil di list Trial Data Simulasi.</div>
-                    </div>
-                    <div class="small text-muted mt-2" x-show="isCalculating">Menghitung otomatis...</div>
 
                 </div>
             </div>
@@ -156,8 +145,8 @@
     ];
     $kbSimulasiRoutes = [
         'calculate' => route('calculatesimulasi'),
-        'store' => route('kb_simulasi.store'),
-        'downloadPdf' => route('kb_simulasi.download_pdf'),
+        'store' => route('storesimulasi'),
+        'downloadPdf' => route('downloadpdfsimulasi'),
         'updateBase' => url('/data-simulasi'),
     ];
 @endphp
