@@ -199,6 +199,7 @@ function kbSimulasiForm() {
             tanggal_simulasi: new Date().toISOString().slice(0, 10),
             tanggal_lahir: '',
             nomor_pensiun: '',
+            nomor_hp: '08xxxxxxxx',
             instansi: 'TASPEN',
             gaji_pensiun: '',
             angsuran_lainnya: '',
@@ -208,6 +209,7 @@ function kbSimulasiForm() {
             tenor: '',
             plafond: '',
             pelunasan: '',
+            ext_tatalaksana: '',
             nama_marketing: '',
             kode_area: '',
         },
@@ -228,6 +230,7 @@ function kbSimulasiForm() {
             { cell: 'E19', label: 'Tanggal Lahir', type: 'date', key: 'tanggal_lahir' },
             { cell: 'E20', label: 'Umur', type: 'output', key: 'umur_text', format: 'text' },
             { cell: 'E21', label: 'Nomor Pensiun', type: 'text', key: 'nomor_pensiun' },
+            { cell: 'E21A', label: 'Nomor HP', type: 'text', key: 'nomor_hp' },
             { cell: 'E22', label: 'Instansi', type: 'select', key: 'instansi', optionsKey: 'instansi' },
             { cell: 'E23', label: 'Gaji Pensiun', type: 'integer', key: 'gaji_pensiun' },
             { cell: 'E24', label: 'Angsuran Lainnya', type: 'integer', key: 'angsuran_lainnya' },
@@ -250,6 +253,7 @@ function kbSimulasiForm() {
             { cell: 'E39', label: 'BLOKIR AMOUNT', type: 'output', key: 'amount_blokir_angsuran', format: 'currency' },
             { cell: 'E40', label: '', type: 'blank' },
             { cell: 'E41', label: 'TATA LAKSANA', type: 'output', key: 'tata_laksana', format: 'currency' },
+            { cell: 'E41A', label: 'EXT TATA LAKSANA', type: 'integer', key: 'ext_tatalaksana' },
             { cell: 'E42', label: 'PELUNASAN', type: 'integer', key: 'pelunasan' },
             { cell: 'E43', label: 'Nama Marketing', type: 'text', key: 'nama_marketing' },
             { cell: 'E44', label: 'Kode Area', type: 'select', key: 'kode_area', optionsKey: 'area', allowEmpty: true },
@@ -277,6 +281,7 @@ function kbSimulasiForm() {
         calcInFlightSignature: '',
         calcLastCompletedSignature: '',
         calcAbortController: null,
+        pendingAutoRecalc: false,
         enableAutoServerCalc: true, // Diubah menjadi true agar auto-calculate aktif
         isCalculating: false,
         isSaving: false,
@@ -374,7 +379,7 @@ function kbSimulasiForm() {
 
             Object.keys(this.form).forEach((key) => {
                 if (Object.prototype.hasOwnProperty.call(initialData, key) && initialData[key] !== null && initialData[key] !== undefined) {
-                    const integerFields = ['gaji_pensiun', 'angsuran_lainnya', 'plafond', 'pelunasan', 'tenor', 'rate_percent_override', 'admin_angsuran_percent_override'];
+                    const integerFields = ['gaji_pensiun', 'angsuran_lainnya', 'plafond', 'pelunasan', 'ext_tatalaksana', 'tenor', 'rate_percent_override', 'admin_angsuran_percent_override'];
                     if (integerFields.includes(key)) {
                         this.form[key] = Math.round(Number(initialData[key]));
                     } else {
@@ -551,12 +556,29 @@ function kbSimulasiForm() {
             }
         },
 
+        isValidDateInput(value) {
+            if (!value || typeof value !== 'string') {
+                return false;
+            }
+
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+                return false;
+            }
+
+            const date = new Date(value + 'T00:00:00');
+            return !Number.isNaN(date.getTime());
+        },
+
         scheduleAutoCalculate() {
             if (!this.enableAutoServerCalc) return;
             
             // Samakan dengan GoalSeeker: cukup data inti terisi untuk hitung standar backend,
             // agar plafond max berasal dari server (bukan hanya fallback realtime frontend).
             if (!this.form.produk || !this.form.jenis_pensiun || !this.form.bank_tujuan || !this.form.tanggal_simulasi || !this.form.tanggal_lahir) {
+                return;
+            }
+
+            if (!this.isValidDateInput(this.form.tanggal_simulasi) || !this.isValidDateInput(this.form.tanggal_lahir)) {
                 return;
             }
 
@@ -875,6 +897,17 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
         },
 
         async hitung(silent = false) {
+            if (!this.isValidDateInput(this.form.tanggal_simulasi) || !this.isValidDateInput(this.form.tanggal_lahir)) {
+                return;
+            }
+
+            if (this.isCalculating) {
+                if (silent) {
+                    this.pendingAutoRecalc = true;
+                }
+                return;
+            }
+
             // Validasi input wajib murni
             if (!this.form.produk || !this.form.tenor || !this.form.plafond) {
                 if (silent) {
@@ -888,13 +921,7 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
             
             // HAPUS ATAU KOMENTARI BLOKADE VALIDASI PLAFOND MAX DI SINI
             // Biarkan backend Laravel yang menguji kevalidan angkanya agar data tetap mengalir
-            
-            // Abort request sebelumnya jika ada
-            if (this.calcAbortController) {
-                this.calcAbortController.abort();
-            }
-            
-            this.calcAbortController = new AbortController();
+
             this.isCalculating = true;
             
             if (!silent) {
@@ -909,6 +936,8 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
                         'X-CSRF-TOKEN': csrf
                     },
                     body: JSON.stringify({
@@ -922,26 +951,38 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
                         admin_angsuran_percent_override: this.form.admin_angsuran_percent_override,
                         tanggal_lahir: this.form.tanggal_lahir,
                         tanggal_simulasi: this.form.tanggal_simulasi,
+                        nomor_hp: this.form.nomor_hp,
                         instansi: this.form.instansi,
                         gaji_pensiun: this.form.gaji_pensiun,
                         angsuran_lainnya: this.form.angsuran_lainnya,
                         blokir_angsuran: this.form.blokir_angsuran,
                         pelunasan: this.form.pelunasan
-                    }),
-                    signal: this.calcAbortController.signal
+                    })
                 });
-// === AMANKAN CHECK CONTENT TYPE DI SINI ===
+
                 const contentType = response.headers.get("content-type");
                 if (!contentType || !contentType.includes("application/json")) {
                     const textError = await response.text();
                     console.error('SERVER ERROR (HTML/TEXT):', textError); // Lihat error detail di F12 Console
                     
                     this.isValidForm = false;
-                    this.errorMessage = 'Server Error saat menghitung. Silakan cek tab Console F12 / Network.';
-                    this.isCalculating = false;
+                    this.errorMessage = `Server Error (${response.status}) saat menghitung.`;
                     return; 
                 }                
                 const data = await response.json();
+
+                if (!response.ok) {
+                    const validationErrors = data && data.errors && typeof data.errors === 'object'
+                        ? Object.values(data.errors).flat().filter(Boolean)
+                        : [];
+                    const backendMessage = (data && data.message) ? String(data.message) : '';
+                    const detailMessage = validationErrors.length > 0 ? validationErrors[0] : backendMessage;
+
+                    this.isValidForm = false;
+                    this.errorMessage = detailMessage || `Perhitungan gagal (HTTP ${response.status}).`;
+                    this.limitWarning = '';
+                    return;
+                }
 
 // Reset semua notifikasi setiap kali hitung dimulai jika format JSON valid
                 this.message = '';
@@ -974,16 +1015,18 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
                     this.limitWarning = limitFeedback.warning || 'Perhitungan berhasil, tetapi ada data yang belum valid.';
                 }
             } catch (error) {
-                if (error.name !== 'AbortError') {
-                    console.error('Error:', error);
-                    if (!silent) {
-                        this.errorMessage = 'Terjadi kesalahan saat menghitung';
-                        setTimeout(() => { this.errorMessage = ''; }, 3000);
-                    }
+                console.error('Error:', error);
+                if (!silent) {
+                    this.errorMessage = 'Terjadi kesalahan saat menghitung';
+                    setTimeout(() => { this.errorMessage = ''; }, 3000);
                 }
             } finally {
                 this.isCalculating = false;
-                this.calcAbortController = null;
+
+                if (this.pendingAutoRecalc) {
+                    this.pendingAutoRecalc = false;
+                    this.hitung(true);
+                }
             }
         },
 
@@ -1126,7 +1169,13 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
         },
         
         getRenderableRows() { 
-            return this.excelRows; 
+            return this.excelRows.filter((row) => {
+                if (row.key !== 'ext_tatalaksana') {
+                    return true;
+                }
+
+                return String(this.form.bank_tujuan || '').trim().toUpperCase() === 'MANTAP';
+            }); 
         },
         
         isInputDisabled(row) { 
@@ -1148,6 +1197,9 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
         },
         
         getRowDisplayValue(row) {
+            const extTataLaksana = Number(this.form.ext_tatalaksana || 0);
+            const extTataLaksanaValue = Number.isFinite(extTataLaksana) ? extTataLaksana : 0;
+
             if (row.key === 'umur_text') {
                 if (this.umurRealtimeText && this.umurRealtimeText !== '-') {
                     return this.umurRealtimeText;
@@ -1180,7 +1232,10 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
             }
             if (row.staticValue) return row.staticValue;
             if (this.hasil && this.hasil[row.key] !== undefined) {
-                const val = this.hasil[row.key];
+                let val = this.hasil[row.key];
+                if (row.key === 'terima_bersih') {
+                    val = Number(val || 0) - extTataLaksanaValue;
+                }
                 if (row.format === 'currency' && typeof val === 'number') {
                     return 'Rp ' + Math.round(val).toLocaleString('id-ID');
                 }

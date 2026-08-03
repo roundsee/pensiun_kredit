@@ -88,6 +88,7 @@ class KbSimulationController extends Controller
                     'tenor' => $record->tenor,
                     'plafond' => $record->plafond,
                     'pelunasan' => $record->pelunasan,
+                    'ext_tatalaksana' => $record->ext_tatalaksana,
                     'nama_marketing' => $record->nama_marketing,
                     'kode_area' => $record->kode_area,
                     'rate_percent_override' => $record->rate_percent_override,
@@ -167,6 +168,7 @@ class KbSimulationController extends Controller
                     'tenor' => $record->tenor,
                     'plafond' => $record->plafond,
                     'pelunasan' => $record->pelunasan,
+                    'ext_tatalaksana' => $record->ext_tatalaksana,
                     'nama_marketing' => $record->nama_marketing,
                     'kode_area' => $record->kode_area,
                     'rate_percent_override' => $record->rate_percent_override,
@@ -480,9 +482,9 @@ class KbSimulationController extends Controller
     public function calculatesimulasi(Request $request): JsonResponse
     {
         //$this->ensurePricingOverridesAuthorized($request);
-
+        Log::info('Calculating KB simulation data...');
         $input = $request->validate($this->calculateRules());
-
+Log::info('calculateRules');
         $input = array_merge([
             'produk' => 'Platinum',
             'jenis_pensiun' => 'Sendiri',
@@ -501,21 +503,23 @@ class KbSimulationController extends Controller
             'nama_marketing' => '-',
             'kode_area' => '-',
         ], $input);
-
+Log::info('calculateRules');
         $cacheKey = 'kb_simulasi_calc_' . sha1(json_encode($input));
-
+Log::info('cacheKey');
         try {
             $result = Cache::remember($cacheKey, now()->addSeconds(30), function () use ($input) {
                 return $this->kbSimulationExcelService->calculate($input);
             });
+            Log::info('tryyy');
         } catch (\Throwable $e) {
+              Log::info('catch');
             return response()->json([
                 'message' => $e->getMessage(),
             ], 422);
         }
-
+         Log::info('buildLimitChecks');
         $limitChecks = $this->buildLimitChecks($input, $result);
-
+         Log::info('post buildLimitChecks');
         return response()->json([
             'message' => 'Perhitungan simulasi berhasil.',
             'data' => $result,
@@ -539,6 +543,7 @@ class KbSimulationController extends Controller
             'tanggal_simulasi' => now()->toDateString(),
             'tanggal_lahir' => null,
             'nomor_pensiun' => '-',
+            'nomor_hp' => '08xxxxxxxx',
             'instansi' => 'TASPEN',
             'gaji_pensiun' => 0,
             'angsuran_lainnya' => 0,
@@ -779,6 +784,7 @@ public function storesimulasi(Request $request): JsonResponse
             'message' => 'Data simulasi tidak ditemukan.',
         ], 404);
     }
+    $this->applyExtTataLaksanaForPdf($sim);
 
     // if ($isClientSide) {
     //     $result = $input; // Jika client-side, gunakan langsung gabungan data dari frontend
@@ -861,6 +867,7 @@ public function downloadPdfSImulasi(Request $request)
             'message' => 'Data simulasi tidak ditemukan.',
         ], 404);
     }
+    $this->applyExtTataLaksanaForPdf($sim);
 
     // if ($isClientSide) {
     //     $result = $input; // Jika client-side, gunakan langsung gabungan data dari frontend
@@ -1048,6 +1055,7 @@ public function downloadPdfSImulasi(Request $request)
 
     private function calculateRules(): array
     {
+        Log::info('Validating calculate request data: ' . json_encode(request()->all()));
         return [
             'produk' => ['nullable', 'string', 'max:100'],
             'jenis_pensiun' => ['required', 'string', 'max:100'],
@@ -1059,6 +1067,7 @@ public function downloadPdfSImulasi(Request $request)
             'tanggal_simulasi' => ['required', 'date'],
             'tanggal_lahir' => ['required', 'date'],
             'nomor_pensiun' => ['nullable', 'string', 'max:100'],
+            'nomor_hp' => ['required', 'string', 'min:10','max:13'],
             'instansi' => ['nullable', 'string', 'max:100'],
             'gaji_pensiun' => ['nullable', 'numeric', 'min:0'],
             'angsuran_lainnya' => ['nullable', 'numeric', 'min:0'],
@@ -1071,6 +1080,7 @@ public function downloadPdfSImulasi(Request $request)
             'nama_marketing' => ['nullable', 'string', 'max:255'],
             'kode_area' => ['nullable', 'string', 'max:255'],
         ];
+        Log::info('Calculate request data validated successfully.');
     }
 
     private function storeRules(): array
@@ -1086,11 +1096,13 @@ public function downloadPdfSImulasi(Request $request)
             'tanggal_simulasi' => ['required', 'date'],
             'tanggal_lahir' => ['required', 'date'],
             'nomor_pensiun' => ['nullable', 'string', 'max:100'],
+             'nomor_hp' => ['required', 'string', 'min:10','max:13'],
             'instansi' => ['nullable', 'string', 'max:100'],
             'gaji_pensiun' => ['nullable', 'numeric', 'min:0'],
             'angsuran_lainnya' => ['nullable', 'numeric', 'min:0'],
             'blokir_angsuran' => ['nullable', 'integer', 'in:1,2,3,4,5'],
             'pelunasan' => ['nullable', 'numeric', 'min:0'],
+            'ext_tatalaksana' => ['nullable', 'numeric', 'min:0'],
             'rate_percent_override' => ['nullable', 'numeric', 'min:0'],
             'admin_angsuran_percent_override' => ['nullable', 'numeric', 'min:0'],
             'tenor' => ['required', 'integer', 'min:1'],
@@ -1256,5 +1268,16 @@ public function downloadPdfSImulasi(Request $request)
 
             return true;
         }));
+    }
+
+    private function applyExtTataLaksanaForPdf(DataSimulasi $sim): void
+    {
+        $extTataLaksana = (float) ($sim->ext_tatalaksana ?? 0);
+        if ($extTataLaksana <= 0) {
+            return;
+        }
+
+        $sim->tata_laksana = (float) ($sim->tata_laksana ?? 0) + $extTataLaksana;
+        $sim->terima_bersih = (float) ($sim->terima_bersih ?? 0) - $extTataLaksana;
     }
 }

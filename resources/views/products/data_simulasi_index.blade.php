@@ -46,6 +46,7 @@
                                 <th>Nama Debitur</th>
                                 <th>Tgl Lahir</th>
                                 <th>Usia</th>
+                                <th>No HP</th>
                                 <th>Gaji</th>
                                 <th>Instansi</th>
                                 <th>Bank Asal</th>
@@ -102,6 +103,7 @@
                                         <td>{{ $row->nama_debitur ?: '-' }}</td>
                                         <td>{{ $row->tanggal_lahir?->format('d-m-Y') ?: '-' }}</td>
                                         <td>{{ $row->umur !== null ? $row->umur . ' th' : '-' }}</td>
+                                        <td>{{ $row->nomor_hp !== null ? $row->nomor_hp : '-' }}</td>
                                         <td>{{ $row->gaji_pensiun !== null ? number_format((float) $row->gaji_pensiun, 0, ',', '.') : '-' }}</td>
                                         <td>{{ $row->instansi ?: '-' }}</td>
                                         <td>{{ $row->bank_asal ?: '-' }}</td>

@@ -89,6 +89,7 @@ class _SimulationPageState extends State<SimulationPage> {
     'tanggal_simulasi': DateFormat('yyyy-MM-dd').format(DateTime.now()),
     'tanggal_lahir': '',
     'nomor_pensiun': '',
+    'nomor_hp': '',
     'instansi': 'TASPEN',
     'gaji_pensiun': '',
     'angsuran_lainnya': '',
@@ -115,6 +116,7 @@ class _SimulationPageState extends State<SimulationPage> {
     RowDef(label: 'Tanggal Lahir', type: FieldType.date, key: 'tanggal_lahir'),
     RowDef(label: 'Umur', type: FieldType.output, key: 'umur_text', format: 'text'),
     RowDef(label: 'Nomor Pensiun', type: FieldType.text, key: 'nomor_pensiun'),
+    RowDef(label: 'Nomor HP', type: FieldType.text, key: 'nomor_hp'),
     RowDef(label: 'Instansi', type: FieldType.select, key: 'instansi', optionsKey: 'instansi'),
     RowDef(label: 'Gaji Pensiun', type: FieldType.integer, key: 'gaji_pensiun'),
     RowDef(label: 'Angsuran Lainnya', type: FieldType.integer, key: 'angsuran_lainnya'),
@@ -486,6 +488,7 @@ class _SimulationPageState extends State<SimulationPage> {
       'tanggal_simulasi': _form['tanggal_simulasi'],
       'tanggal_lahir': _form['tanggal_lahir'],
       'nomor_pensiun': _form['nomor_pensiun'],
+      'nomor_hp': _form['nomor_hp'],
       'instansi': _form['instansi'],
       'gaji_pensiun': _toNum(_form['gaji_pensiun']),
       'angsuran_lainnya': _toNum(_form['angsuran_lainnya']),
@@ -722,7 +725,7 @@ class _SimulationPageState extends State<SimulationPage> {
           initialValue: '${_form[key] ?? ''}',
           enabled: !_isInputDisabled(row),
           keyboardType: row.type == FieldType.text
-              ? TextInputType.text
+              ? (key == 'nomor_hp' ? TextInputType.phone : TextInputType.text)
               : (row.type == FieldType.date
                   ? TextInputType.datetime
                   : const TextInputType.numberWithOptions(decimal: true)),
