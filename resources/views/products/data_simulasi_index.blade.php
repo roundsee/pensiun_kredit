@@ -60,6 +60,7 @@
                                 <th>Provisi</th>
                                 <th>Asuransi</th>
                                 <th>Blokir</th>
+                                <th>Ext Tata Laksana</th>
                                 <th>Sisa Gaji Setelah Pengajuan</th>
                                 <th>Terima Bersih</th>
                                 @else

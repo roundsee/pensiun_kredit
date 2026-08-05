@@ -7,7 +7,7 @@
             <div class="card mb-3">
                 <div class="card-header fw-bold d-flex justify-content-between align-items-center">
                     <span>Import Banpot</span>
-                    <a href="{{ route('banpot.index') }}" class="btn btn-sm btn-outline-secondary">List Banpot</a>
+                    <a href="{{ url('/banpot') }}" class="btn btn-sm btn-outline-secondary">List Banpot</a>
                 </div>
                 <div class="card-body">
                     <div class="row g-3 align-items-end">

@@ -2,7 +2,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
-        android:label="mobile_flutter_simulasi_kb"
+        android:label="NBP_Simulasi"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

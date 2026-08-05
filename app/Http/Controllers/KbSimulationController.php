@@ -1067,7 +1067,7 @@ public function downloadPdfSImulasi(Request $request)
             'tanggal_simulasi' => ['required', 'date'],
             'tanggal_lahir' => ['required', 'date'],
             'nomor_pensiun' => ['nullable', 'string', 'max:100'],
-            'nomor_hp' => ['required', 'string', 'min:10','max:13'],
+            'nomor_hp' => ['nullable', 'string', 'min:10','max:13'],
             'instansi' => ['nullable', 'string', 'max:100'],
             'gaji_pensiun' => ['nullable', 'numeric', 'min:0'],
             'angsuran_lainnya' => ['nullable', 'numeric', 'min:0'],

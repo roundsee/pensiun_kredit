@@ -34,7 +34,7 @@
                             <a class="nav-link" href="{{ route('data_simulasi.list') }}">Data Simulasi</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ route('banpot.index') }}">List Banpot</a>
+                            <a class="nav-link" href="{{ url('/banpot') }}">List Banpot</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link" href="{{ route('nominatif.initial.create') }}">Import Initial Nominatif</a>

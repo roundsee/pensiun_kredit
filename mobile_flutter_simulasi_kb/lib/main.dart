@@ -20,7 +20,7 @@ class SimulationApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Simulasi KB Mobile',
+      title: 'NBP_Simulasi',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF184E77)),
         scaffoldBackgroundColor: const Color(0xFFF4F7FB),
@@ -159,8 +159,8 @@ class _SimulationPageState extends State<SimulationPage> {
   bool _canEditPricing = true;
   String _loggedInEmail = '';
   String _message = '';
-  String _error = '';
   Timer? _debounce;
+  final Map<String, TextEditingController> _textControllers = {};
 
   bool get _isAdmin => _loggedInEmail.toLowerCase() == _adminEmail;
   bool get _isLoggedIn => _loggedInEmail.isNotEmpty;
@@ -175,6 +175,9 @@ class _SimulationPageState extends State<SimulationPage> {
   void dispose() {
     _debounce?.cancel();
     _baseUrlController.dispose();
+    for (final controller in _textControllers.values) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
@@ -210,6 +213,27 @@ class _SimulationPageState extends State<SimulationPage> {
   Future<void> _clearLoginEmail() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_loginEmailPrefKey);
+  }
+
+  void _showToast(String message, {bool isError = false, bool isWarning = false}) {
+    if (!mounted || message.trim().isEmpty) return;
+
+    final backgroundColor = isError
+        ? const Color(0xFFB42318)
+        : isWarning
+            ? const Color(0xFFB54708)
+            : const Color(0xFF027A48);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: const TextStyle(color: Colors.white)),
+        backgroundColor: backgroundColor,
+        behavior: SnackBarBehavior.fixed,
+        duration: const Duration(seconds: 3),
+        margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
   }
 
   Future<void> _showLoginDialog() async {
@@ -261,22 +285,17 @@ class _SimulationPageState extends State<SimulationPage> {
     final email = emailController.text.trim();
     final password = passwordController.text;
     if (email.isEmpty) {
-      setState(() {
-        _error = 'Email wajib diisi';
-      });
+      _showToast('Email wajib diisi', isError: true);
       return;
     }
 
     if (password.isEmpty) {
-      setState(() {
-        _error = 'Password wajib diisi';
-      });
+      _showToast('Password wajib diisi', isError: true);
       return;
     }
 
     setState(() {
       _loggingIn = true;
-      _error = '';
       _message = '';
     });
 
@@ -290,7 +309,7 @@ class _SimulationPageState extends State<SimulationPage> {
         }),
       );
 
-      final jsonMap = jsonDecode(response.body) as Map<String, dynamic>;
+      final jsonMap = _decodeJsonMap(response, 'Login');
       if (response.statusCode >= 400) {
         throw Exception('${jsonMap['message'] ?? 'Login gagal'}');
       }
@@ -305,10 +324,9 @@ class _SimulationPageState extends State<SimulationPage> {
             ? 'Login admin berhasil. Pengaturan endpoint ditampilkan.'
             : 'Login berhasil sebagai $loginEmail';
       });
+      _showToast(_message.isNotEmpty ? _message : 'Login berhasil');
     } catch (e) {
-      setState(() {
-        _error = 'Login gagal: $e';
-      });
+      _showToast('Login gagal: $e', isError: true);
     } finally {
       setState(() {
         _loggingIn = false;
@@ -321,8 +339,8 @@ class _SimulationPageState extends State<SimulationPage> {
     setState(() {
       _loggedInEmail = '';
       _message = 'Logout berhasil';
-      _error = '';
     });
+    _showToast('Logout berhasil');
   }
 
   Future<void> _loadSavedBaseUrl() async {
@@ -336,9 +354,7 @@ class _SimulationPageState extends State<SimulationPage> {
   Future<void> _saveBaseUrl() async {
     final value = _baseUrl;
     if (value.isEmpty || !value.startsWith('http')) {
-      setState(() {
-        _error = 'URL endpoint harus diawali http:// atau https://';
-      });
+      _showToast('URL endpoint harus diawali http:// atau https://', isError: true);
       return;
     }
 
@@ -346,14 +362,13 @@ class _SimulationPageState extends State<SimulationPage> {
     await prefs.setString(_baseUrlPrefKey, value);
     setState(() {
       _message = 'Endpoint tersimpan: $value';
-      _error = '';
     });
+    _showToast('Endpoint tersimpan: $value');
   }
 
   Future<void> _loadConfig() async {
     setState(() {
       _loadingConfig = true;
-      _error = '';
       _message = '';
     });
 
@@ -374,11 +389,10 @@ class _SimulationPageState extends State<SimulationPage> {
         _applyDefaultValues();
         _message = 'Konfigurasi berhasil dimuat';
       });
+      _showToast('Konfigurasi berhasil dimuat');
       _scheduleCalculate();
     } catch (e) {
-      setState(() {
-        _error = 'Tidak bisa menghubungkan ke server: $e';
-      });
+      _showToast('Tidak bisa menghubungkan ke server: $e', isError: true);
     } finally {
       setState(() {
         _loadingConfig = false;
@@ -393,6 +407,7 @@ class _SimulationPageState extends State<SimulationPage> {
     _form['mutasi'] = _pickDefault(['Mutasi', 'Non Mutasi'], 'Non Mutasi');
     _form['blokir_angsuran'] = '1';
     _syncPricingOverridesFromConfig();
+    _syncTextControllers();
   }
 
   void _syncPricingOverridesFromConfig() {
@@ -437,9 +452,9 @@ class _SimulationPageState extends State<SimulationPage> {
         _autoSetProdukByAge();
       }
       _syncPricingOverridesFromConfig();
-      _error = '';
       _message = '';
     });
+    _syncTextController(key);
     _scheduleCalculate();
   }
 
@@ -463,17 +478,69 @@ class _SimulationPageState extends State<SimulationPage> {
     _form['produk'] = matched;
   }
 
+  List<String> _missingRequiredFieldKeys() {
+    final missing = <String>[];
+    for (final key in ['produk', 'jenis_pensiun', 'bank_tujuan', 'tanggal_lahir']) {
+      if ('${_form[key] ?? ''}'.trim().isEmpty) {
+        missing.add(key);
+      }
+    }
+    return missing;
+  }
+
   bool _readyForCalculate() {
-    return '${_form['produk']}'.isNotEmpty &&
-        '${_form['jenis_pensiun']}'.isNotEmpty &&
-        '${_form['bank_tujuan']}'.isNotEmpty &&
-        '${_form['tanggal_lahir']}'.isNotEmpty;
+    return _missingRequiredFieldKeys().isEmpty;
+  }
+
+  String _fieldLabel(String key) {
+    switch (key) {
+      case 'produk':
+        return 'Produk';
+      case 'jenis_pensiun':
+        return 'Jenis Pensiun';
+      case 'bank_tujuan':
+        return 'Bank Tujuan';
+      case 'tanggal_lahir':
+        return 'Tanggal Lahir';
+      default:
+        return key;
+    }
+  }
+
+  void _syncTextController(String key) {
+    final controller = _textControllers[key];
+    if (controller == null) return;
+    final value = '${_form[key] ?? ''}';
+    if (controller.text != value) {
+      controller.text = value;
+    }
+  }
+
+  void _syncTextControllers() {
+    for (final key in _textControllers.keys) {
+      _syncTextController(key);
+    }
   }
 
   void _scheduleCalculate() {
     _debounce?.cancel();
     if (!_readyForCalculate()) return;
-    _debounce = Timer(const Duration(milliseconds: 800), _calculate);
+    _debounce = Timer(const Duration(milliseconds: 900), _calculate);
+  }
+
+  Map<String, dynamic> _decodeJsonMap(http.Response response, String action) {
+    final body = response.body.trimLeft();
+    if (body.startsWith('<!DOCTYPE') || body.startsWith('<html')) {
+      throw Exception(
+        '$action gagal: server mengembalikan HTML, bukan JSON. Cek Base URL API.',
+      );
+    }
+
+    final decoded = jsonDecode(response.body);
+    if (decoded is Map<String, dynamic>) return decoded;
+    if (decoded is Map) return decoded.cast<String, dynamic>();
+
+    throw Exception('$action gagal: format response tidak sesuai.');
   }
 
   Map<String, dynamic> _requestPayload() {
@@ -504,10 +571,16 @@ class _SimulationPageState extends State<SimulationPage> {
   }
 
   Future<void> _calculate() async {
-    if (!_readyForCalculate()) return;
+    final missing = _missingRequiredFieldKeys();
+    if (missing.isNotEmpty) {
+      _showToast(
+        'Lengkapi field wajib: ${missing.map(_fieldLabel).join(', ')}',
+        isError: true,
+      );
+      return;
+    }
     setState(() {
       _calculating = true;
-      _error = '';
     });
 
     try {
@@ -517,7 +590,7 @@ class _SimulationPageState extends State<SimulationPage> {
         body: jsonEncode(_requestPayload()),
       );
 
-      final jsonMap = jsonDecode(response.body) as Map<String, dynamic>;
+        final jsonMap = _decodeJsonMap(response, 'Perhitungan');
       if (response.statusCode >= 400) {
         throw Exception('${jsonMap['message'] ?? 'Perhitungan gagal'}');
       }
@@ -526,10 +599,14 @@ class _SimulationPageState extends State<SimulationPage> {
         _result = Map<String, dynamic>.from(jsonMap['data'] as Map<String, dynamic>? ?? {});
         _limits = jsonMap['limits'] as Map<String, dynamic>?;
       });
+      if (_limits != null && _limits!['is_valid'] == false) {
+        _showToast(
+          'Data belum valid menurut rule backend. Anda tetap bisa simpan trial.',
+          isWarning: true,
+        );
+      }
     } catch (e) {
-      setState(() {
-        _error = 'Gagal hitung: $e';
-      });
+      _showToast('Gagal hitung: $e', isError: true);
     } finally {
       setState(() {
         _calculating = false;
@@ -539,15 +616,12 @@ class _SimulationPageState extends State<SimulationPage> {
 
   Future<void> _save() async {
     if (_result.isEmpty) {
-      setState(() {
-        _error = 'Hitung dulu sebelum simpan';
-      });
+      _showToast('Hitung dulu sebelum simpan', isError: true);
       return;
     }
 
     setState(() {
       _saving = true;
-      _error = '';
       _message = '';
     });
 
@@ -558,7 +632,7 @@ class _SimulationPageState extends State<SimulationPage> {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(payload),
       );
-      final jsonMap = jsonDecode(response.body) as Map<String, dynamic>;
+        final jsonMap = _decodeJsonMap(response, 'Simpan');
       if (response.statusCode >= 400) {
         throw Exception(jsonMap['message'] ?? 'Gagal simpan');
       }
@@ -571,10 +645,9 @@ class _SimulationPageState extends State<SimulationPage> {
       setState(() {
         _message = 'Data berhasil disimpan ke database';
       });
+      _showToast('Data berhasil disimpan ke database');
     } catch (e) {
-      setState(() {
-        _error = 'Simpan gagal: $e';
-      });
+      _showToast('Simpan gagal: $e', isError: true);
     } finally {
       setState(() {
         _saving = false;
@@ -585,15 +658,12 @@ class _SimulationPageState extends State<SimulationPage> {
   Future<void> _downloadPdf() async {
     final id = _result['id'];
     if (id == null) {
-      setState(() {
-        _error = 'Simpan data dulu agar punya ID untuk PDF';
-      });
+      _showToast('Simpan data dulu agar punya ID untuk PDF', isError: true);
       return;
     }
 
     setState(() {
       _downloading = true;
-      _error = '';
       _message = '';
     });
 
@@ -616,10 +686,9 @@ class _SimulationPageState extends State<SimulationPage> {
       setState(() {
         _message = 'PDF tersimpan: ${file.path}';
       });
+      _showToast('PDF tersimpan: ${file.path}');
     } catch (e) {
-      setState(() {
-        _error = 'Download PDF gagal: $e';
-      });
+      _showToast('Download PDF gagal: $e', isError: true);
     } finally {
       setState(() {
         _downloading = false;
@@ -721,9 +790,14 @@ class _SimulationPageState extends State<SimulationPage> {
       case FieldType.text:
       case FieldType.number:
       case FieldType.integer:
+        final controller = _textControllers.putIfAbsent(
+          key,
+          () => TextEditingController(text: '${_form[key] ?? ''}'),
+        );
         return TextFormField(
-          initialValue: '${_form[key] ?? ''}',
+          controller: controller,
           enabled: !_isInputDisabled(row),
+          readOnly: row.type == FieldType.date,
           keyboardType: row.type == FieldType.text
               ? (key == 'nomor_hp' ? TextInputType.phone : TextInputType.text)
               : (row.type == FieldType.date
@@ -736,7 +810,9 @@ class _SimulationPageState extends State<SimulationPage> {
             isDense: true,
             hintText: 'Isi nilai',
           ),
-          onChanged: (value) => _onFieldChanged(key, value),
+            onChanged: row.type == FieldType.date
+              ? null
+              : (value) => _onFieldChanged(key, value),
           onTap: row.type == FieldType.date
               ? () async {
                   final initial = DateTime.tryParse('${_form[key]}') ?? DateTime.now();
@@ -771,6 +847,7 @@ class _SimulationPageState extends State<SimulationPage> {
     }
 
     final isOutput = row.type == FieldType.output;
+    final isRequired = row.key != null && _missingRequiredFieldKeys().contains(row.key);
     return Container(
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: Color(0xFFD8DEE4))),
@@ -783,7 +860,24 @@ class _SimulationPageState extends State<SimulationPage> {
             child: Container(
               padding: const EdgeInsets.all(10),
               color: const Color(0xFFFAFCFF),
-              child: Text(row.label, style: const TextStyle(fontWeight: FontWeight.w600)),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      row.label,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                  if (isRequired)
+                    const Padding(
+                      padding: EdgeInsets.only(left: 4),
+                      child: Text(
+                        '*',
+                        style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
           Expanded(
@@ -806,13 +900,9 @@ class _SimulationPageState extends State<SimulationPage> {
 
   @override
   Widget build(BuildContext context) {
-    final warning = _limits != null && _limits!['is_valid'] == false
-        ? 'Data belum valid menurut rule backend. Anda tetap bisa simpan trial.'
-        : '';
-
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Simulasi KB Android'),
+        title: const Text('NBP_Simulasi'),
         backgroundColor: const Color(0xFF184E77),
         foregroundColor: Colors.white,
         actions: [
@@ -892,27 +982,6 @@ class _SimulationPageState extends State<SimulationPage> {
                     ),
                   ),
                 ),
-              if (_message.isNotEmpty)
-                Container(
-                  margin: const EdgeInsets.only(top: 8),
-                  padding: const EdgeInsets.all(10),
-                  color: const Color(0xFFE9F5FF),
-                  child: Text(_message),
-                ),
-              if (_error.isNotEmpty)
-                Container(
-                  margin: const EdgeInsets.only(top: 8),
-                  padding: const EdgeInsets.all(10),
-                  color: const Color(0xFFFFEAEA),
-                  child: Text(_error, style: const TextStyle(color: Colors.red)),
-                ),
-              if (warning.isNotEmpty)
-                Container(
-                  margin: const EdgeInsets.only(top: 8),
-                  padding: const EdgeInsets.all(10),
-                  color: const Color(0xFFFFF4E5),
-                  child: Text(warning),
-                ),
               const SizedBox(height: 12),
               Card(
                 child: Container(
@@ -933,7 +1002,10 @@ class _SimulationPageState extends State<SimulationPage> {
                       const Text('Keterangan Trial', style: TextStyle(fontWeight: FontWeight.w700)),
                       const SizedBox(height: 8),
                       TextFormField(
-                        initialValue: '${_form['keterangan']}',
+                        controller: _textControllers.putIfAbsent(
+                          'keterangan',
+                          () => TextEditingController(text: '${_form['keterangan'] ?? ''}'),
+                        ),
                         maxLines: 3,
                         decoration: const InputDecoration(
                           hintText: 'Contoh: debitur minta sisa gaji akhir minimal 250rb',
@@ -952,7 +1024,10 @@ class _SimulationPageState extends State<SimulationPage> {
                           ),
                           ElevatedButton(
                             onPressed: _saving ? null : _save,
-                            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1D4E89)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1D4E89),
+                              foregroundColor: Colors.white,
+                            ),
                             child: Text(_saving ? 'Menyimpan...' : 'Simpan ke Database'),
                           ),
                           OutlinedButton(
