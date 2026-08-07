@@ -30,6 +30,52 @@
         <div class="alert alert-danger">{{ session('error') }}</div>
     @endif
 
+    @if($isTrialList ?? false)
+        <div class="card mb-3">
+            <div class="card-body">
+                <form method="GET" action="{{ route('data_simulasi.trial.list') }}" class="row g-2 align-items-end">
+                    <div class="col-md-3">
+                        <label for="nopen" class="form-label mb-1">Nopen</label>
+                        <input
+                            type="text"
+                            id="nopen"
+                            name="nopen"
+                            class="form-control"
+                            value="{{ $filters['nopen'] ?? '' }}"
+                            placeholder="Cari nomor pensiun"
+                        >
+                    </div>
+                    <div class="col-md-3">
+                        <label for="nama" class="form-label mb-1">Nama</label>
+                        <input
+                            type="text"
+                            id="nama"
+                            name="nama"
+                            class="form-control"
+                            value="{{ $filters['nama'] ?? '' }}"
+                            placeholder="Cari nama debitur"
+                        >
+                    </div>
+                    <div class="col-md-3">
+                        <label for="nomor_hp" class="form-label mb-1">No HP</label>
+                        <input
+                            type="text"
+                            id="nomor_hp"
+                            name="nomor_hp"
+                            class="form-control"
+                            value="{{ $filters['nomor_hp'] ?? '' }}"
+                            placeholder="Cari nomor HP"
+                        >
+                    </div>
+                    <div class="col-md-3 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">Filter</button>
+                        <a href="{{ route('data_simulasi.trial.list') }}" class="btn btn-outline-secondary">Reset</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    @endif
+
     <div class="card">
         <div class="card-body p-0">
             @if($dataSimulasi->isEmpty())
@@ -44,6 +90,7 @@
                                 <th>ID</th>
                                 <th>Keterangan</th>
                                 <th>Nama Debitur</th>
+                                <th>Nopen</th>
                                 <th>Tgl Lahir</th>
                                 <th>Usia</th>
                                 <th>No HP</th>
@@ -102,6 +149,7 @@
                                         <td>{{ $row->id }}</td>
                                         <td>{{ $row->keterangan ?: '-' }}</td>
                                         <td>{{ $row->nama_debitur ?: '-' }}</td>
+                                        <td>{{ $row->nomor_pensiun ?: '-' }}</td>
                                         <td>{{ $row->tanggal_lahir?->format('d-m-Y') ?: '-' }}</td>
                                         <td>{{ $row->umur !== null ? $row->umur . ' th' : '-' }}</td>
                                         <td>{{ $row->nomor_hp !== null ? $row->nomor_hp : '-' }}</td>

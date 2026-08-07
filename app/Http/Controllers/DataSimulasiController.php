@@ -14,6 +14,12 @@ class DataSimulasiController extends Controller
 {
     public function index()
     {
+        $filters = [
+            'nopen' => null,
+            'nama' => null,
+            'nomor_hp' => null,
+        ];
+
         $dataSimulasi = DataSimulasi::query()
             ->with('pelengkap')
             ->where(function ($query) {
@@ -31,16 +37,36 @@ class DataSimulasiController extends Controller
         $listTitle = 'Data Simulasi';
         $isTrialList = false;
 
-        return view('products.data_simulasi_index', compact('dataSimulasi', 'mailMergeTemplates', 'listTitle', 'isTrialList'));
+        return view('products.data_simulasi_index', compact('dataSimulasi', 'mailMergeTemplates', 'listTitle', 'isTrialList', 'filters'));
     }
 
-    public function trialIndex()
+    public function trialIndex(Request $request)
     {
+        $filters = [
+            'nopen' => trim((string) $request->query('nopen', '')),
+            'nama' => trim((string) $request->query('nama', '')),
+            'nomor_hp' => trim((string) $request->query('nomor_hp', '')),
+        ];
+
         $dataSimulasi = DataSimulasi::query()
             ->with('pelengkap')
             ->where('status', 'trial')
+            ->when($filters['nopen'] !== '', function ($query) use ($filters) {
+                $query->where('nomor_pensiun', 'like', '%' . $filters['nopen'] . '%');
+            })
+            ->when($filters['nama'] !== '', function ($query) use ($filters) {
+                $query->where('nama_debitur', 'like', '%' . $filters['nama'] . '%');
+            })
+            ->when($filters['nomor_hp'] !== '', function ($query) use ($filters) {
+                $query->where('nomor_hp', 'like', '%' . $filters['nomor_hp'] . '%');
+            })
             ->latest('id')
-            ->paginate(15);
+            ->paginate(15)
+            ->appends([
+                'nopen' => $filters['nopen'],
+                'nama' => $filters['nama'],
+                'nomor_hp' => $filters['nomor_hp'],
+            ]);
 
         $mailMergeTemplates = MailMergeTemplate::query()
             ->orderBy('document_type')
@@ -50,7 +76,7 @@ class DataSimulasiController extends Controller
         $listTitle = 'Trial Data Simulasi';
         $isTrialList = true;
 
-        return view('products.data_simulasi_index', compact('dataSimulasi', 'mailMergeTemplates', 'listTitle', 'isTrialList'));
+        return view('products.data_simulasi_index', compact('dataSimulasi', 'mailMergeTemplates', 'listTitle', 'isTrialList', 'filters'));
     }
 
     public function confirm(DataSimulasi $dataSimulasi)
