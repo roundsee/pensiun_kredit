@@ -17,7 +17,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // Alias middleware yang sudah ada
         $middleware->alias([
             'role' => EnsureUserHasRole::class,
+            'simulation.only' => 'App\\Http\\Middleware\\RestrictTestUserToSimulation',
         ]);
+
+        $middleware->appendToGroup('web', 'App\\Http\\Middleware\\RestrictTestUserToSimulation');
 
         // Tambahan untuk mempercayai Cloudflare Tunnel
         $middleware->trustProxies(

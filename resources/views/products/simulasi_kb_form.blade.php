@@ -72,10 +72,15 @@
                     <div class="alert alert-info mb-3" x-show="shouldShowMessages() && message" x-text="message"></div>
                     <div class="alert alert-danger mb-3" x-show="shouldShowMessages() && errorMessage" x-text="errorMessage"></div>
 
-                    <div class="d-flex justify-content-end gap-2 mb-3">
-                        <a href="{{ route('kb_simulasi.goal_seeker') }}" class="btn btn-sm btn-outline-primary">Goal Seeker</a>
-                        <a href="{{ route('data_simulasi.trial.list') }}" class="btn btn-sm btn-outline-secondary">Lihat Trial Data Simulasi</a>
-                    </div>
+                    @php
+                        $isSimulationOnlyUser = strtolower((string) (auth()->user()->email ?? '')) === 'test@example.com';
+                    @endphp
+                    @if(! $isSimulationOnlyUser)
+                        <div class="d-flex justify-content-end gap-2 mb-3">
+                            <a href="{{ route('kb_simulasi.goal_seeker') }}" class="btn btn-sm btn-outline-primary">Goal Seeker</a>
+                            <a href="{{ route('data_simulasi.trial.list') }}" class="btn btn-sm btn-outline-secondary">Lihat Trial Data Simulasi</a>
+                        </div>
+                    @endif
 
                     <div class="kb-sheet-wrap">
                         <table class="kb-sheet-table">

@@ -18,33 +18,43 @@
             <div class="collapse navbar-collapse" id="navbarNavDropdown">
                 <ul class="navbar-nav ms-auto">
                     @auth
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ route('dashboard') }}">Dashboard</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ route('kb_simulasi.index') }}">Simulasi</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ route('kb_simulasi.goal_seeker') }}">Goal Seeker</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ route('data_simulasi.trial.list') }}">Trial Data Simulasi</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ route('data_simulasi.list') }}">Data Simulasi</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url('/banpot') }}">List Banpot</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ route('nominatif.initial.create') }}">Import Initial Nominatif</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ route('pic_nbp.index') }}">Petugas NBP</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ route('maintenance.db.index') }}">DB Tools</a>
-                        </li>
+                        @php
+                            $isSimulationOnlyUser = strtolower((string) (auth()->user()->email ?? '')) === 'test@example.com';
+                        @endphp
+
+                        @if($isSimulationOnlyUser)
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('simulasi') }}">Simulasi</a>
+                            </li>
+                        @else
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('dashboard') }}">Dashboard</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('kb_simulasi.index') }}">Simulasi</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('kb_simulasi.goal_seeker') }}">Goal Seeker</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('data_simulasi.trial.list') }}">Trial Data Simulasi</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('data_simulasi.list') }}">Data Simulasi</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url('/banpot') }}">List Banpot</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('nominatif.initial.create') }}">Import Initial Nominatif</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('pic_nbp.index') }}">Petugas NBP</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('maintenance.db.index') }}">DB Tools</a>
+                            </li>
+                        @endif
                         <li class="nav-item">
                             <form method="POST" action="{{ route('logout') }}">
                                 @csrf

@@ -51,6 +51,12 @@ class AuthController extends Controller
 
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
+
+            $user = Auth::user();
+            if ($user && strtolower((string) $user->email) === 'test@example.com') {
+                return redirect()->route('simulasi');
+            }
+
             return redirect()->route('dashboard');
         }
 
