@@ -45,6 +45,6 @@ class RestrictTestUserToSimulation
             ], 403);
         }
 
-        return redirect()->route('simulasi');
+        return redirect()->route('kb_simulasi.index');
     }
 }

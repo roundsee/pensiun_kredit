@@ -25,7 +25,7 @@
 
                         @if($isSimulationOnlyUser)
                             <li class="nav-item">
-                                <a class="nav-link" href="{{ route('simulasi') }}">Simulasi</a>
+                                <a class="nav-link" href="{{ route('kb_simulasi.index') }}">Simulasi</a>
                             </li>
                         @else
                             <li class="nav-item">

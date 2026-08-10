@@ -54,7 +54,7 @@ class AuthController extends Controller
 
             $user = Auth::user();
             if ($user && strtolower((string) $user->email) === 'test@example.com') {
-                return redirect()->route('simulasi');
+                return redirect()->route('kb_simulasi.index');
             }
 
             return redirect()->route('dashboard');
