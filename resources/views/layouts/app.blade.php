@@ -20,6 +20,7 @@
                     @auth
                         @php
                             $isSimulationOnlyUser = strtolower((string) (auth()->user()->email ?? '')) === 'test@example.com';
+                            $canManageUsers = auth()->user()?->hasRole(\App\Models\User::ROLE_SUPERVISOR) ?? false;
                         @endphp
 
                         @if($isSimulationOnlyUser)
@@ -54,6 +55,14 @@
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route('maintenance.db.index') }}">DB Tools</a>
                             </li>
+                            @if($canManageUsers)
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{{ route('users.role_setting') }}">User Role Setting</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{{ route('register') }}">Register</a>
+                                </li>
+                            @endif
                         @endif
                         <li class="nav-item">
                             <form method="POST" action="{{ route('logout') }}">
