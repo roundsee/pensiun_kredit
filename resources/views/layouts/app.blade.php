@@ -19,13 +19,26 @@
                 <ul class="navbar-nav ms-auto">
                     @auth
                         @php
-                            $isSimulationOnlyUser = strtolower((string) (auth()->user()->email ?? '')) === 'test@example.com';
-                            $canManageUsers = auth()->user()?->hasRole(\App\Models\User::ROLE_SUPERVISOR) ?? false;
+                            $role = auth()->user()?->roleSlug();
+                            $isAdmin = in_array($role, [\App\Models\User::ROLE_ADMIN, \App\Models\User::ROLE_SUPERVISOR], true);
+                            $isMarketing = $role === \App\Models\User::ROLE_MARKETING;
+                            $isSupportOrOperation = in_array($role, [\App\Models\User::ROLE_SUPPORT_BISNIS, \App\Models\User::ROLE_OPERATION], true);
+                            $canManageUsers = $isAdmin;
                         @endphp
 
-                        @if($isSimulationOnlyUser)
+                        @if($isMarketing)
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route('kb_simulasi.index') }}">Simulasi</a>
+                            </li>
+                        @elseif($isSupportOrOperation)
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('kb_simulasi.index') }}">Simulasi</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('data_simulasi.trial.list') }}">Trial Data Simulasi</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('data_simulasi.list') }}">Data Simulasi</a>
                             </li>
                         @else
                             <li class="nav-item">

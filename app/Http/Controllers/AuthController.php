@@ -53,8 +53,12 @@ class AuthController extends Controller
             $request->session()->regenerate();
 
             $user = Auth::user();
-            if ($user && strtolower((string) $user->email) === 'test@example.com') {
+            if ($user instanceof User && $user->hasRole(User::ROLE_MARKETING)) {
                 return redirect()->route('kb_simulasi.index');
+            }
+
+            if ($user instanceof User && $user->hasAnyRole([User::ROLE_SUPPORT_BISNIS, User::ROLE_OPERATION])) {
+                return redirect()->route('data_simulasi.trial.list');
             }
 
             return redirect()->route('dashboard');

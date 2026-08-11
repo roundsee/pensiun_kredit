@@ -18,6 +18,10 @@ class User extends Authenticatable
 
     public const ROLE_SUPPORT_BISNIS = 'support_bisnis';
 
+    public const ROLE_OPERATION = 'operation';
+
+    public const ROLE_ADMIN = 'admin';
+
     /**
      * The attributes that are mass assignable.
      *
@@ -106,9 +110,10 @@ class User extends Authenticatable
         }
 
         return $this->hasAnyRole([
-            self::ROLE_MARKETING,
+            self::ROLE_ADMIN,
             self::ROLE_SUPERVISOR,
             self::ROLE_SUPPORT_BISNIS,
+            self::ROLE_OPERATION,
         ]);
     }
 }

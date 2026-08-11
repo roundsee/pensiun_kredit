@@ -136,12 +136,12 @@ Route::get('/', function () {
 // Auth routes
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [AuthController::class, 'login']);
-Route::get('/register', [UserManagementController::class, 'create'])->name('register')->middleware(['auth', 'role:supervisor']);
-Route::post('/register', [UserManagementController::class, 'store'])->name('register.store')->middleware(['auth', 'role:supervisor']);
+Route::get('/register', [UserManagementController::class, 'create'])->name('register')->middleware(['auth', 'role:admin,supervisor']);
+Route::post('/register', [UserManagementController::class, 'store'])->name('register.store')->middleware(['auth', 'role:admin,supervisor']);
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-Route::get('/users/role-setting', [UserManagementController::class, 'index'])->name('users.role_setting')->middleware(['auth', 'role:supervisor']);
-Route::patch('/users/{user}/role', [UserManagementController::class, 'updateRole'])->name('users.update_role')->middleware(['auth', 'role:supervisor']);
+Route::get('/users/role-setting', [UserManagementController::class, 'index'])->name('users.role_setting')->middleware(['auth', 'role:admin,supervisor']);
+Route::patch('/users/{user}/role', [UserManagementController::class, 'updateRole'])->name('users.update_role')->middleware(['auth', 'role:admin,supervisor']);
 
 // Dashboard route
 Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard')->middleware('auth');
