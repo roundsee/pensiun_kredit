@@ -928,6 +928,7 @@ public function downloadPdfSImulasi(Request $request)
             ->first();
 
         $usia = isset($result['umur']) && $result['umur'] !== null ? (int) $result['umur'] : null;
+        $usiaLunas = isset($result['usia_lunas']) && $result['usia_lunas'] !== null ? (int) $result['usia_lunas'] : null;
         $usiaMasukMin = $struct?->usia_masuk_min !== null ? (int) $struct->usia_masuk_min : null;
         $usiaLunasMax = $struct?->usia_max !== null ? (int) $struct->usia_max : null;
 
@@ -947,7 +948,7 @@ public function downloadPdfSImulasi(Request $request)
             : ($plafondInput <= ($plafondMaxDisplayed + $plafondTolerance));
 
         $usiaMinValid = $usiaMasukMin === null || $usia === null ? true : ($usia >= $usiaMasukMin);
-        $usiaMaxValid = $usiaLunasMax === null || $usia === null ? true : ($usia <= $usiaLunasMax);
+        $usiaMaxValid = $usiaLunasMax === null || $usiaLunas === null ? true : ($usiaLunas <= $usiaLunasMax);
 
         $sisaGajiSaatPengajuan = (float) ($result['sisa_gaji_saat_pengajuan'] ?? 0);
         $totalAngsuran = (float) ($result['total_angsuran'] ?? 0);
@@ -981,6 +982,7 @@ public function downloadPdfSImulasi(Request $request)
 
         return [
             'usia' => $usia,
+            'usia_lunas' => $usiaLunas,
             'usia_masuk_min' => $usiaMasukMin,
             'usia_lunas_max' => $usiaLunasMax,
             'usia_min_valid' => $usiaMinValid,

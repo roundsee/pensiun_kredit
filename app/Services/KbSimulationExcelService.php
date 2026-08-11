@@ -254,6 +254,12 @@ $bankAsal = KbReferenceOption::query()
         $asuransi = $plafond * $asuransiPercent;
         $extraPremi = 0.0;
         $blokirAngsuranCount = max(1, min(5, (int) ($input['blokir_angsuran'] ?? 1)));
+        if ($this->shouldForceFiveInstallmentBlock(
+            (string) ($input['bank_asal'] ?? ''),
+            (string) ($input['bank_tujuan'] ?? '')
+        )) {
+            $blokirAngsuranCount = 5;
+        }
         $amountBlokirAngsuran = $blokirAngsuranCount * $totalAngsuran;
         $pelunasan = max(0.0, (float) ($input['pelunasan'] ?? 0));
 
@@ -494,23 +500,11 @@ $bankAsal = KbReferenceOption::query()
     }
 
     private function buildAgeText(Carbon $tanggalLahir, Carbon $tanggalAcuan): array
-        {// Menggunakan diff native php melalui Carbon untuk mendapatkan pecahannya
+        {
         $diff = $tanggalLahir->diff($tanggalAcuan);
         
         $years = $diff->y;
         $remainingMonths = $diff->m;
-        $days = $diff->d;
-
-        // LOGIKA ANDA: Jika ada kelebihan hari (> 0), bulatkan ke atas menjadi +1 bulan
-        if ($days > 0) {
-            $remainingMonths += 1;
-        }
-
-        // Jika bulan genap atau lebih dari 12 setelah dibulatkan
-        if ($remainingMonths >= 12) {
-            $years += 1;
-            $remainingMonths = 0;
-        }
 
         return [sprintf('%d thn %d bln', $years, $remainingMonths), $years];
     }
@@ -578,6 +572,22 @@ $bankAsal = KbReferenceOption::query()
         }
 
         return null;
+    }
+
+    private function shouldForceFiveInstallmentBlock(string $bankAsal, string $bankTujuan): bool
+    {
+        $normalizedBankAsal = strtoupper(trim($bankAsal));
+        $normalizedBankTujuan = strtoupper(trim($bankTujuan));
+
+        if ($normalizedBankTujuan !== 'MANTAP') {
+            return false;
+        }
+
+        return in_array($normalizedBankAsal, [
+            'BANK WOORI SAUDARA',
+            'BANK BUKOPIN',
+            'BANK BTPN',
+        ], true);
     }
 
 }
