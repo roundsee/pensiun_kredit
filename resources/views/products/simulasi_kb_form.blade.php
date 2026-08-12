@@ -430,6 +430,23 @@ function kbSimulasiForm() {
             }
         },
 
+        applySpecialBlokirRule() {
+            const bankAsal = String(this.form.bank_asal ?? '').trim().toUpperCase();
+            const bankTujuan = String(this.form.bank_tujuan ?? '').trim().toUpperCase();
+            const specialBanks = ['BANK WOORI SAUDARA', 'BANK BTPN', 'BANK BUKOPIN'];
+
+            if (bankTujuan === 'MANTAP' && specialBanks.includes(bankAsal)) {
+                this.form.blokir_angsuran = '5';
+                return true;
+            }
+
+            if (bankTujuan === 'MANTAP' && this.form.blokir_angsuran === '5') {
+                this.form.blokir_angsuran = '1';
+            }
+
+            return false;
+        },
+
         applyInitialDefaults() {
             
             const jenisOptions = Array.isArray(this.options.jenis_pensiun) ? this.options.jenis_pensiun : [];
@@ -462,6 +479,10 @@ function kbSimulasiForm() {
 
             if (!this.form.blokir_angsuran || !blokirOptions.includes(String(this.form.blokir_angsuran))) {
                 this.form.blokir_angsuran = String(blokirDefault);
+            }
+
+            if (this.applySpecialBlokirRule()) {
+                this.form.blokir_angsuran = '5';
             }
 
             if (!this.form.tanggal_simulasi || String(this.form.tanggal_simulasi).trim() === '') {
@@ -544,6 +565,7 @@ function kbSimulasiForm() {
         onFormChanged() {
             console.log('Form changed:', this.form);
             this.applyInitialDefaults();
+            this.applySpecialBlokirRule();
             this.applyAutoProdukByAge();
             this.syncAllSelectValues();
             this.recalculateRealtimeAge();

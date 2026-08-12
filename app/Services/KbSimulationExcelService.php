@@ -253,13 +253,7 @@ $bankAsal = KbReferenceOption::query()
         $administrasi = $plafond * $administrasiPercent;
         $asuransi = $plafond * $asuransiPercent;
         $extraPremi = 0.0;
-        $blokirAngsuranCount = max(1, min(5, (int) ($input['blokir_angsuran'] ?? 1)));
-        if ($this->shouldForceFiveInstallmentBlock(
-            (string) ($input['bank_asal'] ?? ''),
-            (string) ($input['bank_tujuan'] ?? '')
-        )) {
-            $blokirAngsuranCount = 5;
-        }
+        $blokirAngsuranCount = $this->resolveBlokirAngsuranCount($input);
         $amountBlokirAngsuran = $blokirAngsuranCount * $totalAngsuran;
         $pelunasan = max(0.0, (float) ($input['pelunasan'] ?? 0));
 
@@ -572,6 +566,23 @@ $bankAsal = KbReferenceOption::query()
         }
 
         return null;
+    }
+
+    private function resolveBlokirAngsuranCount(array $input): int
+    {
+        if ($this->shouldForceFiveInstallmentBlock(
+            (string) ($input['bank_asal'] ?? ''),
+            (string) ($input['bank_tujuan'] ?? '')
+        )) {
+            return 5;
+        }
+
+        $requestedBlokir = $input['blokir_angsuran'] ?? null;
+        if ($requestedBlokir !== null && $requestedBlokir !== '') {
+            return max(1, min(5, (int) $requestedBlokir));
+        }
+
+        return 1;
     }
 
     private function shouldForceFiveInstallmentBlock(string $bankAsal, string $bankTujuan): bool
