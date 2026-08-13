@@ -439,15 +439,17 @@ function kbSimulasiForm() {
                 return false;
             }
 
-            const nextBlokir = specialBanks.includes(bankAsal) ? '5' : '1';
+            const defaultBlokir = specialBanks.includes(bankAsal) ? '5' : '1';
 
-            if (this.form.blokir_angsuran !== nextBlokir) {
-                this.form.blokir_angsuran = nextBlokir;
+            if (!this.form.blokir_angsuran || !['1', '2', '3', '4', '5'].includes(String(this.form.blokir_angsuran))) {
+                this.form.blokir_angsuran = defaultBlokir;
+            } else if (this.form.blokir_angsuran === '5' && !specialBanks.includes(bankAsal)) {
+                this.form.blokir_angsuran = defaultBlokir;
             }
 
             if (this.hasil && this.hasil.total_angsuran !== undefined && this.hasil.total_angsuran !== null && this.hasil.total_angsuran !== '') {
                 const totalAngsuran = Number(this.hasil.total_angsuran) || 0;
-                const blokirValue = Number(nextBlokir) || 1;
+                const blokirValue = Number(this.form.blokir_angsuran || defaultBlokir) || 1;
                 this.hasil.blokir_angsuran = blokirValue;
                 this.hasil.amount_blokir_angsuran = blokirValue * totalAngsuran;
             }
@@ -490,7 +492,14 @@ function kbSimulasiForm() {
             }
 
             if (this.form.bank_tujuan && String(this.form.bank_tujuan).trim().toUpperCase() === 'MANTAP') {
-                this.applySpecialBlokirRule();
+                const existing = String(this.form.blokir_angsuran ?? '1');
+                const defaultBlokir = ['BANK WOORI SAUDARA', 'BANK BTPN', 'BANK BUKOPIN'].includes(String(this.form.bank_asal ?? '').trim().toUpperCase()) ? '5' : '1';
+
+                if (existing === '' || !['1', '2', '3', '4', '5'].includes(existing)) {
+                    this.form.blokir_angsuran = defaultBlokir;
+                } else if (existing === '5' && !['BANK WOORI SAUDARA', 'BANK BTPN', 'BANK BUKOPIN'].includes(String(this.form.bank_asal ?? '').trim().toUpperCase())) {
+                    this.form.blokir_angsuran = defaultBlokir;
+                }
             }
 
             if (!this.form.tanggal_simulasi || String(this.form.tanggal_simulasi).trim() === '') {
