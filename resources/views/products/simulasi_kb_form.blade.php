@@ -435,11 +435,11 @@ function kbSimulasiForm() {
             const bankTujuan = String(this.form.bank_tujuan ?? '').trim().toUpperCase();
             const specialBanks = ['BANK WOORI SAUDARA', 'BANK BTPN', 'BANK BUKOPIN'];
 
-            let nextBlokir = String(this.form.blokir_angsuran ?? '1');
-
-            if (bankTujuan === 'MANTAP') {
-                nextBlokir = specialBanks.includes(bankAsal) ? '5' : '1';
+            if (bankTujuan !== 'MANTAP') {
+                return false;
             }
+
+            const nextBlokir = specialBanks.includes(bankAsal) ? '5' : '1';
 
             if (this.form.blokir_angsuran !== nextBlokir) {
                 this.form.blokir_angsuran = nextBlokir;
@@ -452,7 +452,7 @@ function kbSimulasiForm() {
                 this.hasil.amount_blokir_angsuran = blokirValue * totalAngsuran;
             }
 
-            return bankTujuan === 'MANTAP' && specialBanks.includes(bankAsal);
+            return specialBanks.includes(bankAsal);
         },
 
         applyInitialDefaults() {
@@ -489,8 +489,8 @@ function kbSimulasiForm() {
                 this.form.blokir_angsuran = String(blokirDefault);
             }
 
-            if (this.applySpecialBlokirRule()) {
-                this.form.blokir_angsuran = '5';
+            if (this.form.bank_tujuan && String(this.form.bank_tujuan).trim().toUpperCase() === 'MANTAP') {
+                this.applySpecialBlokirRule();
             }
 
             if (!this.form.tanggal_simulasi || String(this.form.tanggal_simulasi).trim() === '') {
