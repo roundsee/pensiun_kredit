@@ -32,6 +32,26 @@ class SimulationApp extends StatelessWidget {
 
 enum FieldType { select, text, date, number, integer, output, section, blank }
 
+int resolveBlokirAngsuranCount({
+  required String bankAsal,
+  required String bankTujuan,
+  String currentBlokir = '1',
+}) {
+  final normalizedBankAsal = bankAsal.trim().toUpperCase();
+  final normalizedBankTujuan = bankTujuan.trim().toUpperCase();
+  const specialBanks = {
+    'BANK WOORI SAUDARA',
+    'BANK BTPN',
+    'BANK BUKOPIN',
+  };
+
+  if (normalizedBankTujuan == 'MANTAP') {
+    return specialBanks.contains(normalizedBankAsal) ? 5 : 1;
+  }
+
+  return int.tryParse(currentBlokir.trim()) ?? 1;
+}
+
 class RowDef {
   const RowDef({
     required this.label,
@@ -400,12 +420,28 @@ class _SimulationPageState extends State<SimulationPage> {
     }
   }
 
+  void _applySpecialBlokirRule() {
+    final nextValue = resolveBlokirAngsuranCount(
+      bankAsal: '${_form['bank_asal'] ?? ''}',
+      bankTujuan: '${_form['bank_tujuan'] ?? ''}',
+      currentBlokir: '${_form['blokir_angsuran'] ?? '1'}',
+    );
+    final nextString = nextValue.toString();
+    if (_form['blokir_angsuran'] != nextString) {
+      _form['blokir_angsuran'] = nextString;
+      _syncTextController('blokir_angsuran');
+    }
+  }
+
   void _applyDefaultValues() {
     _form['produk'] = _pickDefault(_options['produk'], 'Platinum');
     _form['jenis_pensiun'] = _pickDefault(_options['jenis_pensiun'], 'Sendiri');
     _form['instansi'] = _pickDefault(['TASPEN', 'ASABRI'], 'TASPEN');
     _form['mutasi'] = _pickDefault(['Mutasi', 'Non Mutasi'], 'Non Mutasi');
-    _form['blokir_angsuran'] = '1';
+    _form['blokir_angsuran'] = resolveBlokirAngsuranCount(
+      bankAsal: '${_form['bank_asal'] ?? ''}',
+      bankTujuan: '${_form['bank_tujuan'] ?? ''}',
+    ).toString();
     _syncPricingOverridesFromConfig();
     _syncTextControllers();
   }
@@ -450,6 +486,9 @@ class _SimulationPageState extends State<SimulationPage> {
       _form[key] = value;
       if (key == 'tanggal_lahir' || key == 'tanggal_simulasi') {
         _autoSetProdukByAge();
+      }
+      if (key == 'bank_asal' || key == 'bank_tujuan') {
+        _applySpecialBlokirRule();
       }
       _syncPricingOverridesFromConfig();
       _message = '';

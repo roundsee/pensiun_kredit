@@ -435,16 +435,24 @@ function kbSimulasiForm() {
             const bankTujuan = String(this.form.bank_tujuan ?? '').trim().toUpperCase();
             const specialBanks = ['BANK WOORI SAUDARA', 'BANK BTPN', 'BANK BUKOPIN'];
 
-            if (bankTujuan === 'MANTAP' && specialBanks.includes(bankAsal)) {
-                this.form.blokir_angsuran = '5';
-                return true;
+            let nextBlokir = String(this.form.blokir_angsuran ?? '1');
+
+            if (bankTujuan === 'MANTAP') {
+                nextBlokir = specialBanks.includes(bankAsal) ? '5' : '1';
             }
 
-            if (bankTujuan === 'MANTAP' && this.form.blokir_angsuran === '5') {
-                this.form.blokir_angsuran = '1';
+            if (this.form.blokir_angsuran !== nextBlokir) {
+                this.form.blokir_angsuran = nextBlokir;
             }
 
-            return false;
+            if (this.hasil && this.hasil.total_angsuran !== undefined && this.hasil.total_angsuran !== null && this.hasil.total_angsuran !== '') {
+                const totalAngsuran = Number(this.hasil.total_angsuran) || 0;
+                const blokirValue = Number(nextBlokir) || 1;
+                this.hasil.blokir_angsuran = blokirValue;
+                this.hasil.amount_blokir_angsuran = blokirValue * totalAngsuran;
+            }
+
+            return bankTujuan === 'MANTAP' && specialBanks.includes(bankAsal);
         },
 
         applyInitialDefaults() {
@@ -970,6 +978,7 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
                     body: JSON.stringify({
                         produk: this.form.produk,
                         jenis_pensiun: this.form.jenis_pensiun,
+                        bank_asal: this.form.bank_asal,
                         bank_tujuan: this.form.bank_tujuan,
                         mutasi: this.form.mutasi,
                         plafond: this.form.plafond,
