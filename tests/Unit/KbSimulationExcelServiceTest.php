@@ -7,7 +7,7 @@ use PHPUnit\Framework\TestCase;
 
 class KbSimulationExcelServiceTest extends TestCase
 {
-    public function test_it_forces_five_when_bank_mantap_and_bank_asal_btpn_even_if_input_is_one(): void
+    public function test_it_defaults_to_five_when_mantap_special_bank_has_no_valid_blokir_selection(): void
     {
         $service = new KbSimulationExcelService();
         $method = new \ReflectionMethod($service, 'resolveBlokirAngsuranCount');
@@ -16,24 +16,39 @@ class KbSimulationExcelServiceTest extends TestCase
         $count = $method->invoke($service, [
             'bank_asal' => 'BANK BTPN',
             'bank_tujuan' => 'MANTAP',
-            'blokir_angsuran' => 1,
+            'blokir_angsuran' => null,
         ]);
 
         $this->assertSame(5, $count);
     }
 
-    public function test_it_forces_five_when_bank_mantap_and_bank_asal_is_in_special_list(): void
+    public function test_it_keeps_manual_blokir_selection_for_mantap_when_bank_is_not_special(): void
     {
         $service = new KbSimulationExcelService();
         $method = new \ReflectionMethod($service, 'resolveBlokirAngsuranCount');
         $method->setAccessible(true);
 
         $count = $method->invoke($service, [
-            'bank_asal' => 'BANK BUKOPIN',
+            'bank_asal' => 'BANK MANDIRI',
+            'bank_tujuan' => 'MANTAP',
+            'blokir_angsuran' => 3,
+        ]);
+
+        $this->assertSame(3, $count);
+    }
+
+    public function test_it_defaults_to_one_when_mantap_non_special_bank_has_no_valid_selection(): void
+    {
+        $service = new KbSimulationExcelService();
+        $method = new \ReflectionMethod($service, 'resolveBlokirAngsuranCount');
+        $method->setAccessible(true);
+
+        $count = $method->invoke($service, [
+            'bank_asal' => 'BANK MANDIRI',
             'bank_tujuan' => 'MANTAP',
             'blokir_angsuran' => null,
         ]);
 
-        $this->assertSame(5, $count);
+        $this->assertSame(1, $count);
     }
 }

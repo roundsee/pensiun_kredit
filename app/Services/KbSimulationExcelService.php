@@ -570,19 +570,28 @@ $bankAsal = KbReferenceOption::query()
 
     private function resolveBlokirAngsuranCount(array $input): int
     {
-        if ($this->shouldForceFiveInstallmentBlock(
-            (string) ($input['bank_asal'] ?? ''),
-            (string) ($input['bank_tujuan'] ?? '')
-        )) {
-            return 5;
-        }
-
+        $normalizedBankAsal = strtoupper(trim((string) ($input['bank_asal'] ?? '')));
+        $normalizedBankTujuan = strtoupper(trim((string) ($input['bank_tujuan'] ?? '')));
         $requestedBlokir = $input['blokir_angsuran'] ?? null;
-        if ($requestedBlokir !== null && $requestedBlokir !== '') {
-            return max(1, min(5, (int) $requestedBlokir));
+
+        if ($normalizedBankTujuan !== 'MANTAP') {
+            if ($requestedBlokir !== null && $requestedBlokir !== '') {
+                return max(1, min(5, (int) $requestedBlokir));
+            }
+
+            return 1;
         }
 
-        return 1;
+        $candidate = $requestedBlokir !== null && $requestedBlokir !== '' ? (int) $requestedBlokir : null;
+        if ($candidate !== null && $candidate >= 1 && $candidate <= 5) {
+            return $candidate;
+        }
+
+        return in_array($normalizedBankAsal, [
+            'BANK WOORI SAUDARA',
+            'BANK BUKOPIN',
+            'BANK BTPN',
+        ], true) ? 5 : 1;
     }
 
     private function shouldForceFiveInstallmentBlock(string $bankAsal, string $bankTujuan): bool

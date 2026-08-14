@@ -45,11 +45,22 @@ int resolveBlokirAngsuranCount({
     'BANK BUKOPIN',
   };
 
+  final trimmedCurrent = currentBlokir.trim();
+  final currentValue = int.tryParse(trimmedCurrent);
+
   if (normalizedBankTujuan == 'MANTAP') {
-    return specialBanks.contains(normalizedBankAsal) ? 5 : 1;
+    if (trimmedCurrent.isEmpty || currentValue == null || currentValue < 1 || currentValue > 5) {
+      return specialBanks.contains(normalizedBankAsal) ? 5 : 1;
+    }
+
+    if (!specialBanks.contains(normalizedBankAsal) && currentValue == 5) {
+      return 1;
+    }
+
+    return currentValue;
   }
 
-  return int.tryParse(currentBlokir.trim()) ?? 1;
+  return currentValue ?? 1;
 }
 
 class RowDef {
@@ -421,15 +432,40 @@ class _SimulationPageState extends State<SimulationPage> {
   }
 
   void _applySpecialBlokirRule() {
+    final bankTujuan = '${_form['bank_tujuan'] ?? ''}';
+    final bankAsal = '${_form['bank_asal'] ?? ''}';
+    final currentBlokir = '${_form['blokir_angsuran'] ?? '1'}';
+
+    if (bankTujuan.trim().toUpperCase() != 'MANTAP') {
+      return;
+    }
+
     final nextValue = resolveBlokirAngsuranCount(
-      bankAsal: '${_form['bank_asal'] ?? ''}',
-      bankTujuan: '${_form['bank_tujuan'] ?? ''}',
-      currentBlokir: '${_form['blokir_angsuran'] ?? '1'}',
+      bankAsal: bankAsal,
+      bankTujuan: bankTujuan,
+      currentBlokir: currentBlokir,
     );
     final nextString = nextValue.toString();
-    if (_form['blokir_angsuran'] != nextString) {
-      _form['blokir_angsuran'] = nextString;
-      _syncTextController('blokir_angsuran');
+
+    if (currentBlokir.trim().isEmpty || currentBlokir.trim() == '0') {
+      if (_form['blokir_angsuran'] != nextString) {
+        _form['blokir_angsuran'] = nextString;
+        _syncTextController('blokir_angsuran');
+      }
+      return;
+    }
+
+    final parsedCurrent = int.tryParse(currentBlokir.trim());
+    final isDefaultCase = parsedCurrent == null || parsedCurrent < 1 || parsedCurrent > 5;
+    final shouldForceOneForNonSpecial = parsedCurrent == 5 &&
+        !const {'BANK WOORI SAUDARA', 'BANK BTPN', 'BANK BUKOPIN'}
+            .contains(bankAsal.trim().toUpperCase());
+
+    if (isDefaultCase || shouldForceOneForNonSpecial) {
+      if (_form['blokir_angsuran'] != nextString) {
+        _form['blokir_angsuran'] = nextString;
+        _syncTextController('blokir_angsuran');
+      }
     }
   }
 
