@@ -22,6 +22,36 @@ class KbSimulationExcelServiceTest extends TestCase
         $this->assertSame(5, $count);
     }
 
+    public function test_it_keeps_manual_blokir_selection_for_special_bank_mantap(): void
+    {
+        $service = new KbSimulationExcelService();
+        $method = new \ReflectionMethod($service, 'resolveBlokirAngsuranCount');
+        $method->setAccessible(true);
+
+        $count = $method->invoke($service, [
+            'bank_asal' => 'BANK BTPN',
+            'bank_tujuan' => 'MANTAP',
+            'blokir_angsuran' => 3,
+        ]);
+
+        $this->assertSame(3, $count);
+    }
+
+    public function test_it_keeps_manual_blokir_selection_for_special_bank_mantap_when_user_selects_two(): void
+    {
+        $service = new KbSimulationExcelService();
+        $method = new \ReflectionMethod($service, 'resolveBlokirAngsuranCount');
+        $method->setAccessible(true);
+
+        $count = $method->invoke($service, [
+            'bank_asal' => 'BTPN',
+            'bank_tujuan' => 'MANTAP',
+            'blokir_angsuran' => 2,
+        ]);
+
+        $this->assertSame(2, $count);
+    }
+
     public function test_it_keeps_manual_blokir_selection_for_mantap_when_bank_is_not_special(): void
     {
         $service = new KbSimulationExcelService();

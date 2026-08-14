@@ -570,8 +570,8 @@ $bankAsal = KbReferenceOption::query()
 
     private function resolveBlokirAngsuranCount(array $input): int
     {
-        $normalizedBankAsal = strtoupper(trim((string) ($input['bank_asal'] ?? '')));
-        $normalizedBankTujuan = strtoupper(trim((string) ($input['bank_tujuan'] ?? '')));
+        $normalizedBankAsal = preg_replace('/\s+/', ' ', strtoupper(trim((string) ($input['bank_asal'] ?? ''))));
+        $normalizedBankTujuan = preg_replace('/\s+/', ' ', strtoupper(trim((string) ($input['bank_tujuan'] ?? ''))));
         $requestedBlokir = $input['blokir_angsuran'] ?? null;
 
         if ($normalizedBankTujuan !== 'MANTAP') {
@@ -582,16 +582,28 @@ $bankAsal = KbReferenceOption::query()
             return 1;
         }
 
-        $candidate = $requestedBlokir !== null && $requestedBlokir !== '' ? (int) $requestedBlokir : null;
-        if ($candidate !== null && $candidate >= 1 && $candidate <= 5) {
-            return $candidate;
-        }
-
-        return in_array($normalizedBankAsal, [
+        if (in_array($normalizedBankAsal, [
             'BANK WOORI SAUDARA',
             'BANK BUKOPIN',
             'BANK BTPN',
-        ], true) ? 5 : 1;
+            'WOORI SAUDARA',
+            'BUKOPIN',
+            'BTPN',
+        ], true)) {
+            $candidate = $requestedBlokir !== null && $requestedBlokir !== '' ? (int) $requestedBlokir : null;
+            if ($candidate !== null && $candidate >= 2 && $candidate <= 5) {
+                return $candidate;
+            }
+
+            return 5;
+        }
+
+        $candidate = $requestedBlokir !== null && $requestedBlokir !== '' ? (int) $requestedBlokir : null;
+        if ($candidate !== null && $candidate >= 1 && $candidate <= 4) {
+            return $candidate;
+        }
+
+        return 1;
     }
 
     private function shouldForceFiveInstallmentBlock(string $bankAsal, string $bankTujuan): bool

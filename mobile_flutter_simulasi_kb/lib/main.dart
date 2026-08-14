@@ -32,32 +32,50 @@ class SimulationApp extends StatelessWidget {
 
 enum FieldType { select, text, date, number, integer, output, section, blank }
 
+String _normalizeBankName(String raw) {
+  final value = raw.trim().toUpperCase();
+  final compact = value.replaceAll(RegExp(r'[^A-Z0-9]'), ' ');
+  final tokens = compact.split(RegExp(r'\s+')).where((t) => t.isNotEmpty).toList();
+  return tokens.join(' ');
+}
+
+bool _isSpecialMantapBank(String bankAsal) {
+  final normalized = _normalizeBankName(bankAsal);
+  final candidates = {
+    'WOORI SAUDARA',
+    'BTPN',
+    'BUKOPIN',
+    'BANK WOORI SAUDARA',
+    'BANK BTPN',
+    'BANK BUKOPIN',
+  };
+  return candidates.contains(normalized);
+}
+
 int resolveBlokirAngsuranCount({
   required String bankAsal,
   required String bankTujuan,
   String currentBlokir = '1',
 }) {
-  final normalizedBankAsal = bankAsal.trim().toUpperCase();
-  final normalizedBankTujuan = bankTujuan.trim().toUpperCase();
-  const specialBanks = {
-    'BANK WOORI SAUDARA',
-    'BANK BTPN',
-    'BANK BUKOPIN',
-  };
+  final normalizedBankAsal = _normalizeBankName(bankAsal);
+  final normalizedBankTujuan = _normalizeBankName(bankTujuan);
 
   final trimmedCurrent = currentBlokir.trim();
   final currentValue = int.tryParse(trimmedCurrent);
 
   if (normalizedBankTujuan == 'MANTAP') {
-    if (trimmedCurrent.isEmpty || currentValue == null || currentValue < 1 || currentValue > 5) {
-      return specialBanks.contains(normalizedBankAsal) ? 5 : 1;
+    if (_isSpecialMantapBank(bankAsal)) {
+      if (currentValue != null && currentValue >= 2 && currentValue <= 5) {
+        return currentValue;
+      }
+      return 5;
     }
 
-    if (!specialBanks.contains(normalizedBankAsal) && currentValue == 5) {
-      return 1;
+    if (currentValue != null && currentValue >= 1 && currentValue <= 4) {
+      return currentValue;
     }
 
-    return currentValue;
+    return 1;
   }
 
   return currentValue ?? 1;
@@ -436,7 +454,8 @@ class _SimulationPageState extends State<SimulationPage> {
     final bankAsal = '${_form['bank_asal'] ?? ''}';
     final currentBlokir = '${_form['blokir_angsuran'] ?? '1'}';
 
-    if (bankTujuan.trim().toUpperCase() != 'MANTAP') {
+    final normalizedBankTujuan = _normalizeBankName(bankTujuan);
+    if (normalizedBankTujuan != 'MANTAP') {
       return;
     }
 
@@ -457,11 +476,10 @@ class _SimulationPageState extends State<SimulationPage> {
 
     final parsedCurrent = int.tryParse(currentBlokir.trim());
     final isDefaultCase = parsedCurrent == null || parsedCurrent < 1 || parsedCurrent > 5;
-    final shouldForceOneForNonSpecial = parsedCurrent == 5 &&
-        !const {'BANK WOORI SAUDARA', 'BANK BTPN', 'BANK BUKOPIN'}
-            .contains(bankAsal.trim().toUpperCase());
+    final shouldDefaultToFiveForSpecial = _isSpecialMantapBank(bankAsal) && (parsedCurrent == null || parsedCurrent == 1 || isDefaultCase);
+    final shouldDefaultToOneForNonSpecial = parsedCurrent == 5 && !_isSpecialMantapBank(bankAsal);
 
-    if (isDefaultCase || shouldForceOneForNonSpecial) {
+    if (shouldDefaultToFiveForSpecial || shouldDefaultToOneForNonSpecial || isDefaultCase && !_isSpecialMantapBank(bankAsal)) {
       if (_form['blokir_angsuran'] != nextString) {
         _form['blokir_angsuran'] = nextString;
         _syncTextController('blokir_angsuran');

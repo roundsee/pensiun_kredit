@@ -431,30 +431,37 @@ function kbSimulasiForm() {
         },
 
         applySpecialBlokirRule() {
-            const bankAsal = String(this.form.bank_asal ?? '').trim().toUpperCase();
-            const bankTujuan = String(this.form.bank_tujuan ?? '').trim().toUpperCase();
-            const specialBanks = ['BANK WOORI SAUDARA', 'BANK BTPN', 'BANK BUKOPIN'];
+            const normalizeBank = (raw) => String(raw ?? '').trim().toUpperCase().replace(/[^A-Z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
+            const bankAsal = normalizeBank(this.form.bank_asal);
+            const bankTujuan = normalizeBank(this.form.bank_tujuan);
+            const specialBanks = new Set(['BANK WOORI SAUDARA', 'BANK BTPN', 'BANK BUKOPIN', 'WOORI SAUDARA', 'BTPN', 'BUKOPIN']);
 
             if (bankTujuan !== 'MANTAP') {
                 return false;
             }
 
-            const defaultBlokir = specialBanks.includes(bankAsal) ? '5' : '1';
+            const current = String(this.form.blokir_angsuran ?? '');
+            const isValidManualSelection = ['1', '2', '3', '4', '5'].includes(current);
 
-            if (!this.form.blokir_angsuran || !['1', '2', '3', '4', '5'].includes(String(this.form.blokir_angsuran))) {
-                this.form.blokir_angsuran = defaultBlokir;
-            } else if (this.form.blokir_angsuran === '5' && !specialBanks.includes(bankAsal)) {
-                this.form.blokir_angsuran = defaultBlokir;
+            if (specialBanks.has(bankAsal)) {
+                if (!isValidManualSelection || current === '5') {
+                    this.form.blokir_angsuran = '5';
+                }
+                return true;
+            }
+
+            if (!current || !isValidManualSelection || current === '5') {
+                this.form.blokir_angsuran = '1';
             }
 
             if (this.hasil && this.hasil.total_angsuran !== undefined && this.hasil.total_angsuran !== null && this.hasil.total_angsuran !== '') {
                 const totalAngsuran = Number(this.hasil.total_angsuran) || 0;
-                const blokirValue = Number(this.form.blokir_angsuran || defaultBlokir) || 1;
+                const blokirValue = Number(this.form.blokir_angsuran || 1) || 1;
                 this.hasil.blokir_angsuran = blokirValue;
                 this.hasil.amount_blokir_angsuran = blokirValue * totalAngsuran;
             }
 
-            return specialBanks.includes(bankAsal);
+            return false;
         },
 
         applyInitialDefaults() {
