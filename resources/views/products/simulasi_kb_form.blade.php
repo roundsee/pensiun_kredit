@@ -932,7 +932,19 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
         },
 
         async hitung(silent = false) {
+            if (!this.form.produk || !this.form.tanggal_simulasi || !this.form.tanggal_lahir) {
+                if (!silent) {
+                    this.errorMessage = 'Produk, tanggal simulasi, dan tanggal lahir harus diisi untuk menghitung';
+                    setTimeout(() => { this.errorMessage = ''; }, 3000);
+                }
+                return;
+            }
+
             if (!this.isValidDateInput(this.form.tanggal_simulasi) || !this.isValidDateInput(this.form.tanggal_lahir)) {
+                if (!silent) {
+                    this.errorMessage = 'Format tanggal simulasi atau tanggal lahir tidak valid';
+                    setTimeout(() => { this.errorMessage = ''; }, 3000);
+                }
                 return;
             }
 
@@ -943,29 +955,22 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
                 return;
             }
 
-            // Validasi input wajib murni
-            if (!this.form.produk || !this.form.tenor || !this.form.plafond) {
-                if (silent) {
-                    // Saat auto-calc, izinkan call tanpa tenor/plafond agar backend tetap bisa mengembalikan tenor_max/plafond_max.
-                } else {
-                    this.errorMessage = 'Produk, Tenor, dan Plafond harus diisi untuk menghitung';
-                    setTimeout(() => { this.errorMessage = ''; }, 3000);
-                    return;
-                }
+            const hasRequiredCalcValues = Boolean(this.form.produk && this.form.tenor && this.form.plafond);
+            if (!hasRequiredCalcValues && !silent) {
+                this.errorMessage = 'Produk, Tenor, dan Plafond harus diisi untuk menghitung';
+                setTimeout(() => { this.errorMessage = ''; }, 3000);
+                return;
             }
-            
-            // HAPUS ATAU KOMENTARI BLOKADE VALIDASI PLAFOND MAX DI SINI
-            // Biarkan backend Laravel yang menguji kevalidan angkanya agar data tetap mengalir
 
             this.isCalculating = true;
-            
+
             if (!silent) {
                 this.message = 'Menghitung...';
             }
             this.errorMessage = '';
             this.limitWarning = '';
             this.fieldMessages = {};
-            
+
             try {
                 const response = await fetch(routes.calculate, {
                     method: 'POST',
@@ -996,16 +1001,21 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
                     })
                 });
 
-                const contentType = response.headers.get("content-type");
-                if (!contentType || !contentType.includes("application/json")) {
+                const contentType = response.headers.get('content-type') || '';
+                if (!contentType.includes('application/json')) {
                     const textError = await response.text();
-                    console.error('SERVER ERROR (HTML/TEXT):', textError); // Lihat error detail di F12 Console
-                    
+                    console.error('SERVER ERROR (HTML/TEXT):', textError);
                     this.isValidForm = false;
                     this.errorMessage = `Server Error (${response.status}) saat menghitung.`;
-                    return; 
-                }                
-                const data = await response.json();
+                    return;
+                }
+
+                const data = await response.json().catch(() => null);
+                if (!data || typeof data !== 'object') {
+                    this.isValidForm = false;
+                    this.errorMessage = 'Respons perhitungan tidak valid dari server.';
+                    return;
+                }
 
                 if (!response.ok) {
                     const validationErrors = data && data.errors && typeof data.errors === 'object'
@@ -1020,28 +1030,24 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
                     return;
                 }
 
-// Reset semua notifikasi setiap kali hitung dimulai jika format JSON valid
                 this.message = '';
                 this.errorMessage = '';
                 this.limitWarning = '';
                 this.fieldMessages = {};
-                
-                // PERBAIKAN UTAMA: Selama server mengirimkan array data kalkulasi, 
-                // langsung kunci dan tampilkan ke layar agar Provisi/Admin tidak jadi (-)
+
                 if (data.data) {
                     this.hasil = data.data;
                     this.hasilDisplay = Object.entries(data.data).map(([key, value]) => ({ key, value }));
                 }
                 if (data.limits) {
-                    this.isValidForm = data.limits.is_valid; 
+                    this.isValidForm = data.limits.is_valid;
                 } else {
-                    this.isValidForm = true; 
+                    this.isValidForm = true;
                 }
 
                 const limitFeedback = this.buildLimitFeedback(data.limits);
                 this.fieldMessages = limitFeedback.fieldMessages;
 
-                // Urus notifikasi sukses/gagal secara terpisah tanpa merusak tampilan tabel
                 if (data.success || (data.limits && data.limits.is_valid)) {
                     if (!silent) {
                         this.message = 'Perhitungan berhasil';
@@ -1051,6 +1057,10 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
                     this.limitWarning = limitFeedback.warning || 'Perhitungan berhasil, tetapi ada data yang belum valid.';
                 }
             } catch (error) {
+                if (error && error.name === 'AbortError') {
+                    return;
+                }
+
                 console.error('Error:', error);
                 if (!silent) {
                     this.errorMessage = 'Terjadi kesalahan saat menghitung';

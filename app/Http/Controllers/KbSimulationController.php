@@ -1244,12 +1244,40 @@ public function downloadPdfSImulasi(Request $request)
 
     private function hasPricingOverrideInput(Request $request): bool
     {
-        foreach (['rate_percent_override', 'admin_angsuran_percent_override'] as $field) {
-            $value = $request->input($field);
+        $productKey = trim((string) ($request->input('bank_tujuan') ?? 'KB')
+            . '-'
+            . (string) ($request->input('produk') ?? 'Platinum')
+            . '-'
+            . (string) ($request->input('jenis_pensiun') ?? 'Sendiri'));
 
-            if ($value !== null && $value !== '') {
+        $struct = ProductStruct::query()->where('produk', $productKey)->first();
+
+        foreach ([
+            'rate_percent_override' => 'rate_percent',
+            'admin_angsuran_percent_override' => 'admin_angsuran_percent',
+        ] as $overrideField => $structField) {
+            $value = $request->input($overrideField);
+            if ($value === null || $value === '') {
+                continue;
+            }
+
+            $defaultValue = $struct?->$structField;
+            if ($defaultValue === null) {
                 return true;
             }
+
+            $normalizedValue = (float) $value;
+            $normalizedDefault = (float) $defaultValue;
+
+            if ($normalizedDefault > 0 && $normalizedDefault <= 1) {
+                $normalizedDefault *= 100;
+            }
+
+            if (abs($normalizedValue - $normalizedDefault) < 0.0001) {
+                continue;
+            }
+
+            return true;
         }
 
         return false;

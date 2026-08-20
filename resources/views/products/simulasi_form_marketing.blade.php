@@ -818,28 +818,43 @@ function kbSimulasiForm() {
         },
 
         async hitung(silent = false) {
-            if (!this.form.produk || !this.form.tenor || !this.form.plafond) {
+            if (!this.form.produk || !this.form.tanggal_simulasi || !this.form.tanggal_lahir) {
                 if (!silent) {
-                    this.errorMessage = 'Produk, Tenor, dan Plafond harus diisi untuk menghitung';
+                    this.errorMessage = 'Produk, tanggal simulasi, dan tanggal lahir harus diisi untuk menghitung';
                     setTimeout(() => { this.errorMessage = ''; }, 3000);
-                    return;
                 }
+                return;
             }
-            
+
+            if (!this.isValidDateInput(this.form.tanggal_simulasi) || !this.isValidDateInput(this.form.tanggal_lahir)) {
+                if (!silent) {
+                    this.errorMessage = 'Format tanggal simulasi atau tanggal lahir tidak valid';
+                    setTimeout(() => { this.errorMessage = ''; }, 3000);
+                }
+                return;
+            }
+
+            const hasRequiredCalcValues = Boolean(this.form.produk && this.form.tenor && this.form.plafond);
+            if (!hasRequiredCalcValues && !silent) {
+                this.errorMessage = 'Produk, Tenor, dan Plafond harus diisi untuk menghitung';
+                setTimeout(() => { this.errorMessage = ''; }, 3000);
+                return;
+            }
+
             if (this.calcAbortController) {
                 this.calcAbortController.abort();
             }
-            
+
             this.calcAbortController = new AbortController();
             this.isCalculating = true;
-            
+
             if (!silent) {
                 this.message = 'Menghitung...';
             }
             this.errorMessage = '';
             this.limitWarning = '';
             this.fieldMessages = {};
-            
+
             try {
                 const response = await fetch(routes.calculate, {
                     method: 'POST',
@@ -868,31 +883,37 @@ function kbSimulasiForm() {
                     signal: this.calcAbortController.signal
                 });
 
-                const contentType = response.headers.get("content-type");
-                if (!contentType || !contentType.includes("application/json")) {
+                const contentType = response.headers.get('content-type') || '';
+                if (!contentType.includes('application/json')) {
                     const textError = await response.text();
                     console.error('SERVER ERROR (HTML/TEXT):', textError);
-                    
+
                     this.isValidForm = false;
                     this.errorMessage = 'Server Error saat menghitung. Silakan cek tab Console F12 / Network.';
                     this.isCalculating = false;
-                    return; 
-                }                
-                const data = await response.json();
+                    return;
+                }
+
+                const data = await response.json().catch(() => null);
+                if (!data || typeof data !== 'object') {
+                    this.isValidForm = false;
+                    this.errorMessage = 'Respons perhitungan tidak valid dari server.';
+                    return;
+                }
 
                 this.message = '';
                 this.errorMessage = '';
                 this.limitWarning = '';
                 this.fieldMessages = {};
-                
+
                 if (data.data) {
                     this.hasil = data.data;
                     this.hasilDisplay = Object.entries(data.data).map(([key, value]) => ({ key, value }));
                 }
                 if (data.limits) {
-                    this.isValidForm = data.limits.is_valid; 
+                    this.isValidForm = data.limits.is_valid;
                 } else {
-                    this.isValidForm = true; 
+                    this.isValidForm = true;
                 }
 
                 const limitFeedback = this.buildLimitFeedback(data.limits);
@@ -907,12 +928,13 @@ function kbSimulasiForm() {
                     this.limitWarning = limitFeedback.warning || 'Perhitungan berhasil, tetapi ada data yang belum valid.';
                 }
             } catch (error) {
-                if (error.name !== 'AbortError') {
-                    console.error('Error:', error);
-                    if (!silent) {
-                        this.errorMessage = 'Terjadi kesalahan saat menghitung';
-                        setTimeout(() => { this.errorMessage = ''; }, 3000);
-                    }
+                if (error && error.name === 'AbortError') {
+                    return;
+                }
+                console.error('Error:', error);
+                if (!silent) {
+                    this.errorMessage = 'Terjadi kesalahan saat menghitung';
+                    setTimeout(() => { this.errorMessage = ''; }, 3000);
                 }
             } finally {
                 this.isCalculating = false;

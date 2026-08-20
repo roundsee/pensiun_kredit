@@ -55,6 +55,28 @@ class KbSimulationRoleAccessTest extends TestCase
         $response->assertForbidden();
     }
 
+    public function test_marketing_user_can_calculate_with_default_pricing_values_when_no_override_is_edited(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create([
+            'role' => User::ROLE_MARKETING,
+        ]);
+
+        $response = $this->actingAs($user)->postJson(route('kb_simulasi.calculate'), [
+            'produk' => 'Platinum',
+            'jenis_pensiun' => 'Sendiri',
+            'tanggal_simulasi' => '2026-06-01',
+            'tanggal_lahir' => '1985-06-01',
+            'gaji_pensiun' => 5000000,
+            'tenor' => 10,
+            'plafond' => 100000000,
+            'rate_percent_override' => 16,
+            'admin_angsuran_percent_override' => 10,
+        ]);
+
+        $this->assertNotSame(403, $response->getStatusCode());
+    }
+
     public function test_supervisor_user_can_access_override_fields_and_reaches_validation_layer(): void
     {
         /** @var User $user */
