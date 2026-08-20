@@ -60,6 +60,9 @@
                                 <a class="nav-link" href="{{ url('/banpot') }}">List Banpot</a>
                             </li>
                             <li class="nav-item">
+                                <a class="nav-link" href="{{ route('payment.index') }}">List Payment</a>
+                            </li>
+                            <li class="nav-item">
                                 <a class="nav-link" href="{{ route('nominatif.initial.create') }}">Import Initial Nominatif</a>
                             </li>
                             <li class="nav-item">

@@ -3,14 +3,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mobile_flutter_simulasi_kb/main.dart';
 
 void main() {
-  test('MANTAP with eligible source bank defaults to 5', () {
+  test('MANTAP no longer overrides the user choice; empty input defaults to 1', () {
     expect(
       resolveBlokirAngsuranCount(
         bankAsal: 'BANK BTPN',
         bankTujuan: 'MANTAP',
         currentBlokir: '',
       ),
-      5,
+      1,
     );
 
     expect(
@@ -19,7 +19,7 @@ void main() {
         bankTujuan: 'MANTAP',
         currentBlokir: '1',
       ),
-      5,
+      1,
     );
 
     expect(
@@ -52,14 +52,14 @@ void main() {
     );
   });
 
-  test('MANTAP special banks are recognized even without the BANK prefix', () {
+  test('MANTAP no longer overrides the user choice even for special banks', () {
     expect(
       resolveBlokirAngsuranCount(
         bankAsal: 'BTPN',
         bankTujuan: 'MANTAP',
         currentBlokir: '1',
       ),
-      5,
+      1,
     );
 
     expect(
@@ -68,7 +68,7 @@ void main() {
         bankTujuan: 'MANTAP',
         currentBlokir: '1',
       ),
-      5,
+      1,
     );
 
     expect(
@@ -77,7 +77,7 @@ void main() {
         bankTujuan: 'MANTAP',
         currentBlokir: '1',
       ),
-      5,
+      1,
     );
 
     expect(

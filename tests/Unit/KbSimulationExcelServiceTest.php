@@ -7,7 +7,7 @@ use PHPUnit\Framework\TestCase;
 
 class KbSimulationExcelServiceTest extends TestCase
 {
-    public function test_it_defaults_to_five_when_mantap_special_bank_has_no_valid_blokir_selection(): void
+    public function test_it_defaults_to_one_when_no_valid_blokir_selection_is_provided(): void
     {
         $service = new KbSimulationExcelService();
         $method = new \ReflectionMethod($service, 'resolveBlokirAngsuranCount');
@@ -19,7 +19,7 @@ class KbSimulationExcelServiceTest extends TestCase
             'blokir_angsuran' => null,
         ]);
 
-        $this->assertSame(5, $count);
+        $this->assertSame(1, $count);
     }
 
     public function test_it_keeps_manual_blokir_selection_for_special_bank_mantap(): void

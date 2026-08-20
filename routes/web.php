@@ -19,6 +19,7 @@ use App\Http\Controllers\SimulationController;
 use App\Http\Controllers\PicNbpController;
 use App\Http\Controllers\BanpotController;
 use App\Http\Controllers\NominatifController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\UserManagementController;
 
 Route::get('/__ping', fn () => response('ok', 200));
@@ -173,6 +174,9 @@ Route::get('/banpot', [BanpotController::class, 'list'])->name('banpot.index')->
 Route::get('/banpot/import', [BanpotController::class, 'create'])->name('banpot.create')->middleware('auth');
 Route::post('/banpot/preview', [BanpotController::class, 'preview'])->name('banpot.preview')->middleware('auth');
 Route::post('/banpot', [BanpotController::class, 'store'])->name('banpot.store')->middleware('auth');
+
+// Payment list
+Route::get('/payment', [PaymentController::class, 'index'])->name('payment.index')->middleware('auth');
 
 // Initial Nominatif import
 Route::get('/nominatif/import-initial', [NominatifController::class, 'create'])->name('nominatif.initial.create')->middleware('auth');

@@ -38,6 +38,23 @@ class KbSimulationRoleAccessTest extends TestCase
         $response->assertForbidden();
     }
 
+    public function test_test_user_cannot_edit_kb_pricing_overrides(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create([
+            'email' => 'test@example.com',
+            'role' => User::ROLE_MARKETING,
+        ]);
+
+        $this->assertFalse($user->canEditKbPricing());
+
+        $response = $this->actingAs($user)->postJson(route('kb_simulasi.calculate'), [
+            'rate_percent_override' => 1.25,
+        ]);
+
+        $response->assertForbidden();
+    }
+
     public function test_supervisor_user_can_access_override_fields_and_reaches_validation_layer(): void
     {
         /** @var User $user */

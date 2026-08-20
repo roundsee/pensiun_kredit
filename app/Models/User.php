@@ -105,10 +105,6 @@ class User extends Authenticatable
 
     public function canEditKbPricing(): bool
     {
-        if (strtolower((string) $this->email) === 'test@example.com') {
-            return true;
-        }
-
         return $this->hasAnyRole([
             self::ROLE_ADMIN,
             self::ROLE_SUPERVISOR,

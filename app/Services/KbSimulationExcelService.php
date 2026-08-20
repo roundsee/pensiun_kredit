@@ -570,37 +570,10 @@ $bankAsal = KbReferenceOption::query()
 
     private function resolveBlokirAngsuranCount(array $input): int
     {
-        $normalizedBankAsal = preg_replace('/\s+/', ' ', strtoupper(trim((string) ($input['bank_asal'] ?? ''))));
-        $normalizedBankTujuan = preg_replace('/\s+/', ' ', strtoupper(trim((string) ($input['bank_tujuan'] ?? ''))));
         $requestedBlokir = $input['blokir_angsuran'] ?? null;
 
-        if ($normalizedBankTujuan !== 'MANTAP') {
-            if ($requestedBlokir !== null && $requestedBlokir !== '') {
-                return max(1, min(5, (int) $requestedBlokir));
-            }
-
-            return 1;
-        }
-
-        if (in_array($normalizedBankAsal, [
-            'BANK WOORI SAUDARA',
-            'BANK BUKOPIN',
-            'BANK BTPN',
-            'WOORI SAUDARA',
-            'BUKOPIN',
-            'BTPN',
-        ], true)) {
-            $candidate = $requestedBlokir !== null && $requestedBlokir !== '' ? (int) $requestedBlokir : null;
-            if ($candidate !== null && $candidate >= 2 && $candidate <= 5) {
-                return $candidate;
-            }
-
-            return 5;
-        }
-
-        $candidate = $requestedBlokir !== null && $requestedBlokir !== '' ? (int) $requestedBlokir : null;
-        if ($candidate !== null && $candidate >= 1 && $candidate <= 4) {
-            return $candidate;
+        if ($requestedBlokir !== null && $requestedBlokir !== '') {
+            return max(1, min(5, (int) $requestedBlokir));
         }
 
         return 1;

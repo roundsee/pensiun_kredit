@@ -3,10 +3,12 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:open_filex/open_filex.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -32,53 +34,19 @@ class SimulationApp extends StatelessWidget {
 
 enum FieldType { select, text, date, number, integer, output, section, blank }
 
-String _normalizeBankName(String raw) {
-  final value = raw.trim().toUpperCase();
-  final compact = value.replaceAll(RegExp(r'[^A-Z0-9]'), ' ');
-  final tokens = compact.split(RegExp(r'\s+')).where((t) => t.isNotEmpty).toList();
-  return tokens.join(' ');
-}
-
-bool _isSpecialMantapBank(String bankAsal) {
-  final normalized = _normalizeBankName(bankAsal);
-  final candidates = {
-    'WOORI SAUDARA',
-    'BTPN',
-    'BUKOPIN',
-    'BANK WOORI SAUDARA',
-    'BANK BTPN',
-    'BANK BUKOPIN',
-  };
-  return candidates.contains(normalized);
-}
-
 int resolveBlokirAngsuranCount({
   required String bankAsal,
   required String bankTujuan,
   String currentBlokir = '1',
 }) {
-  final normalizedBankAsal = _normalizeBankName(bankAsal);
-  final normalizedBankTujuan = _normalizeBankName(bankTujuan);
-
   final trimmedCurrent = currentBlokir.trim();
   final currentValue = int.tryParse(trimmedCurrent);
 
-  if (normalizedBankTujuan == 'MANTAP') {
-    if (_isSpecialMantapBank(bankAsal)) {
-      if (currentValue != null && currentValue >= 2 && currentValue <= 5) {
-        return currentValue;
-      }
-      return 5;
-    }
-
-    if (currentValue != null && currentValue >= 1 && currentValue <= 4) {
-      return currentValue;
-    }
-
-    return 1;
+  if (currentValue != null && currentValue >= 1 && currentValue <= 5) {
+    return currentValue;
   }
 
-  return currentValue ?? 1;
+  return 1;
 }
 
 class RowDef {
@@ -204,6 +172,7 @@ class _SimulationPageState extends State<SimulationPage> {
   bool _calculating = false;
   bool _saving = false;
   bool _downloading = false;
+  bool _sharing = false;
   bool _loggingIn = false;
   bool _canEditPricing = true;
   String _loggedInEmail = '';
@@ -450,18 +419,10 @@ class _SimulationPageState extends State<SimulationPage> {
   }
 
   void _applySpecialBlokirRule() {
-    final bankTujuan = '${_form['bank_tujuan'] ?? ''}';
-    final bankAsal = '${_form['bank_asal'] ?? ''}';
     final currentBlokir = '${_form['blokir_angsuran'] ?? '1'}';
-
-    final normalizedBankTujuan = _normalizeBankName(bankTujuan);
-    if (normalizedBankTujuan != 'MANTAP') {
-      return;
-    }
-
     final nextValue = resolveBlokirAngsuranCount(
-      bankAsal: bankAsal,
-      bankTujuan: bankTujuan,
+      bankAsal: '${_form['bank_asal'] ?? ''}',
+      bankTujuan: '${_form['bank_tujuan'] ?? ''}',
       currentBlokir: currentBlokir,
     );
     final nextString = nextValue.toString();
@@ -475,11 +436,7 @@ class _SimulationPageState extends State<SimulationPage> {
     }
 
     final parsedCurrent = int.tryParse(currentBlokir.trim());
-    final isDefaultCase = parsedCurrent == null || parsedCurrent < 1 || parsedCurrent > 5;
-    final shouldDefaultToFiveForSpecial = _isSpecialMantapBank(bankAsal) && (parsedCurrent == null || parsedCurrent == 1 || isDefaultCase);
-    final shouldDefaultToOneForNonSpecial = parsedCurrent == 5 && !_isSpecialMantapBank(bankAsal);
-
-    if (shouldDefaultToFiveForSpecial || shouldDefaultToOneForNonSpecial || isDefaultCase && !_isSpecialMantapBank(bankAsal)) {
+    if (parsedCurrent == null || parsedCurrent < 1 || parsedCurrent > 5) {
       if (_form['blokir_angsuran'] != nextString) {
         _form['blokir_angsuran'] = nextString;
         _syncTextController('blokir_angsuran');
@@ -748,33 +705,36 @@ class _SimulationPageState extends State<SimulationPage> {
     }
   }
 
-  Future<void> _downloadPdf() async {
+  Future<File> _generatePdfFile() async {
     final id = _result['id'];
     if (id == null) {
-      _showToast('Simpan data dulu agar punya ID untuk PDF', isError: true);
-      return;
+      throw Exception('Simpan data dulu agar punya ID untuk PDF');
     }
 
+    final response = await http.post(
+      Uri.parse('$_baseUrl/download-pdf'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'id': id}),
+    );
+    if (response.statusCode >= 400) {
+      throw Exception('Status ${response.statusCode}');
+    }
+
+    final dir = await getApplicationDocumentsDirectory();
+    final filename = 'simulasi-kb-${DateTime.now().millisecondsSinceEpoch}.pdf';
+    final file = File('${dir.path}/$filename');
+    await file.writeAsBytes(response.bodyBytes, flush: true);
+    return file;
+  }
+
+  Future<void> _downloadPdf() async {
     setState(() {
       _downloading = true;
       _message = '';
     });
 
     try {
-      final response = await http.post(
-        Uri.parse('$_baseUrl/download-pdf'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'id': id}),
-      );
-      if (response.statusCode >= 400) {
-        throw Exception('Status ${response.statusCode}');
-      }
-
-      final dir = await getApplicationDocumentsDirectory();
-      final filename = 'simulasi-kb-${DateTime.now().millisecondsSinceEpoch}.pdf';
-      final file = File('${dir.path}/$filename');
-      await file.writeAsBytes(response.bodyBytes, flush: true);
-
+      final file = await _generatePdfFile();
       await OpenFilex.open(file.path);
       setState(() {
         _message = 'PDF tersimpan: ${file.path}';
@@ -785,6 +745,32 @@ class _SimulationPageState extends State<SimulationPage> {
     } finally {
       setState(() {
         _downloading = false;
+      });
+    }
+  }
+
+  Future<void> _sharePdf() async {
+    setState(() {
+      _sharing = true;
+      _message = '';
+    });
+
+    try {
+      final file = await _generatePdfFile();
+      await Clipboard.setData(ClipboardData(text: file.path));
+      await Share.shareXFiles(
+        [XFile(file.path, mimeType: 'application/pdf')],
+        text: 'PDF simulasi KB',
+      );
+      setState(() {
+        _message = 'PDF siap dibagikan. Path file sudah disalin ke clipboard.';
+      });
+      _showToast('PDF siap dibagikan. Path file disalin ke clipboard.');
+    } catch (e) {
+      _showToast('Share PDF gagal: $e', isError: true);
+    } finally {
+      setState(() {
+        _sharing = false;
       });
     }
   }
@@ -1126,6 +1112,11 @@ class _SimulationPageState extends State<SimulationPage> {
                           OutlinedButton(
                             onPressed: _downloading ? null : _downloadPdf,
                             child: Text(_downloading ? 'Download...' : 'Download PDF'),
+                          ),
+                          ElevatedButton.icon(
+                            onPressed: _sharing ? null : _sharePdf,
+                            icon: const Icon(Icons.share),
+                            label: Text(_sharing ? 'Membagikan...' : 'Share'),
                           ),
                         ],
                       ),
