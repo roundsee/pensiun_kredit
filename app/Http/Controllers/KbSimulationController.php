@@ -1248,55 +1248,27 @@ public function downloadPdfSImulasi(Request $request)
 
     private function hasPricingOverrideInput(Request $request): bool
     {
-        $productKey = trim((string) ($request->input('bank_tujuan') ?? 'KB')
-            . '-'
-            . (string) ($request->input('produk') ?? 'Platinum')
-            . '-'
-            . (string) ($request->input('jenis_pensiun') ?? 'Sendiri'));
+        $rateValue = $request->input('rate_percent_override');
+        $adminValue = $request->input('admin_angsuran_percent_override');
 
-        $struct = ProductStruct::query()->where('produk', $productKey)->first();
+        $rateIsDefault = $rateValue === null || $rateValue === '' || $this->normalizeOverrideValue($rateValue) === 16.0;
+        $adminIsDefault = $adminValue === null || $adminValue === '' || $this->normalizeOverrideValue($adminValue) === 10.0;
 
-        foreach ([
-            'rate_percent_override' => [
-                'field' => 'rate_percent',
-                'fallback' => 16.0,
-            ],
-            'admin_angsuran_percent_override' => [
-                'field' => 'admin_angsuran_percent',
-                'fallback' => 10.0,
-            ],
-        ] as $overrideField => $meta) {
-            $value = $request->input($overrideField);
-            if ($value === null || $value === '') {
-                continue;
-            }
+        return ! ($rateIsDefault && $adminIsDefault);
+    }
 
-            $normalizedValue = (float) $value;
-            if ($normalizedValue > 0 && $normalizedValue <= 1) {
-                $normalizedValue *= 100;
-            }
-
-            $defaultValue = $struct?->{$meta['field']} ?? null;
-            $normalizedDefault = null;
-            if ($defaultValue !== null) {
-                $normalizedDefault = (float) $defaultValue;
-                if ($normalizedDefault > 0 && $normalizedDefault <= 1) {
-                    $normalizedDefault *= 100;
-                }
-            }
-
-            if ($normalizedDefault !== null && abs($normalizedValue - $normalizedDefault) < 0.0001) {
-                continue;
-            }
-
-            if ($normalizedDefault === null && abs($normalizedValue - (float) $meta['fallback']) < 0.0001) {
-                continue;
-            }
-
-            return true;
+    private function normalizeOverrideValue(mixed $value): float
+    {
+        if ($value === null || $value === '') {
+            return 0.0;
         }
 
-        return false;
+        $normalized = (float) $value;
+        if ($normalized > 0 && $normalized <= 1) {
+            $normalized *= 100;
+        }
+
+        return $normalized;
     }
 
     private function filterPdfDisplayRows(array $rows): array
