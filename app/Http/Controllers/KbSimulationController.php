@@ -481,7 +481,7 @@ class KbSimulationController extends Controller
 
     public function calculatesimulasi(Request $request): JsonResponse
     {
-        //$this->ensurePricingOverridesAuthorized($request);
+        $this->ensurePricingOverridesAuthorized($request);
         Log::info('Calculating KB simulation data...');
         $input = $request->validate($this->calculateRules());
 Log::info('calculateRules');
@@ -634,7 +634,7 @@ public function store(Request $request): JsonResponse
 
 public function storesimulasi(Request $request): JsonResponse
     {
-       // $this->ensurePricingOverridesAuthorized($request);
+        $this->ensurePricingOverridesAuthorized($request);
         Log::info('Storing KB simulation data...');
         $isClientSide = $request->boolean('client_side_calculation');
         Log::info('Client side calculation: ' . ($isClientSide ? 'true' : 'false'));
@@ -1253,27 +1253,39 @@ public function downloadPdfSImulasi(Request $request)
         $struct = ProductStruct::query()->where('produk', $productKey)->first();
 
         foreach ([
-            'rate_percent_override' => 'rate_percent',
-            'admin_angsuran_percent_override' => 'admin_angsuran_percent',
-        ] as $overrideField => $structField) {
+            'rate_percent_override' => [
+                'field' => 'rate_percent',
+                'fallback' => 16.0,
+            ],
+            'admin_angsuran_percent_override' => [
+                'field' => 'admin_angsuran_percent',
+                'fallback' => 10.0,
+            ],
+        ] as $overrideField => $meta) {
             $value = $request->input($overrideField);
             if ($value === null || $value === '') {
                 continue;
             }
 
-            $defaultValue = $struct?->$structField;
-            if ($defaultValue === null) {
-                return true;
-            }
-
             $normalizedValue = (float) $value;
-            $normalizedDefault = (float) $defaultValue;
-
-            if ($normalizedDefault > 0 && $normalizedDefault <= 1) {
-                $normalizedDefault *= 100;
+            if ($normalizedValue > 0 && $normalizedValue <= 1) {
+                $normalizedValue *= 100;
             }
 
-            if (abs($normalizedValue - $normalizedDefault) < 0.0001) {
+            $defaultValue = $struct?->{$meta['field']} ?? null;
+            $normalizedDefault = null;
+            if ($defaultValue !== null) {
+                $normalizedDefault = (float) $defaultValue;
+                if ($normalizedDefault > 0 && $normalizedDefault <= 1) {
+                    $normalizedDefault *= 100;
+                }
+            }
+
+            if ($normalizedDefault !== null && abs($normalizedValue - $normalizedDefault) < 0.0001) {
+                continue;
+            }
+
+            if ($normalizedDefault === null && abs($normalizedValue - (float) $meta['fallback']) < 0.0001) {
                 continue;
             }
 

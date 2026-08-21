@@ -77,6 +77,27 @@ class KbSimulationRoleAccessTest extends TestCase
         $this->assertNotSame(403, $response->getStatusCode());
     }
 
+    public function test_legacy_marketing_routes_keep_the_same_pricing_override_guard(): void
+    {
+        /** @var User $user */
+        $user = User::factory()->create([
+            'email' => 'test@example.com',
+            'role' => User::ROLE_MARKETING,
+        ]);
+
+        $calculateResponse = $this->actingAs($user)->postJson(route('calculatesimulasi'), [
+            'rate_percent_override' => 16,
+            'jenis_pensiun' => 'Sendiri',
+            'tanggal_simulasi' => '2026-06-01',
+            'tanggal_lahir' => '1985-06-01',
+            'gaji_pensiun' => 5000000,
+            'tenor' => 10,
+            'plafond' => 100000000,
+        ]);
+
+        $calculateResponse->assertForbidden();
+    }
+
     public function test_supervisor_user_can_access_override_fields_and_reaches_validation_layer(): void
     {
         /** @var User $user */
