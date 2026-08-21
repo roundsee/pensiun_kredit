@@ -273,7 +273,9 @@ class KbSimulationController extends Controller
 
     public function goalSeek(Request $request): JsonResponse
     {
-        $this->ensurePricingOverridesAuthorized($request);
+        if ($this->hasPricingOverrideInput($request)) {
+            $this->ensurePricingOverridesAuthorized($request);
+        }
 
         $input = $request->validate($this->goalSeekerRules());
 
@@ -481,7 +483,9 @@ class KbSimulationController extends Controller
 
     public function calculatesimulasi(Request $request): JsonResponse
     {
-        $this->ensurePricingOverridesAuthorized($request);
+        if ($this->hasPricingOverrideInput($request)) {
+            $this->ensurePricingOverridesAuthorized($request);
+        }
         Log::info('Calculating KB simulation data...');
         $input = $request->validate($this->calculateRules());
 Log::info('calculateRules');
@@ -529,7 +533,9 @@ Log::info('cacheKey');
     }
     public function calculate(Request $request): JsonResponse
     {
-        $this->ensurePricingOverridesAuthorized($request);
+        if ($this->hasPricingOverrideInput($request)) {
+            $this->ensurePricingOverridesAuthorized($request);
+        }
 
         $input = $request->validate($this->calculateRules());
 
@@ -576,7 +582,6 @@ Log::info('cacheKey');
     }
 public function store(Request $request): JsonResponse
     {
-        $this->ensurePricingOverridesAuthorized($request);
         Log::info('Storing KB simulation data...');
         $isClientSide = $request->boolean('client_side_calculation');
         Log::info('Client side calculation: ' . ($isClientSide ? 'true' : 'false'));
@@ -634,7 +639,6 @@ public function store(Request $request): JsonResponse
 
 public function storesimulasi(Request $request): JsonResponse
     {
-        $this->ensurePricingOverridesAuthorized($request);
         Log::info('Storing KB simulation data...');
         $isClientSide = $request->boolean('client_side_calculation');
         Log::info('Client side calculation: ' . ($isClientSide ? 'true' : 'false'));
