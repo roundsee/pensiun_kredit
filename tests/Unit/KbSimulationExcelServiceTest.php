@@ -81,4 +81,15 @@ class KbSimulationExcelServiceTest extends TestCase
 
         $this->assertSame(1, $count);
     }
+
+    public function test_it_falls_back_to_plain_product_key_when_bank_prefix_is_not_present_in_product_struct(): void
+    {
+        $service = new KbSimulationExcelService();
+        $method = new \ReflectionMethod($service, 'resolveProductStructKeys');
+        $method->setAccessible(true);
+
+        $keys = $method->invoke($service, 'KB', 'Platinum', 'Sendiri');
+
+        $this->assertSame(['KB-Platinum-Sendiri', 'Platinum-Sendiri'], $keys);
+    }
 }

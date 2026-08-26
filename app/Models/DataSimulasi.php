@@ -55,6 +55,8 @@ class DataSimulasi extends Model
         'total_biaya',
         'sisa_gaji_akhir',
         'terima_bersih',
+        'simpanan_pokok',
+        'angsuran_lain',
     ];
 
     protected $casts = [
@@ -87,6 +89,8 @@ class DataSimulasi extends Model
         'total_biaya' => 'float',
         'sisa_gaji_akhir' => 'float',
         'terima_bersih' => 'float',
+        'simpanan_pokok' => 'float',
+        'angsuran_lain' => 'float',
     ];
 
     public function pelengkap(): HasOne

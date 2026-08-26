@@ -614,12 +614,17 @@ public function store(Request $request): JsonResponse
         // Gabungkan data input (nama, no pensiun, dll) dan hasil perhitungan keuangan
         $persistPayload = array_merge($input, $result);
 
-        // Bersihkan field pembantu yang tidak ada di kolom database Anda
+        $persistPayload['tgl_permohonan'] = $persistPayload['tgl_permohonan'] ?? $persistPayload['tanggal_simulasi'] ?? now()->toDateString();
+        $persistPayload['simpanan_pokok'] = $persistPayload['simpanan_pokok'] ?? 0;
+        $persistPayload['angsuran_lain'] = $persistPayload['angsuran_lain'] ?? $persistPayload['angsuran_lainnya'] ?? 0;
+
+        // Bersihkan field pembantu / field yang tidak ada di kolom database
         unset(
-            $persistPayload['umur_text'], 
-            $persistPayload['usia_lunas_text'], 
+            $persistPayload['umur_text'],
+            $persistPayload['usia_lunas_text'],
             $persistPayload['angsuran_lainnya'],
-            $persistPayload['client_side_calculation']
+            $persistPayload['client_side_calculation'],
+            $persistPayload['tanggal_simulasi'],
         );
 
         $persistPayload['status'] = 'trial';
@@ -671,12 +676,17 @@ public function storesimulasi(Request $request): JsonResponse
         // Gabungkan data input (nama, no pensiun, dll) dan hasil perhitungan keuangan
         $persistPayload = array_merge($input, $result);
 
-        // Bersihkan field pembantu yang tidak ada di kolom database Anda
+        $persistPayload['tgl_permohonan'] = $persistPayload['tgl_permohonan'] ?? $persistPayload['tanggal_simulasi'] ?? now()->toDateString();
+        $persistPayload['simpanan_pokok'] = $persistPayload['simpanan_pokok'] ?? 0;
+        $persistPayload['angsuran_lain'] = $persistPayload['angsuran_lain'] ?? $persistPayload['angsuran_lainnya'] ?? 0;
+
+        // Bersihkan field pembantu / field yang tidak ada di kolom database
         unset(
-            $persistPayload['umur_text'], 
-            $persistPayload['usia_lunas_text'], 
+            $persistPayload['umur_text'],
+            $persistPayload['usia_lunas_text'],
             $persistPayload['angsuran_lainnya'],
-            $persistPayload['client_side_calculation']
+            $persistPayload['client_side_calculation'],
+            $persistPayload['tanggal_simulasi'],
         );
 
         $persistPayload['status'] = 'trial';
@@ -692,7 +702,7 @@ public function storesimulasi(Request $request): JsonResponse
             'data' => $saved,
             'display' => $this->buildDisplayResult($result),
         ], 201);
-    }    
+    }
     // public function store(Request $request): JsonResponse
     // {
     //     Log::Info('Storing KB simulation data...');

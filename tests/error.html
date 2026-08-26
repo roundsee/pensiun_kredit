@@ -1,12 +1,46 @@
-rror: TypeError: NetworkError when attempting to fetch resource. simulasi-kb:1023:29
-    hitung http://localhost:8000/simulasi-kb:1023
-    autoCalculateTimer http://localhost:8000/simulasi-kb:613
-    (Async: setTimeout handler)
-    scheduleAutoCalculate http://localhost:8000/simulasi-kb:612
-    onFormChanged http://localhost:8000/simulasi-kb:588
-    onInputCommit http://localhost:8000/simulasi-kb:740
-    anonymous https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js line 5 > AsyncFunction:3
-    Vn https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js:5
-    ar https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js:1
-    s https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js:5
-    o https://cdn.jsdelivr.net/npm/alpinejs@3/dist/cdn.min.js:5
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Natabuana pasundan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <div class="container">
+            <a class="navbar-brand" href="/">Natabuana pasundan</a>
+            
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavDropdown" aria-controls="navbarNavDropdown" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            
+            <div class="collapse navbar-collapse" id="navbarNavDropdown">
+                <ul class="navbar-nav ms-auto">
+                                            <li class="nav-item">
+                            <a class="nav-link" href="http://localhost:8000/login">Login</a>
+                        </li>
+                                    </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="py-4">
+        <div class="container" style="max-width: 400px; margin-top: 100px;">
+    <h2 class="mb-4">Login</h2>
+        <form method="POST" action="http://localhost:8000/login">
+        <input type="hidden" name="_token" value="Uzxf7s16qB1gFLKLHUFtn3cx8BDjmUyLIljcbM0L" autocomplete="off">        <div class="mb-3">
+            <label for="email" class="form-label">Email</label>
+            <input type="email" class="form-control" id="email" name="email" value="" required autofocus>
+        </div>
+        <div class="mb-3">
+            <label for="password" class="form-label">Password</label>
+            <input type="password" class="form-control" id="password" name="password" required>
+        </div>
+        <button type="submit" class="btn btn-primary w-100">Login</button>
+    </form>
+</div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

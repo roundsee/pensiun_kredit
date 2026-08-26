@@ -9,10 +9,12 @@ return new class extends Migration {
     {
         Schema::table('data_simulasi', function (Blueprint $table) {
             if (!Schema::hasColumn('data_simulasi', 'simpanan_pokok')) {
-                
-                $table->decimal('simpanan_pokok', 15, 2);
-                $table->decimal('angsuran_lain', 15, 2);
-                }
+                $table->decimal('simpanan_pokok', 15, 2)->default(0);
+            }
+
+            if (!Schema::hasColumn('data_simulasi', 'angsuran_lain')) {
+                $table->decimal('angsuran_lain', 15, 2)->default(0);
+            }
         });
     }
 

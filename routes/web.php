@@ -97,12 +97,12 @@ Route::post('/data-simulasi', function () {
         'message' => 'Fitur import PDF ke Data Simulasi sudah dinonaktifkan.',
     ], 410);
 })->name('data_simulasi.store')->middleware('auth');
-Route::get('/simulasi-kb', [KbSimulationController::class, 'index'])->name('kb_simulasi.index')->middleware('auth');
-Route::get('/simulasi-kb/goal-seeker', [KbSimulationController::class, 'goalSeekerIndex'])->name('kb_simulasi.goal_seeker')->middleware('auth');
-Route::post('/simulasi-kb/calculate', [KbSimulationController::class, 'calculate'])->name('kb_simulasi.calculate')->middleware('auth');
-Route::post('/simulasi-kb/goal-seek', [KbSimulationController::class, 'goalSeek'])->name('kb_simulasi.goal_seek')->middleware('auth');
-Route::post('/simulasi-kb/store', [KbSimulationController::class, 'store'])->name('kb_simulasi.store')->middleware('auth');
-Route::post('/simulasi-kb/download-pdf', [KbSimulationController::class, 'downloadPdf'])->name('kb_simulasi.download_pdf')->middleware('auth');
+Route::get('/simulasi-kb', [KbSimulationController::class, 'index'])->name('kb_simulasi.index');
+Route::get('/simulasi-kb/goal-seeker', [KbSimulationController::class, 'goalSeekerIndex'])->name('kb_simulasi.goal_seeker');
+Route::post('/simulasi-kb/calculate', [KbSimulationController::class, 'calculate'])->name('kb_simulasi.calculate');
+Route::post('/simulasi-kb/goal-seek', [KbSimulationController::class, 'goalSeek'])->name('kb_simulasi.goal_seek');
+Route::post('/simulasi-kb/store', [KbSimulationController::class, 'store'])->name('kb_simulasi.store');
+Route::post('/simulasi-kb/download-pdf', [KbSimulationController::class, 'downloadPdf'])->name('kb_simulasi.download_pdf');
 Route::post('/simulation/batches/{batchId}/map-proposal', [SimulationController::class, 'mapBatchToProposal'])->name('simulation.map_batch_to_proposal')->middleware('auth');
 Route::get('/dnka/horizontal/download-template', [DnkaController::class, 'downloadHorizontalTemplate'])->name('dnka.horizontal.download_template')->middleware('auth');
 Route::get('/dnka/vertical/download-template', [DnkaController::class, 'downloadVerticalTemplate'])->name('dnka.vertical.download_template')->middleware('auth');

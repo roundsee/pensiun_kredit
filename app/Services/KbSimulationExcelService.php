@@ -189,11 +189,12 @@ $bankAsal = KbReferenceOption::query()
 
     private function calculateWithoutSpreadsheet(array $input): array
     {
-       // $productKey = trim((string) $input['produk'] . '-' . (string) $input['jenis_pensiun']);
-       $productKey = trim((string) $input['bank_tujuan'] . '-' . (string) $input['produk'] . '-' . (string) $input['jenis_pensiun']);
-        $struct = ProductStruct::query()
-            ->where('produk', $productKey)
-            ->first();
+        $productKeys = $this->resolveProductStructKeys(
+            (string) ($input['bank_tujuan'] ?? ''),
+            (string) ($input['produk'] ?? ''),
+            (string) ($input['jenis_pensiun'] ?? '')
+        );
+        $struct = $this->firstProductStructForKeys($productKeys);
 
         $tanggalSimulasi = Carbon::parse($input['tanggal_simulasi']);
         $tanggalLahir = Carbon::parse($input['tanggal_lahir']);
@@ -319,11 +320,8 @@ $bankAsal = KbReferenceOption::query()
 
     private function calculateTenorMaxFromProductStruct(string $bank_tujuan,string $produk, string $jenisPensiun, string $tanggalLahir, string $tanggalSimulasi): ?int
     {
-       // $productKey = trim($produk . '-' . $jenisPensiun);
-        $productKey = trim($bank_tujuan . '-' . $produk . '-' . $jenisPensiun);
-        $struct = ProductStruct::query()
-            ->where('produk', $productKey)
-            ->first();
+        $productKeys = $this->resolveProductStructKeys($bank_tujuan, $produk, $jenisPensiun);
+        $struct = $this->firstProductStructForKeys($productKeys);
 
         if ($struct === null) {
             return null;
@@ -365,11 +363,8 @@ $bankAsal = KbReferenceOption::query()
         mixed $ratePercentOverride = null,
         mixed $adminAngsuranPercentOverride = null
     ): ?float {
-        $productKey = trim($bank_tujuan . '-' . $produk . '-' . $jenisPensiun);
-
-        $struct = ProductStruct::query()
-            ->where('produk', $productKey)
-            ->first();
+        $productKeys = $this->resolveProductStructKeys($bank_tujuan, $produk, $jenisPensiun);
+        $struct = $this->firstProductStructForKeys($productKeys);
 
         if ($struct === null || $tenor <= 0 || $sisaGajiSaatPengajuan <= 0) {
             return null;
@@ -406,6 +401,43 @@ $bankAsal = KbReferenceOption::query()
         $pv = $this->excelPv($monthlyRate, $tenor, -$basisAngsuran);
 
         return max(0.0, $pv);
+    }
+
+    private function resolveProductStructKeys(string $bankTujuan, string $produk, string $jenisPensiun): array
+    {
+        $candidates = [];
+        $pieces = [
+            trim((string) $bankTujuan),
+            trim((string) $produk),
+            trim((string) $jenisPensiun),
+        ];
+
+        $prefixedKey = trim(implode('-', array_filter($pieces, fn ($piece) => $piece !== '')));
+        if ($prefixedKey !== '') {
+            $candidates[] = $prefixedKey;
+        }
+
+        $plainKey = trim(implode('-', array_filter([
+            trim((string) $produk),
+            trim((string) $jenisPensiun),
+        ], fn ($piece) => $piece !== '')));
+        if ($plainKey !== '' && !in_array($plainKey, $candidates, true)) {
+            $candidates[] = $plainKey;
+        }
+
+        return array_values(array_unique($candidates));
+    }
+
+    private function firstProductStructForKeys(array $productKeys): ?ProductStruct
+    {
+        foreach ($productKeys as $key) {
+            $struct = ProductStruct::query()->where('produk', $key)->first();
+            if ($struct !== null) {
+                return $struct;
+            }
+        }
+
+        return null;
     }
 
     private function normalizePercent(float $value): float
