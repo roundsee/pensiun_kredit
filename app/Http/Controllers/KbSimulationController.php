@@ -549,6 +549,12 @@ Log::info('cacheKey');
     public function calculateTenorMax(Request $request): JsonResponse
     {
         try {
+            Log::info('KB tenor-max request debug', [
+                'method' => $request->method(),
+                'content_type' => $request->header('Content-Type'),
+                'all' => $request->all(),
+            ]);
+
             $validated = $request->validate([
                 'produk' => ['required', 'string', 'max:100'],
                 'jenis_pensiun' => ['required', 'string', 'max:100'],
@@ -600,6 +606,12 @@ Log::info('cacheKey');
     public function calculatePlafondMax(Request $request): JsonResponse
     {
         try {
+            Log::info('KB plafond-max request debug', [
+                'method' => $request->method(),
+                'content_type' => $request->header('Content-Type'),
+                'all' => $request->all(),
+            ]);
+
             $validated = $request->validate([
                 'produk' => ['required', 'string', 'max:100'],
                 'jenis_pensiun' => ['required', 'string', 'max:100'],
@@ -721,6 +733,12 @@ Log::info('cacheKey');
     public function calculate(Request $request): JsonResponse
     {
         try {
+            Log::info('KB calculate request debug', [
+                'method' => $request->method(),
+                'content_type' => $request->header('Content-Type'),
+                'all' => $request->all(),
+            ]);
+
             if ($this->hasPricingOverrideInput($request)) {
                 $this->ensurePricingOverridesAuthorized($request);
             }
