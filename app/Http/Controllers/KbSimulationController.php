@@ -605,12 +605,18 @@ Log::info('cacheKey');
 
     public function calculatePlafondMax(Request $request): JsonResponse
     {
-        try {
-            Log::info('KB plafond-max request debug', [
+                try {
+            // === DEBUG COMPLETE ===
+            $debug = [
                 'method' => $request->method(),
                 'content_type' => $request->header('Content-Type'),
+                'content' => $request->getContent(), // Raw body
                 'all' => $request->all(),
-            ]);
+                'json' => $request->json()->all(),
+                'input' => $request->input(),
+                'headers' => $request->headers->all(),
+            ];
+            Log::info('KB tenor-max FULL DEBUG', $debug);
 
             $validated = $request->validate([
                 'produk' => ['required', 'string', 'max:100'],
