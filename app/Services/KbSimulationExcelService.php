@@ -262,7 +262,7 @@ $bankAsal = KbReferenceOption::query()
         $flagging = $instansi === 'taspen' ? 816000.0 : ($instansi === 'asabri' ? 222000.0 : 0.0);
         $materai = 80000.0;
         $tataLaksana = $flagging + $materai;
-
+        
         $totalBiaya = $provisi + $administrasi + $asuransi + $extraPremi + $amountBlokirAngsuran + $tataLaksana + $pelunasan;
         $sisaGajiAkhir = $sisaGajiSaatPengajuan - $totalAngsuran;
         $terimaBersih = $plafond - $totalBiaya;

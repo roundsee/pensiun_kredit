@@ -10,6 +10,7 @@ class ProductStruct extends Model
 
     protected $fillable = [
         'produk',
+        'kantor_bayar',
         'plafond_min',
         'plafond_max',
         'tenor_max',

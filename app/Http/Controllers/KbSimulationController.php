@@ -612,22 +612,7 @@ public function store(Request $request): JsonResponse
 
         // ==================== LANGSUNG MERGE DAN SAVE ====================
         // Gabungkan data input (nama, no pensiun, dll) dan hasil perhitungan keuangan
-        $persistPayload = array_merge($input, $result);
-
-        $persistPayload['tgl_permohonan'] = $persistPayload['tgl_permohonan'] ?? $persistPayload['tanggal_simulasi'] ?? now()->toDateString();
-        $persistPayload['simpanan_pokok'] = $persistPayload['simpanan_pokok'] ?? 0;
-        $persistPayload['angsuran_lain'] = $persistPayload['angsuran_lain'] ?? $persistPayload['angsuran_lainnya'] ?? 0;
-
-        // Bersihkan field pembantu / field yang tidak ada di kolom database
-        unset(
-            $persistPayload['umur_text'],
-            $persistPayload['usia_lunas_text'],
-            $persistPayload['angsuran_lainnya'],
-            $persistPayload['client_side_calculation'],
-            $persistPayload['tanggal_simulasi'],
-        );
-
-        $persistPayload['status'] = 'trial';
+        $persistPayload = $this->filterPersistPayloadForDataSimulasi(array_merge($input, $result));
 
         // Langsung simpan ke database tanpa limitcheck
         $saved = DataSimulasi::query()->create($persistPayload);
@@ -674,22 +659,7 @@ public function storesimulasi(Request $request): JsonResponse
 
         // ==================== LANGSUNG MERGE DAN SAVE ====================
         // Gabungkan data input (nama, no pensiun, dll) dan hasil perhitungan keuangan
-        $persistPayload = array_merge($input, $result);
-
-        $persistPayload['tgl_permohonan'] = $persistPayload['tgl_permohonan'] ?? $persistPayload['tanggal_simulasi'] ?? now()->toDateString();
-        $persistPayload['simpanan_pokok'] = $persistPayload['simpanan_pokok'] ?? 0;
-        $persistPayload['angsuran_lain'] = $persistPayload['angsuran_lain'] ?? $persistPayload['angsuran_lainnya'] ?? 0;
-
-        // Bersihkan field pembantu / field yang tidak ada di kolom database
-        unset(
-            $persistPayload['umur_text'],
-            $persistPayload['usia_lunas_text'],
-            $persistPayload['angsuran_lainnya'],
-            $persistPayload['client_side_calculation'],
-            $persistPayload['tanggal_simulasi'],
-        );
-
-        $persistPayload['status'] = 'trial';
+        $persistPayload = $this->filterPersistPayloadForDataSimulasi(array_merge($input, $result));
 
         // Langsung simpan ke database tanpa limitcheck
         $saved = DataSimulasi::query()->create($persistPayload);
@@ -1097,6 +1067,36 @@ public function downloadPdfSImulasi(Request $request)
             'kode_area' => ['nullable', 'string', 'max:255'],
         ];
         Log::info('Calculate request data validated successfully.');
+    }
+
+    private function filterPersistPayloadForDataSimulasi(array $persistPayload): array
+    {
+        $allowedColumns = array_fill_keys((new DataSimulasi())->getFillable(), true);
+        $filtered = [];
+
+        foreach ($persistPayload as $key => $value) {
+            if (isset($allowedColumns[$key])) {
+                $filtered[$key] = $value;
+            }
+        }
+
+        if (! array_key_exists('tgl_permohonan', $filtered)) {
+            $filtered['tgl_permohonan'] = $persistPayload['tanggal_simulasi'] ?? $persistPayload['tgl_permohonan'] ?? now()->toDateString();
+        }
+
+        if (! array_key_exists('simpanan_pokok', $filtered)) {
+            $filtered['simpanan_pokok'] = $persistPayload['simpanan_pokok'] ?? 0;
+        }
+
+        if (! array_key_exists('angsuran_lain', $filtered)) {
+            $filtered['angsuran_lain'] = $persistPayload['angsuran_lain'] ?? $persistPayload['angsuran_lainnya'] ?? 0;
+        }
+
+        if (empty($filtered['status'] ?? null)) {
+            $filtered['status'] = 'trial';
+        }
+
+        return $filtered;
     }
 
     private function storeRules(): array

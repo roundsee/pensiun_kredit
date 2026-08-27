@@ -20,13 +20,63 @@
                     @auth
                         @php
                             $role = auth()->user()?->roleSlug();
-                            $isAdmin = in_array($role, [\App\Models\User::ROLE_ADMIN, \App\Models\User::ROLE_SUPERVISOR], true);
+                            $isAdmin = $role === \App\Models\User::ROLE_ADMIN;
                             $isMarketing = $role === \App\Models\User::ROLE_MARKETING;
                             $isSupportOrOperation = in_array($role, [\App\Models\User::ROLE_SUPPORT_BISNIS, \App\Models\User::ROLE_OPERATION], true);
                             $canManageUsers = $isAdmin;
+                            $showFullMenu = false;
                         @endphp
 
-                        @if($isMarketing)
+                        @if($showFullMenu)
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('dashboard') }}">Dashboard</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('kb_simulasi.index') }}">Simulasi</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('kb_simulasi.goal_seeker') }}">Goal Seeker</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('data_simulasi.trial.list') }}">Trial Data Simulasi</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('data_simulasi.list') }}">Data Simulasi</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ url('/banpot') }}">List Banpot</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('payment.index') }}">List Payment</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('nominatif.initial.create') }}">Import Initial Nominatif</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('pic_nbp.index') }}">Petugas NBP</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('products.index') }}">Products</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('product_templates.index') }}">Product Templates</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('accounts.index') }}">Accounts</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('pam.index') }}">PAM</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('maintenance.db.index') }}">DB Tools</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('users.role_setting') }}">User Role Setting</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('register') }}">Register</a>
+                            </li>
+                        @elseif($isMarketing)
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route('kb_simulasi.index') }}">Simulasi</a>
                             </li>
