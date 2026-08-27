@@ -199,14 +199,39 @@ class _SimulationPageState extends State<SimulationPage> {
     super.dispose();
   }
 
-  String get _baseUrl => _baseUrlController.text.trim().replaceAll(RegExp(r'/$'), '');
+  String _normalizeApiBaseUrl(String rawValue) {
+    final trimmed = rawValue.trim();
+    if (trimmed.isEmpty) return '';
+
+    var normalized = trimmed.replaceAll(RegExp(r'/+$'), '');
+    if (!normalized.startsWith('http://') && !normalized.startsWith('https://')) {
+      return normalized;
+    }
+
+    if (normalized.endsWith('/api/mobile/kb-simulasi')) {
+      return normalized;
+    }
+
+    if (normalized.endsWith('/kb-simulasi')) {
+      return '${normalized.substring(0, normalized.length - '/kb-simulasi'.length)}/api/mobile/kb-simulasi';
+    }
+
+    if (normalized.endsWith('/api')) {
+      return '$normalized/mobile/kb-simulasi';
+    }
+
+    if (normalized.endsWith('/mobile')) {
+      return '$normalized/kb-simulasi';
+    }
+
+    return '$normalized/api/mobile/kb-simulasi';
+  }
+
+  String get _baseUrl => _normalizeApiBaseUrl(_baseUrlController.text);
 
   String get _mobileLoginUrl {
-    if (_baseUrl.endsWith('/kb-simulasi')) {
-      final root = _baseUrl.substring(0, _baseUrl.length - '/kb-simulasi'.length);
-      return '$root/auth/login';
-    }
-    return '$_baseUrl/login';
+    final root = _baseUrl.substring(0, _baseUrl.length - '/api/mobile/kb-simulasi'.length);
+    return '$root/api/mobile/auth/login';
   }
 
   Future<void> _bootstrapSettingsAndConfig() async {
@@ -365,12 +390,12 @@ class _SimulationPageState extends State<SimulationPage> {
     final prefs = await SharedPreferences.getInstance();
     final saved = prefs.getString(_baseUrlPrefKey);
     if (saved != null && saved.trim().isNotEmpty) {
-      _baseUrlController.text = saved.trim();
+      _baseUrlController.text = _normalizeApiBaseUrl(saved);
     }
   }
 
   Future<void> _saveBaseUrl() async {
-    final value = _baseUrl;
+    final value = _normalizeApiBaseUrl(_baseUrlController.text);
     if (value.isEmpty || !value.startsWith('http')) {
       _showToast('URL endpoint harus diawali http:// atau https://', isError: true);
       return;
@@ -393,7 +418,10 @@ class _SimulationPageState extends State<SimulationPage> {
     try {
       final response = await http.get(Uri.parse('$_baseUrl/config'));
       if (response.statusCode != 200) {
-        throw Exception('Gagal load config: ${response.statusCode}. Pastikan server Laravel sedang berjalan dan Base URL menunjuk ke API, bukan ke halaman web biasa.');
+        throw Exception('Gagal load config: ${response.statusCode}. Pastikan Base URL menunjuk ke API Laravel seperti http://10.0.2.2:8000/api/mobile/kb-simulasi');
+      }
+      if (response.body.trimLeft().startsWith('<!DOCTYPE') || response.body.trimLeft().startsWith('<html')) {
+        throw Exception('Server mengembalikan halaman web, bukan JSON API. Periksa Base URL: http://10.0.2.2:8000/api/mobile/kb-simulasi');
       }
       final jsonMap = jsonDecode(response.body) as Map<String, dynamic>;
       final optionsMap = (jsonMap['options'] as Map<String, dynamic>? ?? {})

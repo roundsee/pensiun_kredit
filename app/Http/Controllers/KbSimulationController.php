@@ -548,101 +548,127 @@ Log::info('cacheKey');
     }
     public function calculate(Request $request): JsonResponse
     {
-        if ($this->hasPricingOverrideInput($request)) {
-            $this->ensurePricingOverridesAuthorized($request);
-        }
-
-        $input = $request->validate($this->calculateRules());
-
-        $input = array_merge([
-            'produk' => 'Platinum',
-            'jenis_pensiun' => 'Sendiri',
-            'bank_asal' => 'BANK BUKOPIN',
-            'bank_tujuan' => 'KB',
-            'keterangan' => '',
-            'nama_debitur' => '-',
-            'tanggal_simulasi' => now()->toDateString(),
-            'tanggal_lahir' => null,
-            'nomor_pensiun' => '-',
-            'nomor_hp' => '08xxxxxxxx',
-            'instansi' => 'TASPEN',
-            'gaji_pensiun' => 0,
-            'angsuran_lainnya' => 0,
-            'tenor' => null,
-            'plafond' => null,
-            'nama_marketing' => '-',
-            'kode_area' => '-',
-        ], $input);
-
-        $cacheKey = 'kb_simulasi_calc_' . sha1(json_encode($input));
-
         try {
+            if ($this->hasPricingOverrideInput($request)) {
+                $this->ensurePricingOverridesAuthorized($request);
+            }
+
+            $input = $request->validate($this->calculateRules());
+
+            $input = array_merge([
+                'produk' => 'Platinum',
+                'jenis_pensiun' => 'Sendiri',
+                'bank_asal' => 'BANK BUKOPIN',
+                'bank_tujuan' => 'KB',
+                'keterangan' => '',
+                'nama_debitur' => '-',
+                'tanggal_simulasi' => now()->toDateString(),
+                'tanggal_lahir' => null,
+                'nomor_pensiun' => '-',
+                'nomor_hp' => '08xxxxxxxx',
+                'instansi' => 'TASPEN',
+                'gaji_pensiun' => 0,
+                'angsuran_lainnya' => 0,
+                'tenor' => null,
+                'plafond' => null,
+                'nama_marketing' => '-',
+                'kode_area' => '-',
+            ], $input);
+
+            $cacheKey = 'kb_simulasi_calc_' . sha1(json_encode($input));
+
             $result = Cache::remember($cacheKey, now()->addSeconds(30), function () use ($input) {
                 return $this->kbSimulationExcelService->calculate($input);
             });
+
+            $limitChecks = $this->buildLimitChecks($input, $result);
+
+            return response()->json([
+                'message' => 'Perhitungan simulasi berhasil.',
+                'code' => 'CALCULATION_OK',
+                'data' => $result,
+                'display' => $this->buildDisplayResult($result),
+                'limits' => $limitChecks,
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validasi input gagal.',
+                'code' => 'VALIDATION_ERROR',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Throwable $e) {
+            Log::error('KB simulation calculate error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
             return response()->json([
                 'message' => $e->getMessage(),
-            ], 422);
+                'code' => 'CALCULATION_ERROR',
+                'status' => 500,
+            ], 500);
         }
-
-        $limitChecks = $this->buildLimitChecks($input, $result);
-
-        return response()->json([
-            'message' => 'Perhitungan simulasi berhasil.',
-            'data' => $result,
-            'display' => $this->buildDisplayResult($result),
-            'limits' => $limitChecks,
-        ]);
     }
 public function store(Request $request): JsonResponse
     {
-        Log::info('Storing KB simulation data...');
-        $isClientSide = $request->boolean('client_side_calculation');
-        Log::info('Client side calculation: ' . ($isClientSide ? 'true' : 'false'));
-        
-        $validator = Validator::make($request->all(), $this->storeRules());
-        if ($validator->fails()) {
-            Log::error('VALIDASI GAGAL DI FIELD: ' . json_encode($validator->errors()->toArray()));
-            return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
-        }
-        $input = $validator->validated();        
-        Log::info('Input data: ' . json_encode($input));
+        try {
+            Log::info('Storing KB simulation data...');
+            $isClientSide = $request->boolean('client_side_calculation');
+            Log::info('Client side calculation: ' . ($isClientSide ? 'true' : 'false'));
 
-        if ($isClientSide) {
-            Log::info('Validating client result data...');
-            $clientResult = $request->validate($this->clientResultRules());
-            $result = array_merge($input, $clientResult);
-        } else {
-            Log::info('Calculating KB simulation data...');
-            try {
-                $result = $this->kbSimulationExcelService->calculate($input);
-            } catch (\Throwable $e) {
-                Log::error('Error during KB simulation calculation: ' . $e->getMessage());
+            $validator = Validator::make($request->all(), $this->storeRules());
+            if ($validator->fails()) {
+                Log::error('VALIDASI GAGAL DI FIELD: ' . json_encode($validator->errors()->toArray()));
                 return response()->json([
-                    'message' => $e->getMessage(),
+                    'message' => 'Validasi input gagal.',
+                    'code' => 'VALIDATION_ERROR',
+                    'errors' => $validator->errors(),
                 ], 422);
             }
+            $input = $validator->validated();
+            Log::info('Input data: ' . json_encode($input));
+
+            if ($isClientSide) {
+                Log::info('Validating client result data...');
+                $clientResult = $request->validate($this->clientResultRules());
+                $result = array_merge($input, $clientResult);
+            } else {
+                Log::info('Calculating KB simulation data...');
+                $result = $this->kbSimulationExcelService->calculate($input);
+            }
+
+            $persistPayload = $this->filterPersistPayloadForDataSimulasi(array_merge($input, $result));
+            $saved = DataSimulasi::query()->create($persistPayload);
+            Log::info('Data simulasi KB berhasil disimpan dengan ID: ' . $saved->id);
+
+            return response()->json([
+                'message' => 'Data simulasi KB berhasil disimpan.',
+                'code' => 'SAVE_OK',
+                'id' => $saved->id,
+                'data' => $saved,
+                'display' => $this->buildDisplayResult($result),
+            ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validasi input gagal.',
+                'code' => 'VALIDATION_ERROR',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Throwable $e) {
+            Log::error('Error during KB simulation save', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'message' => $e->getMessage(),
+                'code' => 'SAVE_ERROR',
+                'status' => 500,
+            ], 500);
         }
-
-        // ==================== LANGSUNG MERGE DAN SAVE ====================
-        // Gabungkan data input (nama, no pensiun, dll) dan hasil perhitungan keuangan
-        $persistPayload = $this->filterPersistPayloadForDataSimulasi(array_merge($input, $result));
-
-        // Langsung simpan ke database tanpa limitcheck
-        $saved = DataSimulasi::query()->create($persistPayload);
-        Log::info('Data simulasi KB berhasil disimpan dengan ID: ' . $saved->id);
-        // =================================================================
-
-        return response()->json([
-            'message' => 'Data simulasi KB berhasil disimpan.',
-            'id' => $saved->id,
-            'data' => $saved,
-            'display' => $this->buildDisplayResult($result),
-        ], 201);
     }
 
-public function storesimulasi(Request $request): JsonResponse
+    public function storesimulasi(Request $request): JsonResponse
     {
         Log::info('Storing KB simulation data...');
         $isClientSide = $request->boolean('client_side_calculation');

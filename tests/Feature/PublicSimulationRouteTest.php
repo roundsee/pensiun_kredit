@@ -67,4 +67,47 @@ class PublicSimulationRouteTest extends TestCase
 
         $response->assertStatus(201);
     }
+
+    public function test_mobile_calculation_api_does_not_redirect_to_html(): void
+    {
+        $response = $this->post('/api/mobile/kb-simulasi/calculate', [
+            'produk' => 'Platinum',
+            'jenis_pensiun' => 'Sendiri',
+            'mutasi' => 'Non Mutasi',
+            'bank_asal' => 'BANK BUKOPIN',
+            'bank_tujuan' => 'KB',
+            'tanggal_simulasi' => '2026-08-27',
+            'tanggal_lahir' => '1990-01-01',
+            'instansi' => 'TASPEN',
+            'gaji_pensiun' => 5000000,
+            'angsuran_lainnya' => 1500000,
+            'tenor' => 60,
+            'plafond' => 200000000,
+            'nama_marketing' => '-',
+            'kode_area' => '101 - BANDUNG',
+            'blokir_angsuran' => 1,
+            'pelunasan' => 0,
+        ], ['Accept' => 'application/json']);
+
+        $this->assertNotSame(302, $response->status());
+        $this->assertNotSame('text/html', $response->headers->get('Content-Type'));
+    }
+
+    public function test_mobile_calculation_api_returns_error_code_in_json(): void
+    {
+        $response = $this->postJson('/api/mobile/kb-simulasi/calculate', [
+            'produk' => 'Platinum',
+            'bank_tujuan' => 'KB',
+            'tanggal_simulasi' => '2026-08-27',
+            'instansi' => 'TASPEN',
+            'gaji_pensiun' => 5000000,
+            'angsuran_lainnya' => 1500000,
+            'tenor' => 60,
+            'plafond' => 200000000,
+        ]);
+
+        $response->assertStatus(422);
+        $response->assertJsonPath('code', 'VALIDATION_ERROR');
+        $response->assertJsonStructure(['message', 'code', 'errors']);
+    }
 }
