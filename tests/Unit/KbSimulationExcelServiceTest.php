@@ -121,6 +121,89 @@ class KbSimulationExcelServiceTest extends TestCase
         $this->assertSame(1, $count);
     }
 
+    public function test_it_includes_simpanan_pokok_in_total_biaya_for_kb_and_mantap(): void
+    {
+        $service = new KbSimulationExcelService();
+
+        $baseKb = $service->calculate([
+            'produk' => 'Platinum',
+            'jenis_pensiun' => 'Sendiri',
+            'bank_tujuan' => 'KB',
+            'tanggal_simulasi' => '2026-08-27',
+            'tanggal_lahir' => '1956-06-02',
+            'gaji_pensiun' => 5000000,
+            'angsuran_lainnya' => 1500000,
+            'tenor' => 60,
+            'plafond' => 200000000,
+            'simpanan_pokok' => 0,
+        ]);
+
+        $resultKb = $service->calculate([
+            'produk' => 'Platinum',
+            'jenis_pensiun' => 'Sendiri',
+            'bank_tujuan' => 'KB',
+            'tanggal_simulasi' => '2026-08-27',
+            'tanggal_lahir' => '1956-06-02',
+            'gaji_pensiun' => 5000000,
+            'angsuran_lainnya' => 1500000,
+            'tenor' => 60,
+            'plafond' => 200000000,
+            'simpanan_pokok' => 100000,
+        ]);
+
+        $this->assertSame(100000.0, round((float) $resultKb['simpanan_pokok'], 2));
+        $this->assertEqualsWithDelta(100000.0, (float) $resultKb['total_biaya'] - (float) $baseKb['total_biaya'], 0.01);
+
+        $baseMantap = $service->calculate([
+            'produk' => 'Platinum',
+            'jenis_pensiun' => 'Sendiri',
+            'bank_tujuan' => 'MANTAP',
+            'tanggal_simulasi' => '2026-08-27',
+            'tanggal_lahir' => '1956-06-02',
+            'gaji_pensiun' => 5000000,
+            'angsuran_lainnya' => 1500000,
+            'tenor' => 60,
+            'plafond' => 200000000,
+            'simpanan_pokok' => 0,
+        ]);
+
+        $resultMantap = $service->calculate([
+            'produk' => 'Platinum',
+            'jenis_pensiun' => 'Sendiri',
+            'bank_tujuan' => 'MANTAP',
+            'tanggal_simulasi' => '2026-08-27',
+            'tanggal_lahir' => '1956-06-02',
+            'gaji_pensiun' => 5000000,
+            'angsuran_lainnya' => 1500000,
+            'tenor' => 60,
+            'plafond' => 200000000,
+            'simpanan_pokok' => 100000,
+        ]);
+
+        $this->assertSame(100000.0, round((float) $resultMantap['simpanan_pokok'], 2));
+        $this->assertEqualsWithDelta(100000.0, (float) $resultMantap['total_biaya'] - (float) $baseMantap['total_biaya'], 0.01);
+    }
+
+    public function test_it_returns_plafond_rekomendasi_alias_for_the_calculation_result(): void
+    {
+        $service = new KbSimulationExcelService();
+
+        $result = $service->calculate([
+            'produk' => 'Platinum',
+            'jenis_pensiun' => 'Sendiri',
+            'bank_tujuan' => 'KB',
+            'tanggal_simulasi' => '2026-08-27',
+            'tanggal_lahir' => '1956-06-02',
+            'gaji_pensiun' => 5000000,
+            'angsuran_lainnya' => 1500000,
+            'tenor' => 60,
+            'plafond' => 200000000,
+        ]);
+
+        $this->assertArrayHasKey('plafond_rekomendasi', $result);
+        $this->assertSame((float) $result['plafond_max'], (float) $result['plafond_rekomendasi']);
+    }
+
     public function test_it_falls_back_to_plain_product_key_when_bank_prefix_is_not_present_in_product_struct(): void
     {
         $service = new KbSimulationExcelService();

@@ -53,6 +53,7 @@ $bankAsal = KbReferenceOption::query()
             'instansi' => 'TASPEN',
             'gaji_pensiun' => 0,
             'angsuran_lainnya' => 0,
+            'simpanan_pokok' => 0,
             'tenor' => null,
             'plafond' => null,
             'nama_marketing' => '-',
@@ -210,6 +211,7 @@ $bankAsal = KbReferenceOption::query()
         ) ?? 0;
 
         $angsuranLainnya = (float) ($input['angsuran_lainnya'] ?? 0);
+        $simpananPokok = (float) ($input['simpanan_pokok'] ?? 0);
         $gajiPensiun = (float) ($input['gaji_pensiun'] ?? 0);
         $sisaGajiSaatPengajuan = max(0.0, $gajiPensiun - $angsuranLainnya);
 
@@ -263,7 +265,7 @@ $bankAsal = KbReferenceOption::query()
         $materai = 80000.0;
         $tataLaksana = $flagging + $materai;
 
-        $totalBiaya = $provisi + $administrasi + $asuransi + $extraPremi + $amountBlokirAngsuran + $tataLaksana + $pelunasan;
+        $totalBiaya = $provisi + $administrasi + $asuransi + $extraPremi + $amountBlokirAngsuran + $tataLaksana + $pelunasan + $simpananPokok;
         $sisaGajiAkhir = $sisaGajiSaatPengajuan - $totalAngsuran;
         $terimaBersih = $plafond - $totalBiaya;
 
@@ -288,6 +290,7 @@ $bankAsal = KbReferenceOption::query()
             'instansi' => (string) $input['instansi'],
             'gaji_pensiun' => $gajiPensiun,
             'angsuran_lainnya' => $angsuranLainnya,
+            'simpanan_pokok' => $simpananPokok,
             'tenor' => $tenor,
             'plafond' => $plafond,
             'nama_marketing' => (string) $input['nama_marketing'],
@@ -296,6 +299,7 @@ $bankAsal = KbReferenceOption::query()
             'umur' => $umurTahun,
             'tenor_max' => $tenorMax,
             'plafond_max' => $plafondMax,
+            'plafond_rekomendasi' => $plafondMax,
             'angsuran' => $angsuran,
             'biaya_adm_angs' => $biayaAdmAngs,
             'total_angsuran' => $totalAngsuran,

@@ -1,0 +1,96 @@
+@baseUrl = https://kredit.natabuanapasundan.com
+
+### 1) Cek config public mobile
+GET {{baseUrl}}/api/mobile/kb-simulasi/config
+Accept: application/json
+
+### 2) Hitung simulasi success
+POST {{baseUrl}}/api/mobile/kb-simulasi/calculate
+Accept: application/json
+Content-Type: application/json
+
+{
+  "produk": "Platinum",
+  "jenis_pensiun": "Sendiri",
+  "mutasi": "Non Mutasi",
+  "bank_asal": "BANK BUKOPIN",
+  "bank_tujuan": "KB",
+  "tanggal_simulasi": "2026-08-27",
+  "tanggal_lahir": "1956-06-02",
+  "instansi": "TASPEN",
+  "gaji_pensiun": 5000000,
+  "angsuran_lainnya": 1500000,
+  "tenor": 60,
+  "plafond": 200000000,
+  "nama_marketing": "-",
+  "kode_area": "101 - BANDUNG",
+  "blokir_angsuran": 1,
+  "pelunasan": 0
+}
+
+### 3) Hitung simulasi invalid payload untuk cek error code
+POST {{baseUrl}}/api/mobile/kb-simulasi/calculate
+Accept: application/json
+Content-Type: application/json
+
+{
+  "produk": "Platinum",
+  "bank_tujuan": "KB",
+  "tanggal_simulasi": "2026-08-27",
+  "instansi": "TASPEN",
+  "gaji_pensiun": 5000000,
+  "angsuran_lainnya": 1500000,
+  "tenor": 60,
+  "plafond": 200000000
+}
+
+### 4) Simpan data simulasi success
+POST {{baseUrl}}/api/mobile/kb-simulasi/store
+Accept: application/json
+Content-Type: application/json
+
+{
+  "produk": "Platinum",
+  "jenis_pensiun": "Sendiri",
+  "mutasi": "Non Mutasi",
+  "bank_asal": "BANK BUKOPIN",
+  "bank_tujuan": "KB",
+  "keterangan": "",
+  "nama_debitur": "John Doe",
+  "tanggal_simulasi": "2026-08-27",
+  "tanggal_lahir": "1956-06-02",
+  "nomor_pensiun": "12345",
+  "nomor_hp": "081234567890",
+  "instansi": "TASPEN",
+  "gaji_pensiun": 5000000,
+  "angsuran_lainnya": 1500000,
+  "blokir_angsuran": 1,
+  "pelunasan": 0,
+  "tenor": 60,
+  "plafond": 200000000,
+  "nama_marketing": "-",
+  "kode_area": "101 - BANDUNG",
+  "angsuran": 500000,
+  "total_angsuran": 500000,
+  "plafond_max": 250000000,
+  "tenor_max": 60,
+  "sisa_gaji_akhir": 2500000,
+  "terima_bersih": 3000000,
+  "status": "trial"
+}
+
+### 5) Simpan data simulasi invalid payload untuk cek validation error
+POST {{baseUrl}}/api/mobile/kb-simulasi/store
+Accept: application/json
+Content-Type: application/json
+
+{
+  "produk": "Platinum",
+  "bank_tujuan": "KB",
+  "tanggal_simulasi": "2026-08-27",
+  "instansi": "TASPEN",
+  "gaji_pensiun": 5000000,
+  "angsuran_lainnya": 1500000,
+  "tenor": 60,
+  "plafond": 200000000
+}

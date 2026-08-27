@@ -546,6 +546,178 @@ Log::info('cacheKey');
             'limits' => $limitChecks,
         ]);
     }
+    public function calculateTenorMax(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'produk' => ['required', 'string', 'max:100'],
+                'jenis_pensiun' => ['required', 'string', 'max:100'],
+                'bank_tujuan' => ['required', 'string', 'max:255'],
+                'tanggal_simulasi' => ['required', 'date'],
+                'tanggal_lahir' => ['required', 'date'],
+            ]);
+
+            $result = $this->kbSimulationExcelService->calculate(array_merge([
+                'produk' => 'Platinum',
+                'jenis_pensiun' => 'Sendiri',
+                'bank_tujuan' => 'KB',
+                'tanggal_simulasi' => now()->toDateString(),
+                'tanggal_lahir' => now()->toDateString(),
+                'gaji_pensiun' => 0,
+                'angsuran_lainnya' => 0,
+                'tenor' => null,
+                'plafond' => null,
+            ], $validated));
+
+            return response()->json([
+                'message' => 'Tenor max berhasil dihitung.',
+                'code' => 'TENOR_MAX_OK',
+                'data' => [
+                    'tenor_max' => (int) ($result['tenor_max'] ?? 0),
+                    'umur' => $result['umur'] ?? null,
+                ],
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validasi input gagal.',
+                'code' => 'VALIDATION_ERROR',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Throwable $e) {
+            Log::error('KB simulation tenor max error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'message' => $e->getMessage(),
+                'code' => 'TENOR_MAX_ERROR',
+                'status' => 500,
+            ], 500);
+        }
+    }
+
+    public function calculatePlafondMax(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'produk' => ['required', 'string', 'max:100'],
+                'jenis_pensiun' => ['required', 'string', 'max:100'],
+                'bank_tujuan' => ['required', 'string', 'max:255'],
+                'tanggal_simulasi' => ['required', 'date'],
+                'tanggal_lahir' => ['required', 'date'],
+                'gaji_pensiun' => ['required', 'numeric', 'min:0'],
+                'angsuran_lainnya' => ['nullable', 'numeric', 'min:0'],
+                'rate_percent_override' => ['nullable', 'numeric', 'min:0'],
+                'admin_angsuran_percent_override' => ['nullable', 'numeric', 'min:0'],
+            ]);
+
+            $result = $this->kbSimulationExcelService->calculate(array_merge([
+                'produk' => 'Platinum',
+                'jenis_pensiun' => 'Sendiri',
+                'bank_tujuan' => 'KB',
+                'tanggal_simulasi' => now()->toDateString(),
+                'tanggal_lahir' => now()->toDateString(),
+                'gaji_pensiun' => 0,
+                'angsuran_lainnya' => 0,
+                'tenor' => 60,
+                'plafond' => null,
+            ], $validated));
+
+            return response()->json([
+                'message' => 'Plafond rekomendasi berhasil dihitung.',
+                'code' => 'PLAFOND_MAX_OK',
+                'data' => [
+                    'tenor_max' => (int) ($result['tenor_max'] ?? 0),
+                    'plafond_max' => (float) ($result['plafond_max'] ?? 0),
+                    'plafond_rekomendasi' => (float) ($result['plafond_rekomendasi'] ?? $result['plafond_max'] ?? 0),
+                    'sisa_gaji_saat_pengajuan' => (float) ($result['sisa_gaji_saat_pengajuan'] ?? 0),
+                ],
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validasi input gagal.',
+                'code' => 'VALIDATION_ERROR',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Throwable $e) {
+            Log::error('KB simulation plafond max error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'message' => $e->getMessage(),
+                'code' => 'PLAFOND_MAX_ERROR',
+                'status' => 500,
+            ], 500);
+        }
+    }
+
+    public function previewSimulation(Request $request): JsonResponse
+    {
+        try {
+            if ($this->hasPricingOverrideInput($request)) {
+                $this->ensurePricingOverridesAuthorized($request);
+            }
+
+            $validated = $request->validate($this->calculateRules());
+            $input = array_merge([
+                'produk' => 'Platinum',
+                'jenis_pensiun' => 'Sendiri',
+                'bank_asal' => 'BANK BUKOPIN',
+                'bank_tujuan' => 'KB',
+                'keterangan' => '',
+                'nama_debitur' => '-',
+                'tanggal_simulasi' => now()->toDateString(),
+                'tanggal_lahir' => null,
+                'nomor_pensiun' => '-',
+                'nomor_hp' => '08xxxxxxxx',
+                'instansi' => 'TASPEN',
+                'gaji_pensiun' => 0,
+                'angsuran_lainnya' => 0,
+                'blokir_angsuran' => 1,
+                'pelunasan' => 0,
+                'tenor' => null,
+                'plafond' => null,
+                'nama_marketing' => '-',
+                'kode_area' => '-',
+            ], $validated);
+
+            $cacheKey = 'kb_simulasi_preview_' . sha1(json_encode($input));
+            $result = Cache::remember($cacheKey, now()->addSeconds(30), function () use ($input) {
+                return $this->kbSimulationExcelService->calculate($input);
+            });
+
+            $limitChecks = $this->buildLimitChecks($input, $result);
+
+            return response()->json([
+                'message' => 'Perhitungan simulasi berhasil.',
+                'code' => 'CALCULATION_OK',
+                'data' => $result,
+                'display' => $this->buildDisplayResult($result),
+                'limits' => $limitChecks,
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'message' => 'Validasi input gagal.',
+                'code' => 'VALIDATION_ERROR',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Throwable $e) {
+            Log::error('KB simulation preview error', [
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'message' => $e->getMessage(),
+                'code' => 'CALCULATION_ERROR',
+                'status' => 500,
+            ], 500);
+        }
+    }
+
     public function calculate(Request $request): JsonResponse
     {
         try {
@@ -1105,6 +1277,7 @@ public function downloadPdfSImulasi(Request $request)
             'instansi' => ['nullable', 'string', 'max:100'],
             'gaji_pensiun' => ['nullable', 'numeric', 'min:0'],
             'angsuran_lainnya' => ['nullable', 'numeric', 'min:0'],
+            'simpanan_pokok' => ['nullable', 'numeric', 'min:0'],
             'blokir_angsuran' => ['nullable', 'integer', 'in:1,2,3,4,5'],
             'pelunasan' => ['nullable', 'numeric', 'min:0'],
             'rate_percent_override' => ['nullable', 'numeric', 'min:0'],
@@ -1164,6 +1337,7 @@ public function downloadPdfSImulasi(Request $request)
             'instansi' => ['nullable', 'string', 'max:100'],
             'gaji_pensiun' => ['nullable', 'numeric', 'min:0'],
             'angsuran_lainnya' => ['nullable', 'numeric', 'min:0'],
+            'simpanan_pokok' => ['nullable', 'numeric', 'min:0'],
             'blokir_angsuran' => ['nullable', 'integer', 'in:1,2,3,4,5'],
             'pelunasan' => ['nullable', 'numeric', 'min:0'],
             'ext_tatalaksana' => ['nullable', 'numeric', 'min:0'],
@@ -1192,6 +1366,7 @@ public function downloadPdfSImulasi(Request $request)
             'extra_premi' => ['nullable', 'numeric'],
             'amount_blokir_angsuran' => ['nullable', 'numeric'],
             'blokir_angsuran' => ['nullable', 'numeric'],
+            'simpanan_pokok' => ['nullable', 'numeric'],
             'pelunasan' => ['nullable', 'numeric'],
             'tata_laksana' => ['nullable', 'numeric'],
             'total_biaya' => ['nullable', 'numeric'],
@@ -1217,6 +1392,7 @@ public function downloadPdfSImulasi(Request $request)
             'instansi' => ['nullable', 'string', 'max:100'],
             'gaji_pensiun' => ['required', 'numeric', 'min:0'],
             'angsuran_lainnya' => ['nullable', 'numeric', 'min:0'],
+            'simpanan_pokok' => ['nullable', 'numeric', 'min:0'],
             'blokir_angsuran' => ['nullable', 'integer', 'in:1,2,3,4,5'],
             'pelunasan' => ['nullable', 'numeric', 'min:0'],
             'rate_percent_override' => ['nullable', 'numeric', 'min:0'],

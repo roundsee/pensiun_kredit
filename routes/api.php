@@ -10,6 +10,9 @@ Route::prefix('mobile/auth')->group(function () {
 //update
 Route::prefix('mobile/kb-simulasi')->group(function () {
     Route::get('/config', [KbSimulationController::class, 'mobileConfig']);
+    Route::post('/tenor-max', [KbSimulationController::class, 'calculateTenorMax']);
+    Route::post('/plafond-max', [KbSimulationController::class, 'calculatePlafondMax']);
+    Route::post('/preview', [KbSimulationController::class, 'previewSimulation']);
     Route::post('/calculate', [KbSimulationController::class, 'calculate']);
     Route::post('/store', [KbSimulationController::class, 'store']);
     Route::post('/download-pdf', [KbSimulationController::class, 'downloadPdf']);
