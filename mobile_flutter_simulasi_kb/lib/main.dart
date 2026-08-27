@@ -79,7 +79,7 @@ class SimulationPage extends StatefulWidget {
 class _SimulationPageState extends State<SimulationPage> {
   static const _baseUrlPrefKey = 'kb_simulasi_base_url';
   static const _loginEmailPrefKey = 'kb_simulasi_login_email';
-  static const _defaultBaseUrl = 'https://kredit.natabuanapasundan.com/api/mobile/kb-simulasi';
+  static const _defaultBaseUrl = 'http://10.0.2.2:8000/api/mobile/kb-simulasi';
   static const _adminEmail = 'admin@nbp.com';
   static const double _defaultRatePercent = 16;
   static const double _defaultAdminAngsuranPercent = 10;
@@ -393,7 +393,7 @@ class _SimulationPageState extends State<SimulationPage> {
     try {
       final response = await http.get(Uri.parse('$_baseUrl/config'));
       if (response.statusCode != 200) {
-        throw Exception('Gagal load config: ${response.statusCode}');
+        throw Exception('Gagal load config: ${response.statusCode}. Pastikan server Laravel sedang berjalan dan Base URL menunjuk ke API, bukan ke halaman web biasa.');
       }
       final jsonMap = jsonDecode(response.body) as Map<String, dynamic>;
       final optionsMap = (jsonMap['options'] as Map<String, dynamic>? ?? {})
