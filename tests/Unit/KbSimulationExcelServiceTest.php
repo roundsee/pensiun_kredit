@@ -2,11 +2,50 @@
 
 namespace Tests\Unit;
 
+use App\Models\ProductStruct;
 use App\Services\KbSimulationExcelService;
-use PHPUnit\Framework\TestCase;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class KbSimulationExcelServiceTest extends TestCase
 {
+    use RefreshDatabase;
+
+    public function test_it_finds_product_struct_when_bank_and_product_are_stored_separately(): void
+    {
+        ProductStruct::query()->create([
+            'produk' => 'Platinum',
+            'kantor_bayar' => 'KB',
+            'plafond_min' => 1000000,
+            'plafond_max' => 300000000,
+            'tenor_max' => 120,
+            'rate_percent' => 0.14,
+            'provisi_percent' => 0.01,
+            'usia_masuk_min' => 55,
+            'usia_max' => 80,
+            'admin_percent' => 0.05,
+            'blokir_angsuran' => 2,
+            'taspen' => 850000,
+            'tata_laksana' => 1750000,
+            'tata_laksana_plus_percent' => 0.01,
+            'admin_angsuran_percent' => 0.10,
+            'dbr_percent' => 0.90,
+            'asabri' => 350000,
+            'usia_masuk_max' => 80,
+            'sort_order' => 1,
+        ]);
+
+        $service = new KbSimulationExcelService();
+        $method = new \ReflectionMethod($service, 'firstProductStructForKeys');
+        $method->setAccessible(true);
+
+        $struct = $method->invoke($service, ['KB-Platinum-Sendiri', 'Platinum-Sendiri']);
+
+        $this->assertNotNull($struct);
+        $this->assertSame('Platinum', $struct->produk);
+        $this->assertSame('KB', $struct->kantor_bayar);
+    }
+
     public function test_it_defaults_to_one_when_no_valid_blokir_selection_is_provided(): void
     {
         $service = new KbSimulationExcelService();
@@ -90,6 +129,6 @@ class KbSimulationExcelServiceTest extends TestCase
 
         $keys = $method->invoke($service, 'KB', 'Platinum', 'Sendiri');
 
-        $this->assertSame(['KB-Platinum-Sendiri', 'Platinum-Sendiri'], $keys);
+        $this->assertSame(['KB-Platinum-Sendiri', 'Platinum-Sendiri', 'Platinum'], $keys);
     }
 }

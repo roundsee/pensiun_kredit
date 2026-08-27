@@ -343,8 +343,23 @@ class KbSimulationController extends Controller
             ], 422);
         }
 
-        $productKey = trim((string) $baseInput['bank_tujuan'] . '-' . (string) $baseInput['produk'] . '-' . (string) $baseInput['jenis_pensiun']);
-        $struct = ProductStruct::query()->where('produk', $productKey)->first();
+        $productKeys = array_values(array_unique([
+            trim((string) ($baseInput['bank_tujuan'] ?? '') . '-' . (string) ($baseInput['produk'] ?? '') . '-' . (string) ($baseInput['jenis_pensiun'] ?? '')),
+            trim((string) ($baseInput['produk'] ?? '') . '-' . (string) ($baseInput['jenis_pensiun'] ?? '')),
+            trim((string) ($baseInput['produk'] ?? '')),
+        ]));
+
+        $struct = null;
+        foreach ($productKeys as $productKey) {
+            if ($productKey === '') {
+                continue;
+            }
+
+            $struct = ProductStruct::query()->where('produk', $productKey)->first();
+            if ($struct !== null) {
+                break;
+            }
+        }
 
         $baseRate = ($baseInput['rate_percent_override'] ?? null) !== null && ($baseInput['rate_percent_override'] ?? '') !== ''
             ? (float) $baseInput['rate_percent_override']
@@ -900,16 +915,23 @@ public function downloadPdfSImulasi(Request $request)
 
     private function buildLimitChecks(array $input, array $result): array
     {
-        $productKey = trim(
-            (string) ($input['bank_tujuan'] ?? '')
-            . '-'
-            . (string) ($input['produk'] ?? '')
-            . '-'
-            . (string) ($input['jenis_pensiun'] ?? '')
-        );
-        $struct = ProductStruct::query()
-            ->where('produk', $productKey)
-            ->first();
+        $productKeys = array_values(array_unique([
+            trim((string) ($input['bank_tujuan'] ?? '') . '-' . (string) ($input['produk'] ?? '') . '-' . (string) ($input['jenis_pensiun'] ?? '')),
+            trim((string) ($input['produk'] ?? '') . '-' . (string) ($input['jenis_pensiun'] ?? '')),
+            trim((string) ($input['produk'] ?? '')),
+        ]));
+
+        $struct = null;
+        foreach ($productKeys as $productKey) {
+            if ($productKey === '') {
+                continue;
+            }
+
+            $struct = ProductStruct::query()->where('produk', $productKey)->first();
+            if ($struct !== null) {
+                break;
+            }
+        }
 
         $usia = isset($result['umur']) && $result['umur'] !== null ? (int) $result['umur'] : null;
         $usiaLunas = isset($result['usia_lunas']) && $result['usia_lunas'] !== null ? (int) $result['usia_lunas'] : null;

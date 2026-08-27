@@ -262,7 +262,7 @@ $bankAsal = KbReferenceOption::query()
         $flagging = $instansi === 'taspen' ? 816000.0 : ($instansi === 'asabri' ? 222000.0 : 0.0);
         $materai = 80000.0;
         $tataLaksana = $flagging + $materai;
-        
+
         $totalBiaya = $provisi + $administrasi + $asuransi + $extraPremi + $amountBlokirAngsuran + $tataLaksana + $pelunasan;
         $sisaGajiAkhir = $sisaGajiSaatPengajuan - $totalAngsuran;
         $terimaBersih = $plafond - $totalBiaya;
@@ -425,6 +425,11 @@ $bankAsal = KbReferenceOption::query()
             $candidates[] = $plainKey;
         }
 
+        $productOnly = trim((string) $produk);
+        if ($productOnly !== '' && !in_array($productOnly, $candidates, true)) {
+            $candidates[] = $productOnly;
+        }
+
         return array_values(array_unique($candidates));
     }
 
@@ -434,6 +439,30 @@ $bankAsal = KbReferenceOption::query()
             $struct = ProductStruct::query()->where('produk', $key)->first();
             if ($struct !== null) {
                 return $struct;
+            }
+        }
+
+        foreach ($productKeys as $key) {
+            $keyParts = array_values(array_filter(array_map('trim', preg_split('/[-_\/\s]+/', $key) ?: []), fn ($part) => $part !== ''));
+            if (count($keyParts) < 2) {
+                continue;
+            }
+
+            $product = $keyParts[0] ?? null;
+            $jenis = $keyParts[1] ?? null;
+            if ($product === null || $product === '') {
+                continue;
+            }
+
+            $fallback = ProductStruct::query()
+                ->where(function ($query) use ($product, $jenis) {
+                    $query->where('produk', $product)
+                        ->orWhere('produk', $product . ($jenis !== null && $jenis !== '' ? '-' . $jenis : ''));
+                })
+                ->first();
+
+            if ($fallback !== null) {
+                return $fallback;
             }
         }
 
