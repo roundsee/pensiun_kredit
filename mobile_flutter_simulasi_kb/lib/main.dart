@@ -621,6 +621,30 @@ class _SimulationPageState extends State<SimulationPage> {
     throw Exception('$action gagal: format response tidak sesuai.');
   }
 
+  String _formatValidationErrors(dynamic errors) {
+    if (errors == null) return '';
+    if (errors is Map) {
+      final messageList = <String>[];
+      for (final entry in errors.entries) {
+        final key = entry.key;
+        final value = entry.value;
+        if (value is List) {
+          for (final item in value) {
+            final text = item?.toString() ?? '';
+            if (text.isNotEmpty) messageList.add('$key: $text');
+          }
+        } else if (value != null) {
+          messageList.add('$key: $value');
+        }
+      }
+      return messageList.join('; ');
+    }
+    if (errors is List) {
+      return errors.map((e) => e.toString()).join('; ');
+    }
+    return errors.toString();
+  }
+
   Map<String, dynamic> _requestPayload() {
     return {
       'produk': _form['produk'],
@@ -663,23 +687,27 @@ class _SimulationPageState extends State<SimulationPage> {
 
     try {
       final response = await http.post(
-        Uri.parse('$_baseUrl/calculate'),
+        Uri.parse('$_baseUrl/preview'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(_requestPayload()),
       );
 
-        final jsonMap = _decodeJsonMap(response, 'Perhitungan');
+      final jsonMap = _decodeJsonMap(response, 'Perhitungan');
       if (response.statusCode >= 400) {
-        throw Exception('${jsonMap['message'] ?? 'Perhitungan gagal'}');
+        final errorsText = _formatValidationErrors(jsonMap['errors']);
+        final message = errorsText.isNotEmpty
+            ? '${jsonMap['message'] ?? 'Validasi gagal'}: $errorsText'
+            : jsonMap['message'] ?? 'Perhitungan gagal';
+        throw Exception(message);
       }
 
       setState(() {
-        _result = Map<String, dynamic>.from(jsonMap['data'] as Map<String, dynamic>? ?? {});
+        _result = Map<String, dynamic>.from(jsonMap['data'] ?? const <String, dynamic>{});
         _limits = jsonMap['limits'] as Map<String, dynamic>?;
       });
       if (_limits != null && _limits!['is_valid'] == false) {
         _showToast(
-          'Data belum valid menurut rule backend. Anda tetap bisa simpan trial.',
+          'Data belum valid menurut rule backend; hasil tetap ditampilkan untuk review.',
           isWarning: true,
         );
       }
@@ -786,9 +814,11 @@ class _SimulationPageState extends State<SimulationPage> {
     try {
       final file = await _generatePdfFile();
       await Clipboard.setData(ClipboardData(text: file.path));
-      await Share.shareXFiles(
-        [XFile(file.path, mimeType: 'application/pdf')],
-        text: 'PDF simulasi KB',
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path, mimeType: 'application/pdf')],
+          text: 'PDF simulasi KB',
+        ),
       );
       setState(() {
         _message = 'PDF siap dibagikan. Path file sudah disalin ke clipboard.';

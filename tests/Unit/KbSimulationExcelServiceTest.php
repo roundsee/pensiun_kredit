@@ -204,6 +204,48 @@ class KbSimulationExcelServiceTest extends TestCase
         $this->assertSame((float) $result['plafond_max'], (float) $result['plafond_rekomendasi']);
     }
 
+    public function test_it_clamps_tenor_to_product_struct_max_when_input_exceeds_limit(): void
+    {
+        ProductStruct::query()->create([
+            'produk' => 'MANTAP-Platinum-Janda',
+            'kantor_bayar' => 'MANTAP',
+            'plafond_min' => 1000000,
+            'plafond_max' => 300000000,
+            'tenor_max' => 96,
+            'rate_percent' => 0.16,
+            'provisi_percent' => 0.01,
+            'usia_masuk_min' => 55,
+            'usia_max' => 80,
+            'admin_percent' => 0.05,
+            'blokir_angsuran' => 1,
+            'taspen' => 850000,
+            'tata_laksana' => 1750000,
+            'tata_laksana_plus_percent' => 0.01,
+            'admin_angsuran_percent' => 0.10,
+            'dbr_percent' => 0.90,
+            'asabri' => 350000,
+            'usia_masuk_max' => 80,
+            'sort_order' => 1,
+        ]);
+
+        $service = new KbSimulationExcelService();
+
+        $result = $service->calculate([
+            'produk' => 'Platinum',
+            'jenis_pensiun' => 'Janda',
+            'bank_tujuan' => 'MANTAP',
+            'tanggal_simulasi' => '2026-09-08',
+            'tanggal_lahir' => '1990-01-01',
+            'gaji_pensiun' => 5000000,
+            'angsuran_lainnya' => 0,
+            'tenor' => 120,
+            'plafond' => 100000000,
+        ]);
+
+        $this->assertSame(96, (int) $result['tenor_max']);
+        $this->assertSame(96, (int) $result['tenor']);
+    }
+
     public function test_it_falls_back_to_plain_product_key_when_bank_prefix_is_not_present_in_product_struct(): void
     {
         $service = new KbSimulationExcelService();

@@ -23,6 +23,7 @@
                             $isAdmin = $role === \App\Models\User::ROLE_ADMIN;
                             $isMarketing = $role === \App\Models\User::ROLE_MARKETING;
                             $isSupportOrOperation = in_array($role, [\App\Models\User::ROLE_SUPPORT_BISNIS, \App\Models\User::ROLE_OPERATION], true);
+                            $canAccessPam = in_array($role, [\App\Models\User::ROLE_ADMIN, \App\Models\User::ROLE_SUPERVISOR, \App\Models\User::ROLE_OPERATION], true);
                             $canManageUsers = $isAdmin;
                             $showFullMenu = false;
                         @endphp
@@ -90,6 +91,11 @@
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route('data_simulasi.list') }}">Data Simulasi</a>
                             </li>
+                            @if($canAccessPam)
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{{ route('pam.index') }}">PAM</a>
+                                </li>
+                            @endif
                         @else
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route('dashboard') }}">Dashboard</a>
@@ -121,6 +127,11 @@
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route('maintenance.db.index') }}">DB Tools</a>
                             </li>
+                            @if($canAccessPam)
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{{ route('pam.index') }}">PAM</a>
+                                </li>
+                            @endif
                             @if($canManageUsers)
                                 <li class="nav-item">
                                     <a class="nav-link" href="{{ route('users.role_setting') }}">User Role Setting</a>

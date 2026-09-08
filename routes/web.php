@@ -127,12 +127,14 @@ Route::post('/journals/void', [LoanOperationController::class, 'voidJournal'])->
 Route::get('/products/{product}', [ProductController::class, 'show'])->name('products.show')->middleware('auth');
 Route::get('/products/{product}/edit', [ProductController::class, 'edit'])->name('products.edit')->middleware('auth');
 
-Route::get('/pam', [\App\Http\Controllers\ProductStructController::class, 'index'])->name('pam.index')->middleware('auth');
-Route::get('/pam/create', [\App\Http\Controllers\ProductStructController::class, 'create'])->name('pam.create')->middleware('auth');
-Route::post('/pam', [\App\Http\Controllers\ProductStructController::class, 'store'])->name('pam.store')->middleware('auth');
-Route::get('/pam/{productStruct}/edit', [\App\Http\Controllers\ProductStructController::class, 'edit'])->name('pam.edit')->middleware('auth');
-Route::put('/pam/{productStruct}', [\App\Http\Controllers\ProductStructController::class, 'update'])->name('pam.update')->middleware('auth');
-Route::delete('/pam/{productStruct}', [\App\Http\Controllers\ProductStructController::class, 'destroy'])->name('pam.destroy')->middleware('auth');
+Route::middleware(['auth', 'role:admin,supervisor,operation'])->group(function () {
+    Route::get('/pam', [\App\Http\Controllers\ProductStructController::class, 'index'])->name('pam.index');
+    Route::get('/pam/create', [\App\Http\Controllers\ProductStructController::class, 'create'])->name('pam.create');
+    Route::post('/pam', [\App\Http\Controllers\ProductStructController::class, 'store'])->name('pam.store');
+    Route::get('/pam/{productStruct}/edit', [\App\Http\Controllers\ProductStructController::class, 'edit'])->name('pam.edit');
+    Route::put('/pam/{productStruct}', [\App\Http\Controllers\ProductStructController::class, 'update'])->name('pam.update');
+    Route::delete('/pam/{productStruct}', [\App\Http\Controllers\ProductStructController::class, 'destroy'])->name('pam.destroy');
+});
 
 Route::get('/', function () {
     return view('welcome');

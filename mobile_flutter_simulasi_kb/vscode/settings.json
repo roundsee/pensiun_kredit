@@ -1,0 +1,13 @@
+{
+  "java.configuration.runtimes": [
+    {
+      "name": "JavaSE-25",
+      "path": "D:/android_studio/jbr",
+      "default": true
+    }
+  ],
+  "java.home": "D:/android_studio/jbr",
+  "gradle.javaHome": "D:/android_studio/jbr",
+  "gradle.gradleHome": "D:/gradle-home",
+  "dart.flutterSdkPath": "D:/flutter_source/flutter"
+}

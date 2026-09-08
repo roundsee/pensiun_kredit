@@ -216,6 +216,9 @@ $bankAsal = KbReferenceOption::query()
         $sisaGajiSaatPengajuan = max(0.0, $gajiPensiun - $angsuranLainnya);
 
         $tenor = ($input['tenor'] === null || $input['tenor'] === '') ? 0 : (int) $input['tenor'];
+        if ($tenorMax > 0) {
+            $tenor = max(0, min($tenor, $tenorMax));
+        }
         $tenorForPlafond = $tenor > 0 ? $tenor : $tenorMax;
         $plafond = ($input['plafond'] === null || $input['plafond'] === '') ? 0.0 : (float) $input['plafond'];
 
