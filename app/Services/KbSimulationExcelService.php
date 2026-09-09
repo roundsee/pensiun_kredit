@@ -264,7 +264,14 @@ $bankAsal = KbReferenceOption::query()
         $pelunasan = max(0.0, (float) ($input['pelunasan'] ?? 0));
 
         $instansi = strtolower(trim((string) ($input['instansi'] ?? '')));
-        $flagging = $instansi === 'taspen' ? 816000.0 : ($instansi === 'asabri' ? 333000.0 : 0.0);
+        $flagging = 0.0;
+
+        if ($instansi === 'taspen') {
+            $flagging = (float) ($struct?->taspen ?? 0.0);
+        } elseif ($instansi === 'asabri') {
+            $flagging = (float) ($struct?->asabri ?? 0.0);
+        }
+
         $materai = 80000.0;
         $tataLaksana = $flagging + $materai;
 

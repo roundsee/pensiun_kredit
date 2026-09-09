@@ -246,6 +246,62 @@ class KbSimulationExcelServiceTest extends TestCase
         $this->assertSame(96, (int) $result['tenor']);
     }
 
+    public function test_it_uses_product_struct_flagging_values_for_instansi(): void
+    {
+        ProductStruct::query()->create([
+            'produk' => 'Platinum',
+            'kantor_bayar' => 'KB',
+            'plafond_min' => 1000000,
+            'plafond_max' => 300000000,
+            'tenor_max' => 120,
+            'rate_percent' => 0.14,
+            'provisi_percent' => 0.01,
+            'usia_masuk_min' => 55,
+            'usia_max' => 80,
+            'admin_percent' => 0.05,
+            'blokir_angsuran' => 2,
+            'taspen' => 850000,
+            'tata_laksana' => 1750000,
+            'tata_laksana_plus_percent' => 0.01,
+            'admin_angsuran_percent' => 0.10,
+            'dbr_percent' => 0.90,
+            'asabri' => 350000,
+            'usia_masuk_max' => 80,
+            'sort_order' => 1,
+        ]);
+
+        $service = new KbSimulationExcelService();
+
+        $taspenResult = $service->calculate([
+            'produk' => 'Platinum',
+            'jenis_pensiun' => 'Sendiri',
+            'bank_tujuan' => 'KB',
+            'instansi' => 'TASPEN',
+            'tanggal_simulasi' => '2026-08-27',
+            'tanggal_lahir' => '1956-06-02',
+            'gaji_pensiun' => 5000000,
+            'angsuran_lainnya' => 1500000,
+            'tenor' => 60,
+            'plafond' => 200000000,
+        ]);
+
+        $asabriResult = $service->calculate([
+            'produk' => 'Platinum',
+            'jenis_pensiun' => 'Sendiri',
+            'bank_tujuan' => 'KB',
+            'instansi' => 'ASABRI',
+            'tanggal_simulasi' => '2026-08-27',
+            'tanggal_lahir' => '1956-06-02',
+            'gaji_pensiun' => 5000000,
+            'angsuran_lainnya' => 1500000,
+            'tenor' => 60,
+            'plafond' => 200000000,
+        ]);
+
+        $this->assertSame(930000.0, (float) $taspenResult['tata_laksana']);
+        $this->assertSame(430000.0, (float) $asabriResult['tata_laksana']);
+    }
+
     public function test_it_falls_back_to_plain_product_key_when_bank_prefix_is_not_present_in_product_struct(): void
     {
         $service = new KbSimulationExcelService();
