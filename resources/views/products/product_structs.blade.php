@@ -57,8 +57,8 @@
 
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1 class="h3 mb-0">PAM</h1>
-        <a href="{{ route('pam.create') }}" class="btn btn-primary">Tambah PAM</a>
+        <h1 class="h3 mb-0">Product Struct</h1>
+        <a href="{{ route('pam.create') }}" class="btn btn-primary">Tambah Product Struct</a>
     </div>
 
     @if(session('success'))
@@ -116,7 +116,7 @@
                         <td>
                             <div class="d-flex gap-2">
                                 <a href="{{ route('pam.edit', $item) }}" class="btn btn-sm btn-warning">Edit</a>
-                                <form action="{{ route('pam.destroy', $item) }}" method="POST" onsubmit="return confirm('Yakin hapus data PAM ini?')">
+                                <form action="{{ route('pam.destroy', $item) }}" method="POST" onsubmit="return confirm('Yakin hapus data Product Struct ini?')">
                                     @csrf
                                     @method('DELETE')
                                     <button type="submit" class="btn btn-sm btn-danger">Hapus</button>
@@ -126,7 +126,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="20" class="text-center">Belum ada data PAM.</td>
+                        <td colspan="20" class="text-center">Belum ada data Product Struct.</td>
                     </tr>
                 @endforelse
             </tbody>

@@ -2,7 +2,7 @@
 
 @section('content')
 <div class="container py-4">
-    <h1 class="h3 mb-4">Edit PAM</h1>
+    <h1 class="h3 mb-4">Edit Product Struct</h1>
 
     <form method="POST" action="{{ route('pam.update', $productStruct) }}">
         @csrf
