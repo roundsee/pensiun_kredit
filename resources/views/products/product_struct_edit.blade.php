@@ -78,6 +78,10 @@
                 <input type="number" step="0.01" name="asabri" class="form-control" value="{{ old('asabri', $productStruct->asabri) }}">
             </div>
             <div class="col-md-3">
+                <label class="form-label">Data Maintenance</label>
+                <input type="number" step="0.01" name="data_maintenance" class="form-control" value="{{ old('data_maintenance', $productStruct->data_maintenance) }}">
+            </div>
+            <div class="col-md-3">
                 <label class="form-label">Usia Masuk Max</label>
                 <input type="number" name="usia_masuk_max" class="form-control" value="{{ old('usia_masuk_max', $productStruct->usia_masuk_max) }}">
             </div>

@@ -134,6 +134,13 @@ Route::middleware(['auth', 'role:admin,supervisor,operation'])->group(function (
     Route::get('/pam/{productStruct}/edit', [\App\Http\Controllers\ProductStructController::class, 'edit'])->name('pam.edit');
     Route::put('/pam/{productStruct}', [\App\Http\Controllers\ProductStructController::class, 'update'])->name('pam.update');
     Route::delete('/pam/{productStruct}', [\App\Http\Controllers\ProductStructController::class, 'destroy'])->name('pam.destroy');
+
+    Route::get('/insurance-rates', [\App\Http\Controllers\InsuranceRateController::class, 'index'])->name('insurance_rates.index');
+    Route::get('/insurance-rates/create', [\App\Http\Controllers\InsuranceRateController::class, 'create'])->name('insurance_rates.create');
+    Route::post('/insurance-rates', [\App\Http\Controllers\InsuranceRateController::class, 'store'])->name('insurance_rates.store');
+    Route::get('/insurance-rates/{insuranceRate}/edit', [\App\Http\Controllers\InsuranceRateController::class, 'edit'])->name('insurance_rates.edit');
+    Route::put('/insurance-rates/{insuranceRate}', [\App\Http\Controllers\InsuranceRateController::class, 'update'])->name('insurance_rates.update');
+    Route::delete('/insurance-rates/{insuranceRate}', [\App\Http\Controllers\InsuranceRateController::class, 'destroy'])->name('insurance_rates.destroy');
 });
 
 Route::get('/', function () {

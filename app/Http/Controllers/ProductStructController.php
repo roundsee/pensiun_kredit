@@ -18,9 +18,16 @@ class ProductStructController extends Controller
         return view('products.product_structs', compact('items'));
     }
 
-    public function create()
+    public function create(Request $request)
     {
-        return view('products.product_struct_create');
+        $copiedProductStruct = null;
+        $copyId = $request->query('copy');
+
+        if ($copyId !== null && $copyId !== '') {
+            $copiedProductStruct = ProductStruct::query()->find($copyId);
+        }
+
+        return view('products.product_struct_create', compact('copiedProductStruct'));
     }
 
     public function store(Request $request)
@@ -43,6 +50,7 @@ class ProductStructController extends Controller
             'admin_angsuran_percent' => ['nullable', 'numeric'],
             'dbr_percent' => ['nullable', 'numeric'],
             'asabri' => ['nullable', 'numeric'],
+            'data_maintenance' => ['nullable', 'numeric'],
             'usia_masuk_max' => ['nullable', 'integer'],
             'sort_order' => ['nullable', 'integer'],
         ]);
@@ -77,6 +85,7 @@ class ProductStructController extends Controller
             'admin_angsuran_percent' => ['nullable', 'numeric'],
             'dbr_percent' => ['nullable', 'numeric'],
             'asabri' => ['nullable', 'numeric'],
+            'data_maintenance' => ['nullable', 'numeric'],
             'usia_masuk_max' => ['nullable', 'integer'],
             'sort_order' => ['nullable', 'integer'],
         ]);

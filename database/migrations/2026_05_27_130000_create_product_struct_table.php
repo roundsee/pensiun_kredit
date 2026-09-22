@@ -26,6 +26,7 @@ return new class extends Migration
             $table->decimal('admin_angsuran_percent', 10, 6)->nullable();
             $table->decimal('dbr_percent', 10, 6)->nullable();
             $table->decimal('asabri', 18, 2)->nullable();
+            $table->decimal('data_maintenance', 18, 2)->nullable();
             $table->unsignedInteger('usia_masuk_max')->nullable();
             $table->unsignedInteger('sort_order')->default(0);
             $table->timestamps();

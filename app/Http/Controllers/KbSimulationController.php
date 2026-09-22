@@ -1176,7 +1176,11 @@ public function downloadPdfSImulasi(Request $request)
             : ($plafondInput <= ($plafondMaxDisplayed + $plafondTolerance));
 
         $usiaMinValid = $usiaMasukMin === null || $usia === null ? true : ($usia >= $usiaMasukMin);
-        $usiaMaxValid = $usiaLunasMax === null || $usiaLunas === null ? true : ($usiaLunas <= $usiaLunasMax);
+        $tanggalLahirForMaxCheck = $result['tanggal_lahir'] ?? null;
+        $tanggalLunasForMaxCheck = $result['tgl_lunas'] ?? null;
+        $usiaMaxValid = $usiaLunasMax === null || $tanggalLahirForMaxCheck === null || $tanggalLunasForMaxCheck === null
+            ? true
+            : ! $this->kbSimulationExcelService->isDatePastMaxAge($tanggalLahirForMaxCheck, $tanggalLunasForMaxCheck, $usiaLunasMax);
 
         $sisaGajiSaatPengajuan = (float) ($result['sisa_gaji_saat_pengajuan'] ?? 0);
         $totalAngsuran = (float) ($result['total_angsuran'] ?? 0);

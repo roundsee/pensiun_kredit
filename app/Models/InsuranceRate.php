@@ -10,7 +10,9 @@ class InsuranceRate extends Model
 
     protected $fillable = [
         'product',
+        'bank_tujuan',
         'tenor',
+        'usia',
         'premium_per_million',
     ];
 

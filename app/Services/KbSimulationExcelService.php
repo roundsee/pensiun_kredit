@@ -12,13 +12,31 @@ class KbSimulationExcelService
 {
     public function getSelectOptions(): array
     {
-        $bankTujuan = KbReferenceOption::query()
-            ->where('category', 'bank_tujuan')
-            ->orderBy('sort_order')
-            ->orderBy('id')
-            ->pluck('value')
+        $bankTujuan = ProductStruct::query()
+            ->whereNotNull('kantor_bayar')
+            ->where('kantor_bayar', '!=', '')
+            ->select('kantor_bayar')
+            ->distinct()
+            ->orderBy('kantor_bayar')
+            ->pluck('kantor_bayar')
+            ->map(fn ($value) => trim((string) $value))
+            ->filter()
+            ->values()
             ->all();
-$bankAsal = KbReferenceOption::query()
+
+        if ($bankTujuan === []) {
+            $bankTujuan = KbReferenceOption::query()
+                ->where('category', 'bank_tujuan')
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->pluck('value')
+                ->map(fn ($value) => trim((string) $value))
+                ->filter()
+                ->values()
+                ->all();
+        }
+
+        $bankAsal = KbReferenceOption::query()
             ->where('category', 'bank_asal')
             ->orderBy('sort_order')
             ->orderBy('id')
@@ -248,8 +266,9 @@ $bankAsal = KbReferenceOption::query()
         Log::Info("BANK TUJUAN : " . (string) $input['bank_tujuan']);
         $asuransiPercent = $this->resolveInsurancePercent((string) $input['bank_tujuan'],(string) $input['produk'], $tenor,$umurTahun); 
         Log::Info("Resolved insurance percent: {$asuransiPercent} for bank_tujuan={$input['bank_tujuan']}, product={$input['produk']}, tenor={$tenor}, usia={$umurTahun}");
+        $dataMaintenance = (float) ($struct?->data_maintenance ?? 0.0);
         $angsuran = $tenor > 0 && $plafond > 0
-            ? abs($this->excelPmt($monthlyRate, $tenor, $plafond)) + 10000.0
+            ? abs($this->excelPmt($monthlyRate, $tenor, $plafond)) + 10000.0 + $dataMaintenance
             : 0.0;
         $biayaAdmAngs = $angsuran * $adminAngsuranPercent;
         $totalAngsuran = $angsuran + $biayaAdmAngs;
@@ -316,6 +335,7 @@ $bankAsal = KbReferenceOption::query()
             'provisi' => $provisi,
             'administrasi' => $administrasi,
             'asuransi' => $asuransi,
+            'data_maintenance' => $dataMaintenance,
             'pelunasan' => $pelunasan,
             'amount_blokir_angsuran' => $amountBlokirAngsuran,
             'blokir_angsuran' => $blokirAngsuranCount,
@@ -350,19 +370,20 @@ $bankAsal = KbReferenceOption::query()
 
         $tanggalAcuan = Carbon::parse($tanggalSimulasi);
         $tanggalLahirCarbon = Carbon::parse($tanggalLahir);
+        $maxAgeBirthday = $tanggalLahirCarbon->copy()->addYears($usiaMaxTahun);
 
-        // Samakan formula dengan frontend (Blade JS):
-        // month diff = year diff * 12 + month diff, lalu -1 jika day acuan < day lahir.
-        $usiaDebiturBulan = (($tanggalAcuan->year - $tanggalLahirCarbon->year) * 12)
-            + ($tanggalAcuan->month - $tanggalLahirCarbon->month);
-
-        if ($tanggalAcuan->day < $tanggalLahirCarbon->day) {
-            $usiaDebiturBulan -= 1;
+        if ($tanggalAcuan->greaterThanOrEqualTo($maxAgeBirthday)) {
+            return 0;
         }
 
-        $usiaDebiturBulan = max(0, $usiaDebiturBulan);
-        $usiaMaxBulan = $usiaMaxTahun * 12;
-        $sisaMasaBulan = max(0, $usiaMaxBulan - $usiaDebiturBulan);
+        $sisaMasaBulan = (($maxAgeBirthday->year - $tanggalAcuan->year) * 12)
+            + ($maxAgeBirthday->month - $tanggalAcuan->month);
+
+        if ($maxAgeBirthday->day < $tanggalAcuan->day) {
+            $sisaMasaBulan -= 1;
+        }
+
+        $sisaMasaBulan = max(0, $sisaMasaBulan);
 
         return max(0, min($sisaMasaBulan, $tenorMaxProduk));
     }
@@ -407,12 +428,14 @@ $bankAsal = KbReferenceOption::query()
         $adminPenalty = 10000.0 * $adminAngsuran * 5.0;
         $kandidatKedua = ($sisaGajiSaatPengajuan - 120000.0 - $adminPenalty) / (1 + $adminAngsuran);
         $basisAngsuran = min($kandidatPertama, $kandidatKedua);
+        $dataMaintenance = (float) ($struct->data_maintenance ?? 0.0);
+        $basisAngsuranNetto = max(0.0, $basisAngsuran - $dataMaintenance);
 
-        if ($basisAngsuran <= 0) {
+        if ($basisAngsuranNetto <= 0) {
             return 0.0;
         }
 
-        $pv = $this->excelPv($monthlyRate, $tenor, -$basisAngsuran);
+        $pv = $this->excelPv($monthlyRate, $tenor, -$basisAngsuranNetto);
 
         return max(0.0, $pv);
     }
@@ -495,83 +518,151 @@ $bankAsal = KbReferenceOption::query()
     private function resolveInsurancePercent(?string $bank_tujuan = null,?string $product = null, ?int $tenor = null,?int $usia = null): float
     {
         Log::info("Resolving insurance percent for bank_tujuan={$bank_tujuan}, product={$product}, tenor={$tenor}, usia={$usia}");
-        $rate = null;
-        // If product+tenor provided, prefer explicit table lookup for per-million premium.
-        if ($product !== null && $tenor !== null && $bank_tujuan !== null) {
-            // Excel MATCH(..., -1) on a descending sorted array finds the smallest
-            // value greater than or equal to the lookup; implement equivalent logic:
-            // find the smallest tenor >= requested tenor. If none, fallback to the
-            // largest available tenor.
 
-            Log::info("Looking up insurance rate for bank_tujuan={$bank_tujuan}, product={$product}, tenor={$tenor}, usia={$usia}");
-            if($bank_tujuan=="KB"){
-                if($product=="Platinum") {
-                $rate = InsuranceRate::query()
-                    ->where('product', $product)
-                    ->where('bank_tujuan', $bank_tujuan)
-                    ->where('tenor', '>=', $tenor)
-                    ->orderBy('tenor', 'asc')
-                    ->first();
-                    Log::info("Resolved insurance rate for KB Platinum: " . ($rate ? $rate->premium_per_million : 'null')); 
-                }
-                if($product=="Regular") {
-                $rate = InsuranceRate::query()
-                    ->where('product', $product)
-                    ->where('bank_tujuan', $bank_tujuan)
-                    ->where('tenor', '>=', $tenor)
-                    ->where('usia', '>=', $usia)
-                    ->orderBy('tenor', 'asc')
-                    ->first();
-                    Log::info("Resolved insurance rate for KB Regular: " . ($rate ? $rate->premium_per_million : 'null'));  
-                }
-            }
-            if($bank_tujuan=="MANTAP"){
-                $rate = InsuranceRate::query()
-                    ->where('product', $product)
-                    ->where('bank_tujuan', $bank_tujuan)
-                    ->where('tenor', '>=', $tenor)
-                    ->orderBy('tenor', 'asc')
-                    ->first();
-                    Log::info("Resolved insurance rate for MANTAP: " . ($rate ? $rate->premium_per_million : 'null'));  
-            }
-            if($bank_tujuan=="POS"){
-                $rate = InsuranceRate::query()
-                    ->where('product', $product)
-                    ->where('bank_tujuan', $bank_tujuan)
-                    ->where('tenor', '>=', $tenor)
-                    ->orderBy('tenor', 'asc')
-                    ->first();
-            }
-
-            if ($rate === null) {
-                // no tenor >= requested, pick the largest available tenor instead
-                $rate = InsuranceRate::query()
-                    ->where('product', $product)
-                    ->orderBy('tenor', 'desc')
-                    ->first();
-                Log::info("No insurance rate found for bank_tujuan={$bank_tujuan}, product={$product}, tenor={$tenor}, usia={$usia}. Using fallback rate: " . ($rate ? $rate->premium_per_million : 'null'));       
-            }
-
-            if ($rate !== null) {
-                // premium_per_million is given like Excel table values (e.g. 235.31).
-                // Excel logic used INDEX(...)/10 to get 23.531 (%) which corresponds
-                // to 0.23531 proportion. To reproduce that: divide by 1000.
-                return (float) $rate->premium_per_million / 1000.0;
-            }
-        }
-        Log::Info($rate);
         $defaultValue = TemplateField::query()
             ->where('field_name', 'asuransi')
             ->orderByDesc('updated_at')
             ->value('default_value');
-        Log::info("Using default insurance percent: {$defaultValue}");
+
+        if ($product === null || $product === '') {
+            Log::info("Using default insurance percent: {$defaultValue}");
+            return $this->normalizePercent((float) ($defaultValue ?? 0));
+        }
+
+        $bankValue = trim((string) ($bank_tujuan ?? ''));
+        $rate = $this->findBestInsuranceRate($product, $bankValue, $tenor, $usia);
+
+        if ($rate !== null) {
+            Log::info("Resolved insurance rate for bank_tujuan={$bank_tujuan}, product={$product}, tenor={$tenor}, usia={$usia}: " . $rate->premium_per_million);
+            return (float) $rate->premium_per_million / 1000.0;
+        }
+
+        Log::info("No insurance rate found for bank_tujuan={$bank_tujuan}, product={$product}, tenor={$tenor}, usia={$usia}. Using fallback rate: " . ($defaultValue ?? 'null'));
         return $this->normalizePercent((float) ($defaultValue ?? 0));
+    }
+
+    private function findBestInsuranceRate(string $product, string $bank_tujuan, ?int $tenor, ?int $usia): ?InsuranceRate
+    {
+        $query = InsuranceRate::query()->where('product', $product);
+
+        if ($bank_tujuan !== '') {
+            $query->where(function ($inner) use ($bank_tujuan) {
+                $inner->where('bank_tujuan', $bank_tujuan)
+                    ->orWhereNull('bank_tujuan')
+                    ->orWhere('bank_tujuan', '');
+            });
+        }
+
+        $rows = $query->get();
+
+        if ($rows->isEmpty()) {
+            $rows = InsuranceRate::query()
+                ->where('product', $product)
+                ->get();
+        }
+
+        if ($rows->isEmpty()) {
+            return null;
+        }
+
+        if ($usia !== null) {
+            $ageMatches = $rows->filter(function ($row) use ($usia) {
+                if ($row->usia === null || $row->usia === '') {
+                    return false;
+                }
+
+                return $this->matchesUsiaRange((string) $row->usia, $usia);
+            });
+
+            if ($ageMatches->isNotEmpty()) {
+                $ageMatches = $ageMatches->sortBy(function ($row) {
+                    return $this->resolveUsiaSortValue((string) $row->usia);
+                });
+
+                if ($tenor !== null) {
+                    $tenorMatches = $ageMatches->filter(function ($row) use ($tenor) {
+                        return $row->tenor !== null && $row->tenor !== '' && (int) $row->tenor >= $tenor;
+                    });
+
+                    if ($tenorMatches->isNotEmpty()) {
+                        return $tenorMatches->sortBy('tenor')->first();
+                    }
+                }
+
+                return $ageMatches->first();
+            }
+        }
+
+        if ($tenor !== null) {
+            $tenorMatches = $rows->filter(function ($row) use ($tenor) {
+                return $row->tenor !== null && $row->tenor !== '' && (int) $row->tenor >= $tenor;
+            });
+
+            if ($tenorMatches->isNotEmpty()) {
+                return $tenorMatches->sortBy('tenor')->first();
+            }
+
+            $maxTenorRate = $rows->whereNotNull('tenor')->sortByDesc('tenor')->first();
+            if ($maxTenorRate !== null) {
+                return $maxTenorRate;
+            }
+        }
+
+        return $rows->sortByDesc('premium_per_million')->first();
+    }
+
+    private function matchesUsiaRange(string $rangeText, int $usia): bool
+    {
+        $trimmed = trim($rangeText);
+        if ($trimmed === '') {
+            return false;
+        }
+
+        if (preg_match('/^(\d+)\s*[-–]\s*(\d+)$/', $trimmed, $matches)) {
+            $min = (int) $matches[1];
+            $max = (int) $matches[2];
+            return $usia >= $min && $usia <= $max;
+        }
+
+        if (is_numeric($trimmed)) {
+            return (int) $trimmed === $usia;
+        }
+
+        return false;
+    }
+
+    private function resolveUsiaSortValue(string $rangeText): int
+    {
+        $trimmed = trim($rangeText);
+        if (preg_match('/^(\d+)\s*[-–]\s*(\d+)$/', $trimmed, $matches)) {
+            return (int) $matches[1];
+        }
+
+        return is_numeric($trimmed) ? (int) $trimmed : 9999;
+    }
+
+    public function isDatePastMaxAge(string|Carbon $tanggalLahir, string|Carbon $tanggalAcuan, int $maxAgeYears): bool
+    {
+        if ($maxAgeYears <= 0) {
+            return false;
+        }
+
+        $birthDate = $tanggalLahir instanceof Carbon ? $tanggalLahir->copy() : Carbon::parse($tanggalLahir);
+        $referenceDate = $tanggalAcuan instanceof Carbon ? $tanggalAcuan->copy() : Carbon::parse($tanggalAcuan);
+
+        if (! $birthDate->isValid() || ! $referenceDate->isValid()) {
+            return false;
+        }
+
+        $maxAgeBirthday = $birthDate->copy()->addYears($maxAgeYears);
+
+        return $referenceDate->greaterThan($maxAgeBirthday);
     }
 
     private function buildAgeText(Carbon $tanggalLahir, Carbon $tanggalAcuan): array
         {
         $diff = $tanggalLahir->diff($tanggalAcuan);
-        
+
         $years = $diff->y;
         $remainingMonths = $diff->m;
 

@@ -38,6 +38,7 @@ return new class extends Migration {
             $table->text('administrasi')->nullable();
             $table->text('asuransi')->nullable();
             $table->text('extra_premi')->nullable();
+            $table->text('data_maintenance')->nullable();
             $table->text('amount_blokir_angsuran')->nullable();
             $table->text('pelunasan')->nullable();
             $table->text('tata_laksana')->nullable();

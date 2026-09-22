@@ -228,6 +228,7 @@ function kbSimulasiForm() {
     { cell: 'E30', label: 'Plafond', type: 'integer', key: 'plafond' },
     { cell: 'E31', label: 'Blokir', type: 'select', key: 'blokir_angsuran', optionsKey: 'blokir' },
     { cell: 'E32', label: 'ANGSURAN', type: 'output', key: 'angsuran', format: 'currency' },
+    { cell: 'E32A', label: 'DATA MAINTENANCE', type: 'output', key: 'data_maintenance', format: 'currency', onlyRoleCanEditPricing: true },
     { cell: 'E33', label: 'Biaya Adm Angs', type: 'output', key: 'biaya_adm_angs', format: 'currency' },
     { cell: 'E34', label: 'Total Angsuran', type: 'output', key: 'total_angsuran', format: 'currency' },
     { cell: 'E35', label: 'RINCIAN PEMBIAYAAN', type: 'section' },
@@ -766,13 +767,23 @@ function kbSimulasiForm() {
             const referenceDate = new Date(this.form.tanggal_simulasi + 'T00:00:00');
             if (Number.isNaN(birth.getTime()) || Number.isNaN(referenceDate.getTime())) return;
 
-            let ageInMonths = (referenceDate.getFullYear() - birth.getFullYear()) * 12;
-            ageInMonths += referenceDate.getMonth() - birth.getMonth();
-            if (referenceDate.getDate() < birth.getDate()) ageInMonths -= 1;
+            const maxAgeDate = new Date(
+                birth.getFullYear() + Number(struct.usia_max),
+                birth.getMonth(),
+                birth.getDate(),
+            );
 
-            const usiaMaxInMonths = Number(struct.usia_max) * 12;
-            const sisaMasa = Math.max(0, usiaMaxInMonths - ageInMonths);
-            const tenorMax = Math.max(0, Math.min(sisaMasa, Number(struct.tenor_max)));
+            if (referenceDate >= maxAgeDate) {
+                this.realtimeTenorMaxValue = 0;
+                this.tenorMaxText = '0 bulan';
+                return;
+            }
+
+            let sisaMasa = (maxAgeDate.getFullYear() - referenceDate.getFullYear()) * 12;
+            sisaMasa += maxAgeDate.getMonth() - referenceDate.getMonth();
+            if (maxAgeDate.getDate() < referenceDate.getDate()) sisaMasa -= 1;
+
+            const tenorMax = Math.max(0, Math.min(Math.max(0, sisaMasa), Number(struct.tenor_max)));
             this.realtimeTenorMaxValue = tenorMax;
             this.tenorMaxText = tenorMax > 0 ? `${Math.round(tenorMax)} bulan` : '0 bulan';
         },
@@ -1089,7 +1100,13 @@ function kbSimulasiForm() {
         },
         
         getRenderableRows() { 
-            return this.excelRows; 
+            return this.excelRows.filter((row) => {
+                if (row.key === 'data_maintenance') {
+                    return Boolean(this.permissions.can_edit_pricing);
+                }
+
+                return true;
+            });
         },
         
         isInputDisabled(row) { 

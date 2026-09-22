@@ -26,6 +26,7 @@ class ProductStruct extends Model
         'admin_angsuran_percent',
         'dbr_percent',
         'asabri',
+        'data_maintenance',
         'usia_masuk_max',
         'sort_order',
     ];

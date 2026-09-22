@@ -86,6 +86,7 @@
                     <th>Admin Angsuran %</th>
                     <th>DBR %</th>
                     <th>Asabri</th>
+                    <th>Data Maintenance</th>
                     <th>Usia Masuk Max</th>
                     <th>Sort</th>
                     <th>Aksi</th>
@@ -111,10 +112,12 @@
                         <td>{{ $item->admin_angsuran_percent }}</td>
                         <td>{{ $item->dbr_percent }}</td>
                         <td>{{ $item->asabri }}</td>
+                        <td>{{ $item->data_maintenance }}</td>
                         <td>{{ $item->usia_masuk_max }}</td>
                         <td>{{ $item->sort_order }}</td>
                         <td>
-                            <div class="d-flex gap-2">
+                            <div class="d-flex gap-2 flex-wrap">
+                                <a href="{{ route('pam.create', ['copy' => $item->id]) }}" class="btn btn-sm btn-outline-primary">Copy</a>
                                 <a href="{{ route('pam.edit', $item) }}" class="btn btn-sm btn-warning">Edit</a>
                                 <form action="{{ route('pam.destroy', $item) }}" method="POST" onsubmit="return confirm('Yakin hapus data Product Struct ini?')">
                                     @csrf
@@ -126,7 +129,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="20" class="text-center">Belum ada data Product Struct.</td>
+                        <td colspan="21" class="text-center">Belum ada data Product Struct.</td>
                     </tr>
                 @endforelse
             </tbody>

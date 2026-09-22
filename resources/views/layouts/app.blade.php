@@ -69,6 +69,9 @@
                                 <a class="nav-link" href="{{ route('pam.index') }}">Product Struct</a>
                             </li>
                             <li class="nav-item">
+                                <a class="nav-link" href="{{ route('insurance_rates.index') }}">Insurance Rate</a>
+                            </li>
+                            <li class="nav-item">
                                 <a class="nav-link" href="{{ route('maintenance.db.index') }}">DB Tools</a>
                             </li>
                             <li class="nav-item">
@@ -94,6 +97,9 @@
                             @if($canAccessPam)
                                 <li class="nav-item">
                                     <a class="nav-link" href="{{ route('pam.index') }}">Product Struct</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{{ route('insurance_rates.index') }}">Insurance Rate</a>
                                 </li>
                             @endif
                         @else
@@ -130,6 +136,9 @@
                             @if($canAccessPam)
                                 <li class="nav-item">
                                     <a class="nav-link" href="{{ route('pam.index') }}">Product Struct</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{{ route('insurance_rates.index') }}">Insurance Rate</a>
                                 </li>
                             @endif
                             @if($canManageUsers)
