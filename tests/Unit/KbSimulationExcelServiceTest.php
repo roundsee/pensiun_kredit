@@ -379,6 +379,17 @@ class KbSimulationExcelServiceTest extends TestCase
         $this->assertSame(84, (int) $result['tenor_max']);
     }
 
+    public function test_it_exposes_usia_lunas_text_for_pdf_display(): void
+    {
+        $sim = new \App\Models\DataSimulasi([
+            'tanggal_lahir' => '1946-10-20',
+            'tgl_lunas' => '2026-09-22',
+            'usia_lunas' => 79,
+        ]);
+
+        $this->assertSame('79 thn 11 bln', $sim->usia_lunas_text);
+    }
+
     public function test_it_returns_plafond_rekomendasi_alias_for_the_calculation_result(): void
     {
         $service = new KbSimulationExcelService();

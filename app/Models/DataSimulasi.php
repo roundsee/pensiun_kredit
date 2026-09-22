@@ -13,6 +13,8 @@ class DataSimulasi extends Model
 
     protected $table = 'data_simulasi';
 
+    protected $appends = ['usia_lunas_text'];
+
     protected $fillable = [
         'status',
         'keterangan',
@@ -94,6 +96,22 @@ class DataSimulasi extends Model
         'simpanan_pokok' => 'float',
         'angsuran_lain' => 'float',
     ];
+
+    public function getUsiaLunasTextAttribute(): string
+    {
+        $tanggalLahir = $this->tanggal_lahir;
+        $tanggalLunas = $this->tgl_lunas;
+
+        if ($tanggalLahir === null || $tanggalLunas === null) {
+            return $this->usia_lunas !== null ? (string) $this->usia_lunas . ' thn' : '-';
+        }
+
+        $diff = $tanggalLahir->diff($tanggalLunas);
+        $years = $diff->y;
+        $months = $diff->m;
+
+        return sprintf('%d thn %d bln', $years, $months);
+    }
 
     public function pelengkap(): HasOne
     {

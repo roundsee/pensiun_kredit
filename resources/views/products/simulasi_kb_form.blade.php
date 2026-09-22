@@ -140,6 +140,8 @@
                         </button>
                         <button class="btn btn-outline-danger" type="button" @click="downloadPdf" :disabled="!hasil || isDownloading" x-text="isDownloading ? 'Menyiapkan PDF...' : 'Download PDF'"></button>
                     </div>
+                    <div class="alert alert-info mt-3 mb-2" x-show="shouldShowMessages() && message" x-text="message"></div>
+                    <div class="alert alert-danger mt-0 mb-2" x-show="shouldShowMessages() && errorMessage" x-text="errorMessage"></div>
                     <div class="mt-3">
                         <label class="form-label fw-semibold">Keterangan Trial</label>
                         <textarea class="form-control kb-trial-note" rows="3" x-model="form.keterangan" placeholder="Contoh: debitur minta sisa gaji akhir nya minimal 250rb"></textarea>

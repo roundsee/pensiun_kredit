@@ -159,7 +159,7 @@
       <tr><td class="label">Area</td><td class="highlight">{{ $sim->kode_area }}</td></tr>
       <tr><td class="label">Tgl Permohonan</td><td>{{ $sim->created_at }}</td></tr>
       <tr><td class="label">Tgl Lunas</td><td>{{ $sim->tgl_lunas }}</td></tr>
-      <tr><td class="label">Usia Lunas</td><td>{{ $sim->usia_lunas }}</td></tr>
+      <tr><td class="label">Usia Lunas</td><td>{{ $sim->usia_lunas_text ?? $sim->usia_lunas }}</td></tr>
       <tr><td class="label">Total Biaya</td><td>{{ number_format($sim->total_biaya, 0, ',', '.') }}</td></tr>
       <tr><td class="label">Sisa Gaji Akhir</td><td>{{ number_format($sim->sisa_gaji_akhir, 0, ',', '.') }}</td></tr>
       <tr><td class="label">Terima Bersih</td><td>{{ number_format($sim->terima_bersih, 0, ',', '.') }}</td></tr>
