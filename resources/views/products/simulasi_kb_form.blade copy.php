@@ -548,13 +548,23 @@ function kbSimulasiForm() {
             const referenceDate = new Date(this.form.tanggal_simulasi + 'T00:00:00');
             if (Number.isNaN(birth.getTime()) || Number.isNaN(referenceDate.getTime())) return;
 
-            let ageInMonths = (referenceDate.getFullYear() - birth.getFullYear()) * 12;
-            ageInMonths += referenceDate.getMonth() - birth.getMonth();
-            if (referenceDate.getDate() < birth.getDate()) ageInMonths -= 1;
+            const maxAgeDate = new Date(
+                birth.getFullYear() + Number(struct.usia_max),
+                birth.getMonth(),
+                birth.getDate(),
+            );
 
-            const usiaMaxInMonths = Number(struct.usia_max) * 12;
-            const sisaMasa = Math.max(0, usiaMaxInMonths - ageInMonths);
-            const tenorMax = Math.max(0, Math.min(sisaMasa, Number(struct.tenor_max)));
+            if (referenceDate >= maxAgeDate) {
+                this.realtimeTenorMaxValue = 0;
+                this.tenorMaxText = '0 bulan';
+                return;
+            }
+
+            let sisaMasa = (maxAgeDate.getFullYear() - referenceDate.getFullYear()) * 12;
+            sisaMasa += maxAgeDate.getMonth() - referenceDate.getMonth();
+            if (maxAgeDate.getDate() < referenceDate.getDate()) sisaMasa -= 1;
+
+            const tenorMax = Math.max(0, Math.min(Math.max(0, sisaMasa), Number(struct.tenor_max)));
             this.realtimeTenorMaxValue = tenorMax;
             this.tenorMaxText = tenorMax > 0 ? `${Math.round(tenorMax)} bulan` : '0 bulan';
         },

@@ -338,6 +338,47 @@ class KbSimulationExcelServiceTest extends TestCase
         $this->assertSame(75, $years);
     }
 
+    public function test_it_sets_tenor_max_to_84_for_birthdate_25_09_1953(): void
+    {
+        ProductStruct::query()->create([
+            'produk' => 'Platinum',
+            'kantor_bayar' => 'KB',
+            'plafond_min' => 1000000,
+            'plafond_max' => 300000000,
+            'tenor_max' => 120,
+            'rate_percent' => 0.14,
+            'provisi_percent' => 0.01,
+            'usia_masuk_min' => 55,
+            'usia_max' => 80,
+            'admin_percent' => 0.05,
+            'blokir_angsuran' => 2,
+            'taspen' => 850000,
+            'tata_laksana' => 1750000,
+            'tata_laksana_plus_percent' => 0.01,
+            'admin_angsuran_percent' => 0.10,
+            'dbr_percent' => 0.90,
+            'asabri' => 350000,
+            'usia_masuk_max' => 80,
+            'sort_order' => 1,
+        ]);
+
+        $service = new KbSimulationExcelService();
+
+        $result = $service->calculate([
+            'produk' => 'Platinum',
+            'jenis_pensiun' => 'Sendiri',
+            'bank_tujuan' => 'KB',
+            'tanggal_simulasi' => '2026-09-22',
+            'tanggal_lahir' => '1953-09-25',
+            'gaji_pensiun' => 5000000,
+            'angsuran_lainnya' => 0,
+            'tenor' => 85,
+            'plafond' => 100000000,
+        ]);
+
+        $this->assertSame(84, (int) $result['tenor_max']);
+    }
+
     public function test_it_returns_plafond_rekomendasi_alias_for_the_calculation_result(): void
     {
         $service = new KbSimulationExcelService();
