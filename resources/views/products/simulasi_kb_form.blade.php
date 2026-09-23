@@ -210,6 +210,7 @@ function kbSimulasiForm() {
             instansi: 'TASPEN',
             gaji_pensiun: '',
             angsuran_lainnya: '',
+            simpanan_pokok: '',
             blokir_angsuran: '1',
             rate_percent_override: '',
             admin_angsuran_percent_override: '',
@@ -259,6 +260,7 @@ function kbSimulasiForm() {
             { cell: 'E37', label: 'ASURANSI', type: 'output', key: 'asuransi', format: 'currency' },
             { cell: 'E38', label: 'Extra Premi', type: 'output', key: 'extra_premi', format: 'currency' },
             { cell: 'E39', label: 'BLOKIR AMOUNT', type: 'output', key: 'amount_blokir_angsuran', format: 'currency' },
+            { cell: 'E39A', label: 'SIMPANAN POKOK', type: 'number', key: 'simpanan_pokok' },
             { cell: 'E40', label: '', type: 'blank' },
             { cell: 'E41', label: 'TATA LAKSANA', type: 'output', key: 'tata_laksana', format: 'currency' },
             { cell: 'E41A', label: 'EXT TATA LAKSANA', type: 'integer', key: 'ext_tatalaksana' },
@@ -311,7 +313,7 @@ function kbSimulasiForm() {
                 'form.produk', 'form.jenis_pensiun', 'form.mutasi', 'form.bank_tujuan','form.bank_asal',
                 'form.nama_debitur', 'form.tanggal_simulasi', 'form.tanggal_lahir',
                 'form.nomor_pensiun', 'form.instansi', 'form.gaji_pensiun',
-                'form.angsuran_lainnya', 'form.blokir_angsuran', 'form.rate_percent_override',
+                'form.angsuran_lainnya', 'form.simpanan_pokok', 'form.blokir_angsuran', 'form.rate_percent_override',
                 'form.admin_angsuran_percent_override', 'form.tenor', 'form.plafond',
                 'form.pelunasan', 'form.nama_marketing', 'form.kode_area',
                 'form.keterangan',
@@ -515,6 +517,10 @@ function kbSimulasiForm() {
                 if ((this.form.admin_angsuran_percent_override === '' || this.form.admin_angsuran_percent_override === null) && struct.admin_angsuran_percent !== undefined) {
                     this.form.admin_angsuran_percent_override = Math.round(Number(struct.admin_angsuran_percent * 100));
                 }
+
+                if ((this.form.simpanan_pokok === '' || this.form.simpanan_pokok === null || typeof this.form.simpanan_pokok === 'undefined') && struct.simpanan_pokok !== undefined) {
+                    this.form.simpanan_pokok = Number(struct.simpanan_pokok || 0);
+                }
             }
         },
 
@@ -529,6 +535,10 @@ function kbSimulasiForm() {
                 
                 if ((this.form.admin_angsuran_percent_override === null || this.form.admin_angsuran_percent_override === '' || typeof this.form.admin_angsuran_percent_override === 'undefined') && struct.admin_angsuran_percent !== undefined) {
                     this.form.admin_angsuran_percent_override = Math.round(Number(struct.admin_angsuran_percent * 100));
+                }
+
+                if ((this.form.simpanan_pokok === null || this.form.simpanan_pokok === '' || typeof this.form.simpanan_pokok === 'undefined') && struct.simpanan_pokok !== undefined) {
+                    this.form.simpanan_pokok = Number(struct.simpanan_pokok || 0);
                 }
             }
         },
@@ -1009,6 +1019,7 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
                         instansi: this.form.instansi,
                         gaji_pensiun: this.form.gaji_pensiun,
                         angsuran_lainnya: this.form.angsuran_lainnya,
+                        simpanan_pokok: this.form.simpanan_pokok,
                         blokir_angsuran: this.form.blokir_angsuran,
                         pelunasan: this.form.pelunasan
                     })
@@ -1101,19 +1112,16 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
     this.errorMessage = ''; 
     
     try {
-        // PERBAIKAN PAYLOAD: Pastikan bank_tujuan dan bank_asal dipastikan ikut masuk
         const payload = {
             ...this.form,
             ...this.hasil,
             bank_tujuan: this.form.bank_tujuan,
             bank_asal: this.form.bank_asal,
             instansi: this.form.instansi,
-            nama_debitur: this.form.nama_debitur,   // <--- Tambahkan ini
-            nomor_pensiun: this.form.nomor_pensiun, // <--- Tambahkan ini
+            nama_debitur: this.form.nama_debitur,
+            nomor_pensiun: this.form.nomor_pensiun,
             id: this.editDataSimulasiId || null
         };
-        
-        console.log('Payload dikirim ke store:', payload); // Log untuk debug
 
         const response = await fetch(routes.store, {
             method: 'POST',
@@ -1129,22 +1137,23 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
             const textError = await response.text();
             console.error('SERVER ERROR (HTML/TEXT):', textError);
             this.errorMessage = 'Server Error (500/422). Silakan cek tab Console F12 / Network.';
-            this.isSaving = false; // RESET STATUS AGAR TOMBOL KEMBALI NORMAL
+            this.isSaving = false;
             return; 
         }
         
         const data = await response.json();
-        console.log('Simpan response SUKSES JSON:', data);
-        
-        if (response.ok) { 
+
+        if (response.ok) {
+            const savedId = data?.id || this.editDataSimulasiId || this.hasil?.id || null;
+            this.editDataSimulasiId = savedId;
+            this.hasil = {
+                ...(this.hasil || {}),
+                ...(data?.data || {}),
+                id: savedId,
+            };
+
             this.message = data.message || 'Data berhasil disimpan';
             setTimeout(() => { this.message = ''; }, 3000);
-            
-            if (data.id && !this.editDataSimulasiId) {
-                this.editDataSimulasiId = data.id;
-            }
-            // SINKRONKAN ID KE DATA HASIL AGAR UNDUH PDF BISA JALAN
-            this.hasil.id = data.id;
         } else {
             this.errorMessage = data.message || 'Gagal menyimpan data';
             setTimeout(() => { this.errorMessage = ''; }, 5000);
@@ -1154,16 +1163,19 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
         this.errorMessage = 'Terjadi kesalahan saat menyimpan data';
         setTimeout(() => { this.errorMessage = ''; }, 3000);
     } finally {
-        this.isSaving = false; // PASTIKAN SELALU RESET DI SINI
+        this.isSaving = false;
     }
 },
 
         async downloadPdf() {
-    // 1. Pastikan simulasi sudah dihitung dan data ID-nya sudah ada (setelah disimpan ke DB)
-    // Sesuai dengan data backend yang membutuhkan ID data simulasi.
-    if (!this.hasil || !this.hasil.id) {
+    const savedId = this.hasil?.id || this.editDataSimulasiId || null;
+    if (!this.hasil || !savedId) {
         this.errorMessage = 'Simpan atau hitung simulasi terlebih dahulu sebelum mendownload PDF';
         return;
+    }
+
+    if (this.hasil && !this.hasil.id && savedId) {
+        this.hasil.id = savedId;
     }
 
     this.isDownloading = true;
@@ -1173,7 +1185,7 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
     try {
         // 2. Cukup kirim payload berisi ID saja
         const payload = {
-            id: this.hasil.id
+            id: savedId
         };
 
         const response = await fetch(routes.downloadPdf, {

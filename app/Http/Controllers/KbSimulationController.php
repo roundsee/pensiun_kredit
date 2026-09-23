@@ -36,6 +36,7 @@ class KbSimulationController extends Controller
                 'admin_angsuran_percent',
                 'provisi_percent',
                 'admin_percent',
+                'simpanan_pokok',
                 'blokir_angsuran',
             ])
             ->mapWithKeys(function (ProductStruct $item) {
@@ -50,6 +51,7 @@ class KbSimulationController extends Controller
                         'admin_angsuran_percent' => (float) ($item->admin_angsuran_percent ?? 0),
                         'provisi_percent' => (float) ($item->provisi_percent ?? 0),
                         'admin_percent' => (float) ($item->admin_percent ?? 0),
+                        'simpanan_pokok' => (float) ($item->simpanan_pokok ?? 0),
                         'blokir_angsuran' => (int) ($item->blokir_angsuran ?? 0),
                     ],
                 ];
@@ -116,6 +118,7 @@ class KbSimulationController extends Controller
                 'admin_angsuran_percent',
                 'provisi_percent',
                 'admin_percent',
+                'simpanan_pokok',
                 'blokir_angsuran',
             ])
             ->mapWithKeys(function (ProductStruct $item) {
@@ -130,6 +133,7 @@ class KbSimulationController extends Controller
                         'admin_angsuran_percent' => (float) ($item->admin_angsuran_percent ?? 0),
                         'provisi_percent' => (float) ($item->provisi_percent ?? 0),
                         'admin_percent' => (float) ($item->admin_percent ?? 0),
+                        'simpanan_pokok' => (float) ($item->simpanan_pokok ?? 0),
                         'blokir_angsuran' => (int) ($item->blokir_angsuran ?? 0),
                     ],
                 ];
@@ -196,6 +200,7 @@ class KbSimulationController extends Controller
                 'admin_angsuran_percent',
                 'provisi_percent',
                 'admin_percent',
+                'simpanan_pokok',
                 'blokir_angsuran',
             ])
             ->mapWithKeys(function (ProductStruct $item) {
@@ -210,6 +215,7 @@ class KbSimulationController extends Controller
                         'admin_angsuran_percent' => (float) ($item->admin_angsuran_percent ?? 0),
                         'provisi_percent' => (float) ($item->provisi_percent ?? 0),
                         'admin_percent' => (float) ($item->admin_percent ?? 0),
+                        'simpanan_pokok' => (float) ($item->simpanan_pokok ?? 0),
                         'blokir_angsuran' => (int) ($item->blokir_angsuran ?? 0),
                     ],
                 ];
@@ -242,6 +248,7 @@ class KbSimulationController extends Controller
                 'admin_angsuran_percent',
                 'provisi_percent',
                 'admin_percent',
+                'simpanan_pokok',
                 'blokir_angsuran',
             ])
             ->mapWithKeys(function (ProductStruct $item) {
@@ -256,6 +263,7 @@ class KbSimulationController extends Controller
                         'admin_angsuran_percent' => (float) ($item->admin_angsuran_percent ?? 0),
                         'provisi_percent' => (float) ($item->provisi_percent ?? 0),
                         'admin_percent' => (float) ($item->admin_percent ?? 0),
+                        'simpanan_pokok' => (float) ($item->simpanan_pokok ?? 0),
                         'blokir_angsuran' => (int) ($item->blokir_angsuran ?? 0),
                     ],
                 ];
@@ -1268,6 +1276,7 @@ public function downloadPdfSImulasi(Request $request)
             ['label' => 'E37 - Asuransi', 'value' => $this->formatCurrency((float) ($result['asuransi'] ?? 0))],
             ['label' => 'E39 - Pelunasan', 'value' => $this->formatCurrency((float) ($result['pelunasan'] ?? 0))],
             ['label' => 'E39 - Blokir Amount', 'value' => $this->formatCurrency((float) ($result['amount_blokir_angsuran'] ?? 0))],
+            ['label' => 'E39A - Simpanan Pokok', 'value' => $this->formatCurrency((float) ($result['simpanan_pokok'] ?? 0))],
             ['label' => 'E43 - Nama Marketing', 'value' => (string) ($result['nama_marketing'] ?? '')],
             ['label' => 'E44 - Area', 'value' => (string) ($result['kode_area'] ?? '')],
             ['label' => 'E46 - Usia Lunas', 'value' => (string) ($result['usia_lunas_text'] ?? '')],

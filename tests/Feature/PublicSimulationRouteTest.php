@@ -34,6 +34,31 @@ class PublicSimulationRouteTest extends TestCase
         $response->assertOk();
     }
 
+    public function test_kb_product_struct_payload_includes_simpanan_pokok(): void
+    {
+        ProductStruct::query()->updateOrCreate(
+            ['produk' => 'Platinum'],
+            [
+                'kantor_bayar' => 'KB',
+                'tenor_max' => 144,
+                'usia_max' => 80,
+                'rate_percent' => '0.160000',
+                'dbr_percent' => '0.900000',
+                'admin_angsuran_percent' => '0.100000',
+                'provisi_percent' => '0.010000',
+                'admin_percent' => '0.020000',
+                'blokir_angsuran' => 1,
+                'simpanan_pokok' => 25000,
+                'sort_order' => 1,
+            ]
+        );
+
+        $response = $this->get('/simulasi-kb');
+
+        $response->assertOk();
+        $response->assertSee('"simpanan_pokok":25000', false);
+    }
+
     public function test_kb_calculation_endpoint_is_accessible_without_login(): void
     {
         $response = $this->postJson('/simulasi-kb/calculate', [

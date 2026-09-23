@@ -28,6 +28,7 @@ class ProductStruct extends Model
         'asabri',
         'data_maintenance',
         'usia_masuk_max',
+        'simpanan_pokok',
         'sort_order',
     ];
 }

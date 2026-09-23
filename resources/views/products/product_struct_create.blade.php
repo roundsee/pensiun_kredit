@@ -63,6 +63,10 @@
                 <input type="number" name="blokir_angsuran" class="form-control" value="{{ old('blokir_angsuran', $copied?->blokir_angsuran ?? '') }}">
             </div>
             <div class="col-md-3">
+                <label class="form-label">Simpanan Pokok</label>
+                <input type="number" step="0.01" name="simpanan_pokok" class="form-control" value="{{ old('simpanan_pokok', $copied?->simpanan_pokok ?? '') }}">
+            </div>
+            <div class="col-md-3">
                 <label class="form-label">Taspen</label>
                 <input type="number" step="0.01" name="taspen" class="form-control" value="{{ old('taspen', $copied?->taspen ?? '') }}">
             </div>

@@ -80,6 +80,7 @@
                     <th>Usia Max</th>
                     <th>Admin %</th>
                     <th>Blokir</th>
+                    <th>Simpanan Pokok</th>
                     <th>Taspen</th>
                     <th>Tata Laksana</th>
                     <th>Tata Laksana + %</th>
@@ -106,6 +107,7 @@
                         <td>{{ $item->usia_max }}</td>
                         <td>{{ $item->admin_percent }}</td>
                         <td>{{ $item->blokir_angsuran }}</td>
+                        <td>{{ $item->simpanan_pokok }}</td>
                         <td>{{ $item->taspen }}</td>
                         <td>{{ $item->tata_laksana }}</td>
                         <td>{{ $item->tata_laksana_plus_percent }}</td>
@@ -129,7 +131,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="21" class="text-center">Belum ada data Product Struct.</td>
+                        <td colspan="22" class="text-center">Belum ada data Product Struct.</td>
                     </tr>
                 @endforelse
             </tbody>
