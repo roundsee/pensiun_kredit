@@ -2,9 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\InsuranceRate;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 
 class InsuranceRatesSeeder_mantap extends Seeder
 {
@@ -37,6 +36,15 @@ $rates = [
             ['product' => 'Regular', 'tenor' => 12,  'bank_tujuan' => 'MANTAP', 'premium_per_million' => 4.85],            
         ];
 
-        DB::table('insurance_rates')->insert($rates);
+        foreach ($rates as $rate) {
+            InsuranceRate::updateOrCreate([
+                'product' => $rate['product'],
+                'bank_tujuan' => $rate['bank_tujuan'],
+                'tenor' => $rate['tenor'],
+                'usia' => null,
+            ], [
+                'premium_per_million' => (float) $rate['premium_per_million'],
+            ]);
+        }
     }
 }

@@ -43,6 +43,7 @@ class DatabaseSeeder extends Seeder
         // Seed contoh hasil OCR simulasi
         $this->call(SimulationFieldSeeder::class);
         // Seed default insurance rate table used by KB simulation
+        $this->call(InsuranceRateSeeder::class);
         $this->call(InsuranceRatesSeederRegular::class);
         $this->call(InsuranceRatesSeeder_mantap::class);
     }

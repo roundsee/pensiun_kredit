@@ -2,9 +2,12 @@
 
 namespace Tests\Unit;
 
+use App\Models\InsuranceRate;
 use App\Models\ProductStruct;
 use App\Services\KbSimulationExcelService;
 use Carbon\Carbon;
+use Database\Seeders\InsuranceRatesSeeder_mantap;
+use Database\Seeders\InsuranceRatesSeederRegular;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +22,23 @@ class KbSimulationExcelServiceTest extends TestCase
         Artisan::call('db:seed');
 
         $this->assertGreaterThan(0, DB::table('insurance_rates')->count());
+        $this->assertGreaterThan(0, DB::table('insurance_rates')
+            ->where('product', 'Platinum')
+            ->whereNull('bank_tujuan')
+            ->count());
+    }
+
+    public function test_insurance_seeders_can_be_run_twice_without_duplicate_rows(): void
+    {
+        Artisan::call('db:seed', ['--class' => InsuranceRatesSeederRegular::class]);
+        $regularCount = DB::table('insurance_rates')->where('product', 'regular')->count();
+        Artisan::call('db:seed', ['--class' => InsuranceRatesSeederRegular::class]);
+        $this->assertSame($regularCount, DB::table('insurance_rates')->where('product', 'regular')->count());
+
+        Artisan::call('db:seed', ['--class' => InsuranceRatesSeeder_mantap::class]);
+        $mantapCount = DB::table('insurance_rates')->where('bank_tujuan', 'MANTAP')->count();
+        Artisan::call('db:seed', ['--class' => InsuranceRatesSeeder_mantap::class]);
+        $this->assertSame($mantapCount, DB::table('insurance_rates')->where('bank_tujuan', 'MANTAP')->count());
     }
 
     public function test_it_allows_creating_insurance_rate_with_bank_and_usia_fields(): void
@@ -620,6 +640,103 @@ class KbSimulationExcelServiceTest extends TestCase
         ]);
 
         $this->assertLessThan((float) $withoutMaintenance['plafond_max'], (float) $withMaintenance['plafond_max']);
+    }
+
+    public function test_regular_insurance_uses_monthly_tenor_when_table_uses_months(): void
+    {
+        InsuranceRate::query()->create([
+            'product' => 'Regular',
+            'tenor' => 12,
+            'usia' => 69,
+            'premium_per_million' => 10.83,
+        ]);
+        InsuranceRate::query()->create([
+            'product' => 'Regular',
+            'tenor' => 144,
+            'usia' => 69,
+            'premium_per_million' => 178.67,
+        ]);
+
+        $service = new KbSimulationExcelService();
+        $method = new \ReflectionMethod($service, 'resolveInsurancePercent');
+        $method->setAccessible(true);
+
+        $percent = $method->invoke($service, 'KB', 'Regular', 143, 63);
+
+        $this->assertEqualsWithDelta(0.17867, $percent, 0.0000001);
+    }
+
+    public function test_regular_insurance_uses_age_band_and_converts_tenor_months_to_years(): void
+    {
+        InsuranceRate::query()->create([
+            'product' => 'regular',
+            'tenor' => 15,
+            'usia' => 49,
+            'premium_per_million' => 85.63,
+        ]);
+        InsuranceRate::query()->create([
+            'product' => 'regular',
+            'tenor' => 12,
+            'usia' => 69,
+            'premium_per_million' => 178.67,
+        ]);
+        InsuranceRate::query()->create([
+            'product' => 'regular',
+            'tenor' => 13,
+            'usia' => 69,
+            'premium_per_million' => 198.98,
+        ]);
+
+        $service = new KbSimulationExcelService();
+        $method = new \ReflectionMethod($service, 'resolveInsurancePercent');
+        $method->setAccessible(true);
+
+        $percent = $method->invoke($service, 'KB', 'Regular', 143, 63);
+
+        $this->assertEqualsWithDelta(0.17867, $percent, 0.0000001);
+    }
+
+    public function test_age_only_insurance_rate_is_used_for_positive_tenor(): void
+    {
+        InsuranceRate::query()->create([
+            'product' => 'Regular',
+            'bank_tujuan' => 'KB',
+            'tenor' => null,
+            'usia' => 69,
+            'premium_per_million' => 178.67,
+        ]);
+
+        $service = new KbSimulationExcelService();
+        $method = new \ReflectionMethod($service, 'resolveInsurancePercent');
+        $method->setAccessible(true);
+
+        $percent = $method->invoke($service, 'KB', 'Regular', 143, 63);
+
+        $this->assertEqualsWithDelta(0.17867, $percent, 0.0000001);
+    }
+
+    public function test_ineligible_bank_rate_does_not_shadow_eligible_generic_rate(): void
+    {
+        InsuranceRate::query()->create([
+            'product' => 'Regular',
+            'bank_tujuan' => 'KB',
+            'tenor' => 12,
+            'premium_per_million' => 1.00,
+        ]);
+        InsuranceRate::query()->create([
+            'product' => 'Regular',
+            'bank_tujuan' => null,
+            'tenor' => 24,
+            'premium_per_million' => 2.00,
+        ]);
+
+        $service = new KbSimulationExcelService();
+        $method = new \ReflectionMethod($service, 'resolveInsurancePercent');
+        $method->setAccessible(true);
+
+        $percent = $method->invoke($service, 'KB', 'Regular', 24, 63);
+
+        $this->assertEqualsWithDelta(0.002, $percent, 0.0000001);
     }
 
     public function test_it_falls_back_to_plain_product_key_when_bank_prefix_is_not_present_in_product_struct(): void

@@ -3,8 +3,8 @@
 namespace Database\Seeders;
 
 
+use App\Models\InsuranceRate;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 
 class InsuranceRatesSeederRegular extends Seeder
 {
@@ -74,15 +74,15 @@ class InsuranceRatesSeederRegular extends Seeder
             ['product' => 'regular', 'tenor' => 5, 'usia' => 74, 'premium_per_million' => 143.32],
         ];
 
-        // Opsional: Tambahkan timestamps created_at dan updated_at secara otomatis
-        $now = now();
-        $data = array_map(function ($row) use ($now) {
-            $row['created_at'] = $now;
-            $row['updated_at'] = $now;
-            return $row;
-        }, $data);
-
-        // Eksekusi insert massal ke database
-        DB::table('insurance_rates')->insert($data);
+        foreach ($data as $row) {
+            InsuranceRate::updateOrCreate([
+                'product' => $row['product'],
+                'bank_tujuan' => $row['bank_tujuan'] ?? null,
+                'tenor' => $row['tenor'],
+                'usia' => $row['usia'] ?? null,
+            ], [
+                'premium_per_million' => (float) $row['premium_per_million'],
+            ]);
+        }
     }
 }

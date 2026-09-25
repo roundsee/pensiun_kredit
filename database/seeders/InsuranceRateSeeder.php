@@ -27,8 +27,12 @@ class InsuranceRateSeeder extends Seeder
         foreach ($rows as $tenor => $premium) {
             InsuranceRate::updateOrCreate([
                 'product' => 'Platinum',
+                'bank_tujuan' => null,
                 'tenor' => (int) $tenor,
+                'usia' => null,
             ], [
+                'bank_tujuan' => null,
+                'usia' => null,
                 'premium_per_million' => (float) $premium,
             ]);
         }

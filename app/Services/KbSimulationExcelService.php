@@ -543,102 +543,236 @@ class KbSimulationExcelService
 
     private function findBestInsuranceRate(string $product, string $bank_tujuan, ?int $tenor, ?int $usia): ?InsuranceRate
     {
-        $query = InsuranceRate::query()->where('product', $product);
-
-        if ($bank_tujuan !== '') {
-            $query->where(function ($inner) use ($bank_tujuan) {
-                $inner->where('bank_tujuan', $bank_tujuan)
-                    ->orWhereNull('bank_tujuan')
-                    ->orWhere('bank_tujuan', '');
-            });
+        $normalizedProduct = strtolower(trim($product));
+        if ($normalizedProduct === '') {
+            return null;
         }
 
-        $rows = $query->get();
+        $rows = InsuranceRate::query()
+            ->whereRaw('LOWER(TRIM(product)) = ?', [$normalizedProduct])
+            ->get();
 
-        if ($rows->isEmpty()) {
-            $rows = InsuranceRate::query()
-                ->where('product', $product)
-                ->get();
+        $bankKey = $this->normalizeInsuranceBank($bank_tujuan);
+        $bankRows = $rows->filter(function (InsuranceRate $row) use ($bankKey) {
+            return $bankKey !== '' && $this->normalizeInsuranceBank($row->bank_tujuan) === $bankKey;
+        });
+        $genericRows = $rows->filter(function (InsuranceRate $row) {
+            return $this->normalizeInsuranceBank($row->bank_tujuan) === '';
+        });
+
+        $candidatePools = [];
+        if ($bankRows->isNotEmpty()) {
+            $candidatePools[] = $bankRows;
+        }
+        if ($genericRows->isNotEmpty()) {
+            $candidatePools[] = $genericRows;
         }
 
+        $fallbackPools = [];
+        foreach ($candidatePools as $candidatePool) {
+            $rate = $this->selectInsuranceRateFromRows($candidatePool, $product, $tenor, $usia);
+            if ($rate !== null) {
+                return $rate;
+            }
+            $fallbackPools[] = $candidatePool;
+        }
+
+        foreach ($fallbackPools as $candidatePool) {
+            $rate = $this->selectInsuranceFallbackFromRows($candidatePool, $usia);
+            if ($rate !== null) {
+                return $rate;
+            }
+        }
+
+        return null;
+    }
+
+    private function selectInsuranceRateFromRows($rows, string $product, ?int $tenor, ?int $usia): ?InsuranceRate
+    {
+        $ageRows = $rows->filter(function (InsuranceRate $row) {
+            return trim((string) $row->usia) !== '';
+        });
+
+        if ($usia !== null && $ageRows->isNotEmpty()) {
+            $ageMatches = $this->selectInsuranceAgeRows($ageRows, $usia);
+            if ($ageMatches->isNotEmpty()) {
+                $targetTenor = $this->resolveInsuranceTargetTenor($tenor, $product, $ageMatches);
+                $rate = $this->selectInsuranceTenorRate($ageMatches, $targetTenor, $tenor);
+                if ($rate !== null) {
+                    return $rate;
+                }
+            }
+        }
+
+        $ageIndependentRows = $rows->filter(function (InsuranceRate $row) {
+            return trim((string) $row->usia) === '';
+        });
+
+        return $this->selectInsuranceTenorRate($ageIndependentRows, $tenor, $tenor);
+    }
+
+    private function selectInsuranceTenorRate($rows, ?int $targetTenor, ?int $requestedTenor): ?InsuranceRate
+    {
         if ($rows->isEmpty()) {
             return null;
         }
 
-        if ($usia !== null) {
-            $ageMatches = $rows->filter(function ($row) use ($usia) {
-                if ($row->usia === null || $row->usia === '') {
-                    return false;
-                }
+        $tenorRows = $rows->filter(function (InsuranceRate $row) {
+            return $row->tenor !== null;
+        });
 
-                return $this->matchesUsiaRange((string) $row->usia, $usia);
-            });
-
-            if ($ageMatches->isNotEmpty()) {
-                $ageMatches = $ageMatches->sortBy(function ($row) {
-                    return $this->resolveUsiaSortValue((string) $row->usia);
-                });
-
-                if ($tenor !== null) {
-                    $tenorMatches = $ageMatches->filter(function ($row) use ($tenor) {
-                        return $row->tenor !== null && $row->tenor !== '' && (int) $row->tenor >= $tenor;
-                    });
-
-                    if ($tenorMatches->isNotEmpty()) {
-                        return $tenorMatches->sortBy('tenor')->first();
-                    }
-                }
-
-                return $ageMatches->first();
-            }
-        }
-
-        if ($tenor !== null) {
-            $tenorMatches = $rows->filter(function ($row) use ($tenor) {
-                return $row->tenor !== null && $row->tenor !== '' && (int) $row->tenor >= $tenor;
+        if ($targetTenor !== null && $tenorRows->isNotEmpty()) {
+            $tenorMatches = $tenorRows->filter(function (InsuranceRate $row) use ($targetTenor) {
+                return (int) $row->tenor >= $targetTenor;
             });
 
             if ($tenorMatches->isNotEmpty()) {
-                return $tenorMatches->sortBy('tenor')->first();
-            }
-
-            $maxTenorRate = $rows->whereNotNull('tenor')->sortByDesc('tenor')->first();
-            if ($maxTenorRate !== null) {
-                return $maxTenorRate;
+                return $tenorMatches->sortBy(function (InsuranceRate $row) {
+                    return (int) $row->tenor;
+                })->first();
             }
         }
 
-        return $rows->sortByDesc('premium_per_million')->first();
+        if ($requestedTenor !== null && $requestedTenor > 0) {
+            $ageOnlyRows = $rows->filter(function (InsuranceRate $row) {
+                return $row->tenor === null;
+            });
+
+            return $ageOnlyRows->first();
+        }
+
+        if ($tenorRows->isNotEmpty()) {
+            return $tenorRows->sortBy(function (InsuranceRate $row) {
+                return (int) $row->tenor;
+            })->first();
+        }
+
+        return $rows->first();
     }
 
-    private function matchesUsiaRange(string $rangeText, int $usia): bool
+    private function selectInsuranceFallbackFromRows($rows, ?int $usia): ?InsuranceRate
     {
-        $trimmed = trim($rangeText);
-        if ($trimmed === '') {
-            return false;
+        $ageRows = $rows->filter(function (InsuranceRate $row) {
+            return trim((string) $row->usia) !== '';
+        });
+        $ageIndependentRows = $rows->filter(function (InsuranceRate $row) {
+            return trim((string) $row->usia) === '';
+        });
+
+        $candidateRows = $ageIndependentRows;
+        if ($usia !== null && $ageRows->isNotEmpty()) {
+            $ageMatches = $this->selectInsuranceAgeRows($ageRows, $usia);
+            if ($ageMatches->isNotEmpty()) {
+                $candidateRows = $ageMatches;
+            }
         }
 
-        if (preg_match('/^(\d+)\s*[-–]\s*(\d+)$/', $trimmed, $matches)) {
-            $min = (int) $matches[1];
-            $max = (int) $matches[2];
-            return $usia >= $min && $usia <= $max;
+        if ($candidateRows->isEmpty()) {
+            return null;
         }
 
-        if (is_numeric($trimmed)) {
-            return (int) $trimmed === $usia;
+        $tenorRows = $candidateRows->filter(function (InsuranceRate $row) {
+            return $row->tenor !== null;
+        });
+
+        if ($tenorRows->isNotEmpty()) {
+            return $tenorRows->sortByDesc(function (InsuranceRate $row) {
+                return (int) $row->tenor;
+            })->first();
         }
 
-        return false;
+        return $candidateRows->sortByDesc(function (InsuranceRate $row) {
+            return (float) $row->premium_per_million;
+        })->first();
     }
 
-    private function resolveUsiaSortValue(string $rangeText): int
+    private function selectInsuranceAgeRows($rows, int $usia)
+    {
+        $numericRows = $rows->filter(function (InsuranceRate $row) {
+            return is_numeric(trim((string) $row->usia));
+        });
+
+        $exactNumericRows = $numericRows->filter(function (InsuranceRate $row) use ($usia) {
+            return (int) trim((string) $row->usia) === $usia;
+        });
+        if ($exactNumericRows->isNotEmpty()) {
+            return $exactNumericRows->values();
+        }
+
+        $rangeRows = $rows->filter(function (InsuranceRate $row) use ($usia) {
+            $range = $this->parseUsiaRange((string) $row->usia);
+            return $range !== null && $usia >= $range[0] && $usia <= $range[1];
+        });
+
+        if ($rangeRows->isNotEmpty()) {
+            $narrowestWidth = $rangeRows->map(function (InsuranceRate $row) {
+                $range = $this->parseUsiaRange((string) $row->usia);
+                return $range[1] - $range[0];
+            })->min();
+
+            return $rangeRows->filter(function (InsuranceRate $row) use ($narrowestWidth) {
+                $range = $this->parseUsiaRange((string) $row->usia);
+                return ($range[1] - $range[0]) === $narrowestWidth;
+            })->values();
+        }
+
+        if ($numericRows->isEmpty()) {
+            return $numericRows;
+        }
+
+        $selectedAge = $numericRows
+            ->sortBy(function (InsuranceRate $row) {
+                return (int) trim((string) $row->usia);
+            })
+            ->first(function (InsuranceRate $row) use ($usia) {
+                return (int) trim((string) $row->usia) + 1 >= $usia;
+            });
+
+        if ($selectedAge === null) {
+            return $numericRows->filter(function (InsuranceRate $row) {
+                return false;
+            });
+        }
+
+        $selectedAgeValue = (int) trim((string) $selectedAge->usia);
+        return $numericRows->filter(function (InsuranceRate $row) use ($selectedAgeValue) {
+            return (int) trim((string) $row->usia) === $selectedAgeValue;
+        })->values();
+    }
+
+    private function resolveInsuranceTargetTenor(?int $tenor, string $product, $ageRows): ?int
+    {
+        if ($tenor === null || $tenor <= 0) {
+            return null;
+        }
+
+        $ageTenorValues = $ageRows->map(function (InsuranceRate $row) {
+            return $row->tenor !== null ? (int) $row->tenor : null;
+        })->filter(function (?int $tenor): bool {
+            return $tenor !== null;
+        });
+
+        if (strtolower(trim($product)) === 'regular' && $ageTenorValues->isNotEmpty() && $ageTenorValues->max() <= 15) {
+            return (int) ceil($tenor / 12);
+        }
+
+        return $tenor;
+    }
+
+    private function normalizeInsuranceBank(?string $bank): string
+    {
+        $value = strtoupper(trim((string) $bank));
+        return preg_replace('/^BANK\\s+/', '', $value) ?? $value;
+    }
+
+    private function parseUsiaRange(string $rangeText): ?array
     {
         $trimmed = trim($rangeText);
         if (preg_match('/^(\d+)\s*[-–]\s*(\d+)$/', $trimmed, $matches)) {
-            return (int) $matches[1];
+            return [(int) $matches[1], (int) $matches[2]];
         }
 
-        return is_numeric($trimmed) ? (int) $trimmed : 9999;
+        return null;
     }
 
     public function isDatePastMaxAge(string|Carbon $tanggalLahir, string|Carbon $tanggalAcuan, int $maxAgeYears): bool
