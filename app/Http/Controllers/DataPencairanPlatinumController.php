@@ -193,7 +193,7 @@ class DataPencairanPlatinumController extends Controller
                     if ($normalised === null && $this->hasContent($value)) {
                         $messages[$key] = 'Tanggal tidak dikenali: '.$this->describe($value);
 
-                        continue;
+                        continue 2;
                     }
 
                     $attributes[$key] = $normalised;
@@ -206,7 +206,7 @@ class DataPencairanPlatinumController extends Controller
                     if ($normalised === null && $this->hasContent($value)) {
                         $messages[$key] = 'Angka tidak dikenali: '.$this->describe($value);
 
-                        continue;
+                        continue 2;
                     }
 
                     $attributes[$key] = $normalised;
@@ -219,13 +219,13 @@ class DataPencairanPlatinumController extends Controller
                     if ($normalised === null && $this->hasContent($value)) {
                         $messages[$key] = 'Angka tidak dikenali: '.$this->describe($value);
 
-                        continue;
+                        continue 2;
                     }
 
                     if ($normalised !== null && $normalised !== floor($normalised)) {
                         $messages[$key] = 'Harus bilangan bulat, diterima: '.$normalised;
 
-                        continue;
+                        continue 2;
                     }
 
                     $attributes[$key] = $normalised === null ? null : (int) $normalised;
