@@ -4,6 +4,8 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductTemplateController;
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\DataSimulasiController;
+use App\Http\Controllers\DataPengajuanController;
+use App\Http\Controllers\DebiturController;
 use App\Http\Controllers\DnkaController;
 use App\Http\Controllers\LoanOperationController;
 use App\Http\Controllers\PerjanjianKreditController;
@@ -75,6 +77,24 @@ Route::post('/data-simulasi/{dataSimulasi}/upload-permohonan-cif', [DataSimulasi
 Route::get('/data-simulasi/{dataSimulasi}/upload-pelunasan-to-kb', [DataSimulasiController::class, 'showUploadPelunasanToKb'])->name('data_simulasi.pelunasan_to_kb.upload_form')->middleware('auth');
 Route::post('/data-simulasi/{dataSimulasi}/upload-pelunasan-to-kb', [DataSimulasiController::class, 'uploadPelunasanToKb'])->name('data_simulasi.pelunasan_to_kb.upload')->middleware('auth');
 Route::delete('/data-simulasi/{dataSimulasi}', [DataSimulasiController::class, 'destroy'])->name('data_simulasi.destroy')->middleware('auth');
+
+// Data Pengajuan
+// List ringkas (hanya tombol Info dan Download PDF) + satu form yang memegang
+// semua aktivitas debitur dan pengajuan pinjamannya. `cari` didaftarkan lebih
+// dulu agar tidak tertangkap sebagai `{dataSimulasi}`.
+Route::get('/data-pengajuan', [DataPengajuanController::class, 'index'])->name('data_pengajuan.index')->middleware('auth');
+Route::get('/data-pengajuan/cari', [DataPengajuanController::class, 'cari'])->name('data_pengajuan.cari')->middleware('auth');
+Route::get('/data-pengajuan/{dataSimulasi}', [DataPengajuanController::class, 'info'])->name('data_pengajuan.info')->middleware('auth');
+
+// Debitur Info
+// Form ini hanya untuk edit. Baris debitur dibuat otomatis dari simulasi (saat
+// simulasi di-confirm, atau saat form ini pertama dibuka dari list simulasi),
+// jadi tidak ada route create/store di sini.
+// Route `wilayah` didaftarkan lebih dulu agar tidak tertangkap sebagai `{nopen}`.
+Route::get('/debitur', [DebiturController::class, 'index'])->name('debitur.index')->middleware('auth');
+Route::get('/debitur/wilayah/{tingkat}', [DebiturController::class, 'wilayah'])->name('debitur.wilayah')->middleware('auth');
+Route::get('/debitur/{nopen}/edit', [DebiturController::class, 'edit'])->name('debitur.edit')->middleware('auth');
+Route::put('/debitur/{nopen}', [DebiturController::class, 'update'])->name('debitur.update')->middleware('auth');
 
 // Perjanjian Kredit
 Route::get('/perjanjian-kredit/{dataSimulasi}/generate', [PerjanjianKreditController::class, 'generate'])->name('perjanjian_kredit.generate')->middleware('auth');

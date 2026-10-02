@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\DataPencairanPlatinumController;
 use App\Http\Controllers\KbSimulationController;
 use Illuminate\Support\Facades\Route;
 
@@ -19,3 +20,11 @@ Route::prefix('mobile/kb-simulasi')->group(function () {
     Route::post('/store', [KbSimulationController::class, 'store']);
     Route::post('/download-pdf', [KbSimulationController::class, 'downloadPdf']);
 });
+
+// Sinkronisasi data pencairan platinum dari Google Apps Script.
+Route::prefix('pencairan-platinum')
+    ->middleware(['pencairan.token', 'throttle:120,1'])
+    ->group(function () {
+        Route::get('/ping', [DataPencairanPlatinumController::class, 'ping']);
+        Route::post('/sync', [DataPencairanPlatinumController::class, 'sync']);
+    });

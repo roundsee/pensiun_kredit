@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => EnsureUserHasRole::class,
             'simulation.only' => 'App\\Http\\Middleware\\RestrictTestUserToSimulation',
+            'pencairan.token' => \App\Http\Middleware\VerifyPencairanApiToken::class,
         ]);
 
         $middleware->appendToGroup('web', 'App\\Http\\Middleware\\RestrictTestUserToSimulation');

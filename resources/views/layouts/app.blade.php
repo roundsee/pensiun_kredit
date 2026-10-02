@@ -45,6 +45,15 @@
                                 <a class="nav-link" href="{{ route('data_simulasi.list') }}">Data Simulasi</a>
                             </li>
                             <li class="nav-item">
+                                <a class="nav-link" href="{{ route('data_pengajuan.index') }}">Data Pengajuan</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('debitur.index') }}">Debitur Info</a>
+                            </li>
+                            {{-- Disembunyikan sementara (belum dipakai). Hapus blok
+                                 komentar ini untuk mengembalikan ketiganya ke menu.
+                                 Rutenya tetap bisa diakses langsung lewat URL.
+                            <li class="nav-item">
                                 <a class="nav-link" href="{{ url('/banpot') }}">List Banpot</a>
                             </li>
                             <li class="nav-item">
@@ -53,6 +62,7 @@
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route('nominatif.initial.create') }}">Import Initial Nominatif</a>
                             </li>
+                            --}}
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route('pic_nbp.index') }}">Petugas NBP</a>
                             </li>
@@ -94,6 +104,12 @@
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route('data_simulasi.list') }}">Data Simulasi</a>
                             </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('data_pengajuan.index') }}">Data Pengajuan</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('debitur.index') }}">Debitur Info</a>
+                            </li>
                             @if($canAccessPam)
                                 <li class="nav-item">
                                     <a class="nav-link" href="{{ route('pam.index') }}">Product Struct</a>
@@ -119,6 +135,15 @@
                                 <a class="nav-link" href="{{ route('data_simulasi.list') }}">Data Simulasi</a>
                             </li>
                             <li class="nav-item">
+                                <a class="nav-link" href="{{ route('data_pengajuan.index') }}">Data Pengajuan</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{{ route('debitur.index') }}">Debitur Info</a>
+                            </li>
+                            {{-- Disembunyikan sementara (belum dipakai). Hapus blok
+                                 komentar ini untuk mengembalikan ketiganya ke menu.
+                                 Rutenya tetap bisa diakses langsung lewat URL.
+                            <li class="nav-item">
                                 <a class="nav-link" href="{{ url('/banpot') }}">List Banpot</a>
                             </li>
                             <li class="nav-item">
@@ -127,6 +152,7 @@
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route('nominatif.initial.create') }}">Import Initial Nominatif</a>
                             </li>
+                            --}}
                             <li class="nav-item">
                                 <a class="nav-link" href="{{ route('pic_nbp.index') }}">Petugas NBP</a>
                             </li>

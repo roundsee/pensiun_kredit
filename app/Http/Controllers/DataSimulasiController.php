@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\DataSimulasi;
 use App\Models\DataSimulasiPelengkap;
+use App\Models\Debitur;
 use App\Models\MailMergeTemplate;
 use App\Services\PdfTextExtractionService;
 use Illuminate\Http\Request;
@@ -95,6 +96,10 @@ class DataSimulasiController extends Controller
         $dataSimulasi->update([
             'status' => 'confirmed',
         ]);
+
+        // Profile debitur dibuat otomatis di sini, jadi form Debitur Info hanya
+        // perlu menyediakan aksi edit. Baris yang sudah ada tidak disentuh.
+        Debitur::untukSimulasi($dataSimulasi);
 
         return redirect()
             ->route('data_simulasi.trial.list')

@@ -129,6 +129,9 @@
                                         <td>
                                             <div class="d-flex gap-2 flex-wrap">
                                                 <a href="{{ route('kb_simulasi.index', ['edit_data_simulasi' => $row->id]) }}" class="btn btn-sm btn-warning">Edit</a>
+                                                @if(filled($row->nomor_pensiun))
+                                                    <a href="{{ route('debitur.edit', ['nopen' => $row->nomor_pensiun]) }}" class="btn btn-sm btn-info">Debitur Info</a>
+                                                @endif
                                                 <form action="{{ route('kb_simulasi.download_pdf') }}" method="POST" target="_blank">
                                                     @csrf
                                                     <input type="hidden" name="id" value="{{ $row->id }}">
@@ -190,6 +193,9 @@
                                                    class="btn btn-sm {{ $row->pelengkap ? 'btn-info' : 'btn-outline-info' }}">
                                                     {{ $row->pelengkap ? 'Edit Pelengkap' : 'Input Pelengkap' }}
                                                 </a>
+                                                @if(filled($row->nomor_pensiun))
+                                                    <a href="{{ route('debitur.edit', ['nopen' => $row->nomor_pensiun]) }}" class="btn btn-sm btn-info">Debitur Info</a>
+                                                @endif
                                                 <a href="{{ route('data_simulasi.idpb.upload_form', $row) }}" class="btn btn-sm btn-outline-dark">Upload IDPB</a>
                                                 <a href="{{ route('excel_bundle.preview', ['data_simulasi_id' => $row->id, 'focus' => 'permohonan_cif']) }}" class="btn btn-sm btn-outline-dark">Preview Permohonan CIF</a>
                                                 <a href="{{ route('excel_bundle.preview', ['data_simulasi_id' => $row->id, 'focus' => 'pelunasan_to_kb']) }}" class="btn btn-sm btn-outline-dark">Preview Pelunasan TO KB</a>
