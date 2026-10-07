@@ -421,13 +421,22 @@ class KbSimulationExcelService
             return null;
         }
 
-        // Excel formula reference:
-        // =PV(C21/12, E29, -MIN(E25*C20, (E25-120000-(10000*D35*10))/(1+D35)))
+        // Excel formula reference (jenis pensiun selain "Sendiri"):
+        // =PV(C21/12, E29, -MIN(E25*C20, (E25-120000-(10000*D35*5))/(1+D35)))
+        // Jenis pensiun "Sendiri": DBR adalah batas TOTAL angsuran (pokok + adm),
+        // tanpa cap 120000, sehingga basis pokok = (E25*C20) / (1+D35) - 10000.
+        // (-10000 karena angsuran aktual = PMT + 10000 + data_maintenance)
+        // =PV(C21/12, E29, -((E25*C20)/(1+D35) - 10000))
         $monthlyRate = $rateTahunan / 12;
         $kandidatPertama = $sisaGajiSaatPengajuan * $ratioGajiMax;
-        $adminPenalty = 10000.0 * $adminAngsuran * 5.0;
-        $kandidatKedua = ($sisaGajiSaatPengajuan - 120000.0 - $adminPenalty) / (1 + $adminAngsuran);
-        $basisAngsuran = min($kandidatPertama, $kandidatKedua);
+
+        if ($this->isJenisPensiunSendiri($jenisPensiun)) {
+            $basisAngsuran = ($kandidatPertama / (1 + $adminAngsuran)) - 10000.0;
+        } else {
+            $adminPenalty = 10000.0 * $adminAngsuran * 5.0;
+            $kandidatKedua = ($sisaGajiSaatPengajuan - 120000.0 - $adminPenalty) / (1 + $adminAngsuran);
+            $basisAngsuran = min($kandidatPertama, $kandidatKedua);
+        }
         $dataMaintenance = (float) ($struct->data_maintenance ?? 0.0);
         $basisAngsuranNetto = max(0.0, $basisAngsuran - $dataMaintenance);
 
@@ -437,7 +446,31 @@ class KbSimulationExcelService
 
         $pv = $this->excelPv($monthlyRate, $tenor, -$basisAngsuranNetto);
 
-        return max(0.0, $pv);
+        // Plafond max tidak boleh melebihi plafond_max pada product struct.
+        $plafondCap = (float) ($struct->plafond_max ?? 0.0);
+        $pv = max(0.0, $pv);
+        if ($plafondCap > 0 && $pv > $plafondCap) {
+            $pv = $plafondCap;
+        }
+
+        return $pv;
+    }
+
+    public function isJenisPensiunSendiri(?string $jenisPensiun): bool
+    {
+        return strcasecmp(trim((string) $jenisPensiun), 'Sendiri') === 0;
+    }
+
+    public function resolveDbrRatio(string $bankTujuan, string $produk, string $jenisPensiun): float
+    {
+        $productKeys = $this->resolveProductStructKeys($bankTujuan, $produk, $jenisPensiun);
+        $struct = $this->firstProductStructForKeys($productKeys);
+
+        if ($struct === null) {
+            return 0.0;
+        }
+
+        return $this->normalizePercent((float) ($struct->dbr_percent ?? 0));
     }
 
     private function resolveProductStructKeys(string $bankTujuan, string $produk, string $jenisPensiun): array

@@ -169,7 +169,7 @@ class PublicSimulationRouteTest extends TestCase
 
         $response->assertOk();
         $response->assertJsonPath('code', 'TENOR_MAX_OK');
-        $response->assertJsonPath('data.tenor_max', 118);
+        $response->assertJsonPath('data.tenor_max', 117);
     }
 
     public function test_mobile_plafond_max_api_is_available(): void
@@ -186,7 +186,13 @@ class PublicSimulationRouteTest extends TestCase
 
         $response->assertOk();
         $response->assertJsonPath('code', 'PLAFOND_MAX_OK');
-        $response->assertJsonPath('data.plafond_max', 126168871.28362805);
+
+        // Jenis pensiun "Sendiri": DBR membatasi TOTAL angsuran (pokok + adm), tanpa cap 120000.
+        $sisaGaji = 5000000 - 1500000;
+        $adminAngsuran = 0.10;
+        $monthlyRate = 0.16 / 12;
+        $expectedPlafondMax = ((($sisaGaji * 0.90) / (1 + $adminAngsuran)) - 10000.0) * ((1 - (1 + $monthlyRate) ** -60) / $monthlyRate);
+        $this->assertEqualsWithDelta($expectedPlafondMax, $response->json('data.plafond_max'), 1.0);
     }
 
     public function test_mobile_preview_api_is_available(): void

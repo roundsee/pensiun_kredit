@@ -938,11 +938,18 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
             }
 
             // Samakan dengan Excel/backend:
-            // basis = MIN(E25*C20, (E25-120000-(10000*D35*5))/(1+D35))
+            // "Sendiri": DBR = batas TOTAL angsuran, basis pokok = (E25*C20)/(1+D35) - 10000.
+            // Selain itu: basis = MIN(E25*C20, (E25-120000-(10000*D35*5))/(1+D35)).
             const kandidatPertama = sisaGaji * ratioGajiMax;
-            const adminPenalty = 10000 * adminAngsuran * 5;
-            const kandidatKedua = (sisaGaji - 120000 - adminPenalty) / (1 + adminAngsuran);
-            const basisAngsuran = Math.min(kandidatPertama, kandidatKedua);
+            const isSendiri = String(this.form.jenis_pensiun || '').trim().toLowerCase() === 'sendiri';
+            let basisAngsuran;
+            if (isSendiri) {
+                basisAngsuran = (kandidatPertama / (1 + adminAngsuran)) - 10000;
+            } else {
+                const adminPenalty = 10000 * adminAngsuran * 5;
+                const kandidatKedua = (sisaGaji - 120000 - adminPenalty) / (1 + adminAngsuran);
+                basisAngsuran = Math.min(kandidatPertama, kandidatKedua);
+            }
 
             if (!Number.isFinite(basisAngsuran) || basisAngsuran <= 0) {
                 this.plafondMaxText = '-';
@@ -950,7 +957,14 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
             }
 
             const n = tenorInput;
-            const pv = basisAngsuran * ((1 - Math.pow(1 + rateBulanan, -n)) / rateBulanan);
+            let pv = basisAngsuran * ((1 - Math.pow(1 + rateBulanan, -n)) / rateBulanan);
+
+            // Plafond max tidak boleh melebihi plafond_max pada product struct.
+            const structPlafondMax = struct.plafond_max ? Number(struct.plafond_max) : 0;
+            if (Number.isFinite(pv) && structPlafondMax > 0 && pv > structPlafondMax) {
+                pv = structPlafondMax;
+            }
+
             this.plafondMaxText = Number.isFinite(pv) && pv > 0 ? Math.round(pv) : '-';
         },
 

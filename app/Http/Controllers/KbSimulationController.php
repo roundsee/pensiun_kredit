@@ -38,6 +38,7 @@ class KbSimulationController extends Controller
                 'admin_percent',
                 'simpanan_pokok',
                 'blokir_angsuran',
+                'plafond_max',
             ])
             ->mapWithKeys(function (ProductStruct $item) {
                 return [
@@ -53,6 +54,7 @@ class KbSimulationController extends Controller
                         'admin_percent' => (float) ($item->admin_percent ?? 0),
                         'simpanan_pokok' => (float) ($item->simpanan_pokok ?? 0),
                         'blokir_angsuran' => (int) ($item->blokir_angsuran ?? 0),
+                        'plafond_max' => (float) ($item->plafond_max ?? 0),
                     ],
                 ];
             })
@@ -120,6 +122,7 @@ class KbSimulationController extends Controller
                 'admin_percent',
                 'simpanan_pokok',
                 'blokir_angsuran',
+                'plafond_max',
             ])
             ->mapWithKeys(function (ProductStruct $item) {
                 return [
@@ -135,6 +138,7 @@ class KbSimulationController extends Controller
                         'admin_percent' => (float) ($item->admin_percent ?? 0),
                         'simpanan_pokok' => (float) ($item->simpanan_pokok ?? 0),
                         'blokir_angsuran' => (int) ($item->blokir_angsuran ?? 0),
+                        'plafond_max' => (float) ($item->plafond_max ?? 0),
                     ],
                 ];
             })
@@ -202,6 +206,7 @@ class KbSimulationController extends Controller
                 'admin_percent',
                 'simpanan_pokok',
                 'blokir_angsuran',
+                'plafond_max',
             ])
             ->mapWithKeys(function (ProductStruct $item) {
                 return [
@@ -217,6 +222,7 @@ class KbSimulationController extends Controller
                         'admin_percent' => (float) ($item->admin_percent ?? 0),
                         'simpanan_pokok' => (float) ($item->simpanan_pokok ?? 0),
                         'blokir_angsuran' => (int) ($item->blokir_angsuran ?? 0),
+                        'plafond_max' => (float) ($item->plafond_max ?? 0),
                     ],
                 ];
             })
@@ -250,6 +256,7 @@ class KbSimulationController extends Controller
                 'admin_percent',
                 'simpanan_pokok',
                 'blokir_angsuran',
+                'plafond_max',
             ])
             ->mapWithKeys(function (ProductStruct $item) {
                 return [
@@ -265,6 +272,7 @@ class KbSimulationController extends Controller
                         'admin_percent' => (float) ($item->admin_percent ?? 0),
                         'simpanan_pokok' => (float) ($item->simpanan_pokok ?? 0),
                         'blokir_angsuran' => (int) ($item->blokir_angsuran ?? 0),
+                        'plafond_max' => (float) ($item->plafond_max ?? 0),
                     ],
                 ];
             })
@@ -1192,16 +1200,30 @@ public function downloadPdfSImulasi(Request $request)
 
         $sisaGajiSaatPengajuan = (float) ($result['sisa_gaji_saat_pengajuan'] ?? 0);
         $totalAngsuran = (float) ($result['total_angsuran'] ?? 0);
-        // Samakan dengan basis formula plafond max: (sisa_gaji - 120000) / (1 + admin_angsuran).
-        // Perhitungan angsuran aktual menambahkan komponen tetap +10000 pada angsuran,
-        // sehingga validasi perlu memberi allowance agar nilai di titik plafond_max tidak false reject.
-        $angsuranMax = max(0.0, $sisaGajiSaatPengajuan - 120000.0);
         $adminRatio = 0.0;
         $angsuranPokok = (float) ($result['angsuran'] ?? 0);
         $biayaAdmAngs = (float) ($result['biaya_adm_angs'] ?? 0);
         if ($angsuranPokok > 0) {
             $adminRatio = max(0.0, $biayaAdmAngs / $angsuranPokok);
         }
+
+        // Jenis pensiun "Sendiri": DBR adalah batas TOTAL angsuran (pokok + adm), tanpa cap 120000.
+        // Jenis lain tetap memakai sisa_gaji - 120000.
+        // Perhitungan angsuran aktual menambahkan komponen tetap +10000,
+        // sehingga validasi perlu allowance agar nilai di titik plafond_max tidak false reject.
+        if ($this->kbSimulationExcelService->isJenisPensiunSendiri($input['jenis_pensiun'] ?? null)) {
+            $dbrRatio = $this->kbSimulationExcelService->resolveDbrRatio(
+                (string) ($input['bank_tujuan'] ?? ''),
+                (string) ($input['produk'] ?? ''),
+                (string) ($input['jenis_pensiun'] ?? '')
+            );
+            $angsuranMax = $dbrRatio > 0
+                ? max(0.0, $sisaGajiSaatPengajuan * $dbrRatio)
+                : max(0.0, $sisaGajiSaatPengajuan - 120000.0);
+        } else {
+            $angsuranMax = max(0.0, $sisaGajiSaatPengajuan - 120000.0);
+        }
+
         $fixedInstallmentAllowance = 10000.0 * (1 + $adminRatio);
         $totalAngsuranTolerance = $fixedInstallmentAllowance + 1.0;
         $totalAngsuranValid = $totalAngsuran <= ($angsuranMax + $totalAngsuranTolerance);

@@ -749,4 +749,106 @@ class KbSimulationExcelServiceTest extends TestCase
 
         $this->assertSame(['KB-Platinum-Sendiri', 'Platinum-Sendiri', 'Platinum'], $keys);
     }
+
+    public function test_sendiri_plafond_max_limits_total_angsuran_to_dbr(): void
+    {
+        ProductStruct::query()->create([
+            'produk' => 'Platinum',
+            'kantor_bayar' => 'KB',
+            'plafond_min' => 1000000,
+            'plafond_max' => 1000000000,
+            'tenor_max' => 120,
+            'rate_percent' => 0.14,
+            'provisi_percent' => 0.01,
+            'usia_masuk_min' => 55,
+            'usia_max' => 80,
+            'admin_percent' => 0.05,
+            'blokir_angsuran' => 2,
+            'taspen' => 850000,
+            'tata_laksana' => 1750000,
+            'tata_laksana_plus_percent' => 0.01,
+            'admin_angsuran_percent' => 0.10,
+            'dbr_percent' => 0.90,
+            'asabri' => 350000,
+            'data_maintenance' => 0,
+            'usia_masuk_max' => 80,
+            'sort_order' => 1,
+        ]);
+
+        $service = new KbSimulationExcelService();
+
+        $baseInput = [
+            'produk' => 'Platinum',
+            'bank_tujuan' => 'KB',
+            'tanggal_simulasi' => '2026-08-27',
+            'tanggal_lahir' => '1956-06-02',
+            'gaji_pensiun' => 5000000,
+            'angsuran_lainnya' => 1500000,
+            'tenor' => 60,
+            'plafond' => 0,
+        ];
+
+        $sendiri = $service->calculate(array_merge($baseInput, ['jenis_pensiun' => 'Sendiri']));
+        $janda = $service->calculate(array_merge($baseInput, ['jenis_pensiun' => 'Janda']));
+
+        $sisaGaji = 3500000.0;
+        $adminAngsuran = 0.10;
+        $monthlyRate = 0.14 / 12;
+        $basisSendiri = (($sisaGaji * 0.90) / (1 + $adminAngsuran)) - 10000.0;
+        $expectedSendiri = $basisSendiri * ((1 - (1 + $monthlyRate) ** -60) / $monthlyRate);
+
+        $this->assertEqualsWithDelta($expectedSendiri, (float) $sendiri['plafond_max'], 1.0);
+        $this->assertLessThan((float) $janda['plafond_max'], (float) $sendiri['plafond_max']);
+
+        // Di titik plafond max, total angsuran (pokok + adm) harus menutup DBR,
+        // sehingga sisa gaji akhir = sisa_gaji * (1 - DBR) (= 10% dari gaji pensiun).
+        $atMax = $service->calculate(array_merge($baseInput, [
+            'jenis_pensiun' => 'Sendiri',
+            'plafond' => (float) $sendiri['plafond_max'],
+        ]));
+        $this->assertEqualsWithDelta(350000.0, (float) $atMax['sisa_gaji_akhir'], 1000.0);
+    }
+
+    public function test_plafond_max_is_capped_by_product_struct_plafond_max(): void
+    {
+        ProductStruct::query()->create([
+            'produk' => 'Platinum-Janda',
+            'kantor_bayar' => 'KB',
+            'plafond_min' => 1000000,
+            'plafond_max' => 200000000,
+            'tenor_max' => 144,
+            'rate_percent' => 0.14,
+            'provisi_percent' => 0.01,
+            'usia_masuk_min' => 55,
+            'usia_max' => 80,
+            'admin_percent' => 0.05,
+            'blokir_angsuran' => 2,
+            'taspen' => 850000,
+            'tata_laksana' => 1750000,
+            'tata_laksana_plus_percent' => 0.01,
+            'admin_angsuran_percent' => 0.10,
+            'dbr_percent' => 0.90,
+            'asabri' => 350000,
+            'data_maintenance' => 0,
+            'usia_masuk_max' => 80,
+            'sort_order' => 1,
+        ]);
+
+        $service = new KbSimulationExcelService();
+
+        // Sisa gaji cukup besar sehingga plafond max berbasis DBR melebihi plafond_max product struct.
+        $result = $service->calculate([
+            'produk' => 'Platinum',
+            'bank_tujuan' => 'KB',
+            'jenis_pensiun' => 'Janda',
+            'tanggal_simulasi' => '2026-08-27',
+            'tanggal_lahir' => '1970-06-02',
+            'gaji_pensiun' => 20000000,
+            'angsuran_lainnya' => 0,
+            'tenor' => 60,
+            'plafond' => 0,
+        ]);
+
+        $this->assertEqualsWithDelta(200000000.0, (float) $result['plafond_max'], 1.0);
+    }
 }
