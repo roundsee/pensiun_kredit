@@ -1,4 +1,6 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:mobile_flutter_simulasi_kb/main.dart';
 
@@ -95,5 +97,22 @@ void main() {
 
     expect(find.text('NBP_Simulasi'), findsOneWidget);
     expect(find.text('Login'), findsOneWidget);
+  });
+
+  testWidgets('read-only date fields open the date picker on tap', (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({});
+    await tester.pumpWidget(const SimulationApp());
+    await tester.pump();
+
+    final dateFields = find.byWidgetPredicate(
+      (widget) => widget is EditableText && widget.readOnly,
+    );
+    expect(dateFields, findsWidgets);
+
+    await tester.tap(dateFields.first, warnIfMissed: false);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.byType(DatePickerDialog), findsOneWidget);
   });
 }

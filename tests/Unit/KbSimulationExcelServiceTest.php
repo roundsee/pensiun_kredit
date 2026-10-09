@@ -487,7 +487,7 @@ class KbSimulationExcelServiceTest extends TestCase
             'admin_percent' => 0.05,
             'blokir_angsuran' => 2,
             'taspen' => 850000,
-            'tata_laksana' => 1750000,
+            'tata_laksana' => 0,
             'tata_laksana_plus_percent' => 0.01,
             'admin_angsuran_percent' => 0.10,
             'dbr_percent' => 0.90,
@@ -509,6 +509,7 @@ class KbSimulationExcelServiceTest extends TestCase
             'angsuran_lainnya' => 1500000,
             'tenor' => 60,
             'plafond' => 200000000,
+            'tata_laksana_plus_percent_override' => 1,
         ]);
 
         $asabriResult = $service->calculate([
@@ -522,10 +523,147 @@ class KbSimulationExcelServiceTest extends TestCase
             'angsuran_lainnya' => 1500000,
             'tenor' => 60,
             'plafond' => 200000000,
+            'tata_laksana_plus_percent_override' => 1,
         ]);
 
-        $this->assertSame(930000.0, (float) $taspenResult['tata_laksana']);
-        $this->assertSame(430000.0, (float) $asabriResult['tata_laksana']);
+        // tata_laksana (baris) = (tata_laksana% * plafond) + flagging + materai + ext percent
+        // TASPEN: (200.000.000 * 0) + 850.000 + 80.000 + (200.000.000 * 0.01) = 2.930.000
+        $this->assertSame(2930000.0, (float) $taspenResult['tata_laksana']);
+        // ASABRI: 0 + 350.000 + 80.000 + 2.000.000 = 2.430.000
+        $this->assertSame(2430000.0, (float) $asabriResult['tata_laksana']);
+        // Komponen ext percent: 200.000.000 * 0.01 = 2.000.000 (sudah termasuk di tata_laksana)
+        $this->assertSame(2000000.0, (float) $taspenResult['tata_laksana_plus']);
+        $this->assertSame(2000000.0, (float) $asabriResult['tata_laksana_plus']);
+    }
+
+    public function test_tata_laksana_plus_percent_is_folded_into_tata_laksana(): void
+    {
+        ProductStruct::query()->create([
+            'produk' => 'Platinum-Sendiri',
+            'kantor_bayar' => 'MANTAP',
+            'plafond_min' => 1000000,
+            'plafond_max' => 500000000,
+            'tenor_max' => 120,
+            'rate_percent' => 0.14,
+            'provisi_percent' => 0.01,
+            'usia_masuk_min' => 55,
+            'usia_max' => 80,
+            'admin_percent' => 0.05,
+            'blokir_angsuran' => 2,
+            'taspen' => 850000,
+            'tata_laksana' => 0,
+            'tata_laksana_plus_percent' => 0.05,
+            'admin_angsuran_percent' => 0.10,
+            'dbr_percent' => 0.90,
+            'asabri' => 350000,
+            'usia_masuk_max' => 80,
+            'sort_order' => 1,
+        ]);
+
+        $service = new KbSimulationExcelService();
+
+        $result = $service->calculate([
+            'produk' => 'Platinum',
+            'jenis_pensiun' => 'Sendiri',
+            'bank_tujuan' => 'MANTAP',
+            'instansi' => 'TASPEN',
+            'tanggal_simulasi' => '2026-08-27',
+            'tanggal_lahir' => '1956-06-02',
+            'gaji_pensiun' => 5000000,
+            'angsuran_lainnya' => 1500000,
+            'tenor' => 60,
+            'plafond' => 100000000,
+            'tata_laksana_plus_percent_override' => 5,
+        ]);
+
+        // Baris TATA LAKSANA sudah memuat ext: (0 + 850.000 + 80.000) + (100.000.000 * 0.05) = 5.930.000
+        $this->assertSame(5930000.0, (float) $result['tata_laksana']);
+        // Komponen ext percent: 100.000.000 * 0.05 = 5.000.000 (sudah termasuk di tata_laksana)
+        $this->assertSame(5000000.0, (float) $result['tata_laksana_plus']);
+
+        // Override persen tata laksana + berasal dari data simulasi (bukan product struct).
+        $overrideResult = $service->calculate([
+            'produk' => 'Platinum',
+            'jenis_pensiun' => 'Sendiri',
+            'bank_tujuan' => 'MANTAP',
+            'instansi' => 'TASPEN',
+            'tanggal_simulasi' => '2026-08-27',
+            'tanggal_lahir' => '1956-06-02',
+            'gaji_pensiun' => 5000000,
+            'angsuran_lainnya' => 1500000,
+            'tenor' => 60,
+            'plafond' => 100000000,
+            'tata_laksana_plus_percent_override' => 2,
+        ]);
+
+        // Baris TATA LAKSANA: (0 + 850.000 + 80.000) + (100.000.000 * 0.02) = 2.930.000
+        $this->assertSame(2930000.0, (float) $overrideResult['tata_laksana']);
+        // Komponen amount dari persen tata laksana + saja: 100.000.000 * 0.02
+        $this->assertSame(2000000.0, (float) $overrideResult['tata_laksana_plus']);
+    }
+
+    public function test_tata_laksana_plus_defaults_to_product_struct_when_no_override(): void
+    {
+        ProductStruct::query()->create([
+            'produk' => 'Platinum-Sendiri',
+            'kantor_bayar' => 'MANTAP',
+            'plafond_min' => 1000000,
+            'plafond_max' => 500000000,
+            'tenor_max' => 120,
+            'rate_percent' => 0.14,
+            'provisi_percent' => 0.01,
+            'usia_masuk_min' => 55,
+            'usia_max' => 80,
+            'admin_percent' => 0.05,
+            'blokir_angsuran' => 2,
+            'taspen' => 850000,
+            'tata_laksana' => 0,
+            'tata_laksana_plus_percent' => 0.03,
+            'admin_angsuran_percent' => 0.10,
+            'dbr_percent' => 0.90,
+            'asabri' => 350000,
+            'usia_masuk_max' => 80,
+            'sort_order' => 1,
+        ]);
+
+        $service = new KbSimulationExcelService();
+
+        // Tanpa override (mis. dari mobile): persen ext jatuh ke default product_struct (0.03).
+        $result = $service->calculate([
+            'produk' => 'Platinum',
+            'jenis_pensiun' => 'Sendiri',
+            'bank_tujuan' => 'MANTAP',
+            'instansi' => 'TASPEN',
+            'tanggal_simulasi' => '2026-08-27',
+            'tanggal_lahir' => '1956-06-02',
+            'gaji_pensiun' => 5000000,
+            'angsuran_lainnya' => 1500000,
+            'tenor' => 60,
+            'plafond' => 100000000,
+        ]);
+
+        // Ext: 100.000.000 * 0.03 = 3.000.000
+        $this->assertSame(3000000.0, (float) $result['tata_laksana_plus']);
+        // Baris TATA LAKSANA: (0 + 850.000 + 80.000) + 3.000.000 = 3.930.000
+        $this->assertSame(3930000.0, (float) $result['tata_laksana']);
+
+        // Override persen tetap menang atas default product_struct.
+        $overrideResult = $service->calculate([
+            'produk' => 'Platinum',
+            'jenis_pensiun' => 'Sendiri',
+            'bank_tujuan' => 'MANTAP',
+            'instansi' => 'TASPEN',
+            'tanggal_simulasi' => '2026-08-27',
+            'tanggal_lahir' => '1956-06-02',
+            'gaji_pensiun' => 5000000,
+            'angsuran_lainnya' => 1500000,
+            'tenor' => 60,
+            'plafond' => 100000000,
+            'tata_laksana_plus_percent_override' => 1,
+        ]);
+
+        // Ext: 100.000.000 * 0.01 = 1.000.000 (bukan 0.03)
+        $this->assertSame(1000000.0, (float) $overrideResult['tata_laksana_plus']);
     }
 
     public function test_it_adds_data_maintenance_to_angsuran_when_defined_on_product_struct(): void
@@ -798,6 +936,8 @@ class KbSimulationExcelServiceTest extends TestCase
         $expectedSendiri = $basisSendiri * ((1 - (1 + $monthlyRate) ** -60) / $monthlyRate);
 
         $this->assertEqualsWithDelta($expectedSendiri, (float) $sendiri['plafond_max'], 1.0);
+        // Non-Sendiri tidak memakai DBR (hanya sisa gaji akhir minimal 110.000),
+        // sehingga batasnya lebih longgar daripada Sendiri.
         $this->assertLessThan((float) $janda['plafond_max'], (float) $sendiri['plafond_max']);
 
         // Di titik plafond max, total angsuran (pokok + adm) harus menutup DBR,
@@ -807,6 +947,63 @@ class KbSimulationExcelServiceTest extends TestCase
             'plafond' => (float) $sendiri['plafond_max'],
         ]));
         $this->assertEqualsWithDelta(350000.0, (float) $atMax['sisa_gaji_akhir'], 1000.0);
+    }
+
+    public function test_non_sendiri_plafond_max_caps_sisa_gaji_akhir_at_110000(): void
+    {
+        ProductStruct::query()->create([
+            'produk' => 'Platinum',
+            'kantor_bayar' => 'KB',
+            'plafond_min' => 1000000,
+            'plafond_max' => 1000000000,
+            'tenor_max' => 120,
+            'rate_percent' => 0.14,
+            'provisi_percent' => 0.01,
+            'usia_masuk_min' => 55,
+            'usia_max' => 80,
+            'admin_percent' => 0.05,
+            'blokir_angsuran' => 2,
+            'taspen' => 850000,
+            'tata_laksana' => 1750000,
+            'tata_laksana_plus_percent' => 0.01,
+            'admin_angsuran_percent' => 0.10,
+            'dbr_percent' => 0.90,
+            'asabri' => 350000,
+            'data_maintenance' => 0,
+            'usia_masuk_max' => 80,
+            'sort_order' => 1,
+        ]);
+
+        $service = new KbSimulationExcelService();
+
+        $baseInput = [
+            'produk' => 'Platinum',
+            'bank_tujuan' => 'KB',
+            'jenis_pensiun' => 'Janda',
+            'tanggal_simulasi' => '2026-08-27',
+            'tanggal_lahir' => '1970-06-02',
+            'gaji_pensiun' => 1000000,
+            'angsuran_lainnya' => 0,
+            'tenor' => 60,
+            'plafond' => 0,
+        ];
+
+        // Non-Sendiri: tanpa DBR, batas total angsuran = sisa gaji - 110.000 = 890.000,
+        // sehingga sisa gaji akhir = 110.000.
+        $result = $service->calculate($baseInput);
+
+        $sisaGaji = 1000000.0;
+        $adminAngsuran = 0.10;
+        $monthlyRate = 0.14 / 12;
+        $basis = (($sisaGaji - 110000.0) / (1 + $adminAngsuran)) - 10000.0;
+        $expected = $basis * ((1 - (1 + $monthlyRate) ** -60) / $monthlyRate);
+
+        $this->assertEqualsWithDelta($expected, (float) $result['plafond_max'], 1.0);
+
+        $atMax = $service->calculate(array_merge($baseInput, [
+            'plafond' => (float) $result['plafond_max'],
+        ]));
+        $this->assertEqualsWithDelta(110000.0, (float) $atMax['sisa_gaji_akhir'], 1000.0);
     }
 
     public function test_plafond_max_is_capped_by_product_struct_plafond_max(): void

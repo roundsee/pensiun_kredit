@@ -57,6 +57,7 @@ class RowDef {
     this.optionsKey,
     this.allowEmpty = false,
     this.onlyRoleCanEditPricing = false,
+    this.mantapAdminOnly = false,
     this.format,
   });
 
@@ -66,6 +67,7 @@ class RowDef {
   final String? optionsKey;
   final bool allowEmpty;
   final bool onlyRoleCanEditPricing;
+  final bool mantapAdminOnly;
   final String? format;
 }
 
@@ -113,6 +115,7 @@ class _SimulationPageState extends State<SimulationPage> {
     'blokir_angsuran': '1',
     'rate_percent_override': '',
     'admin_angsuran_percent_override': '',
+    'tata_laksana_plus_percent_override': '',
     'tenor': '',
     'plafond': '',
     'pelunasan': '',
@@ -152,6 +155,7 @@ class _SimulationPageState extends State<SimulationPage> {
     RowDef(label: 'ASURANSI', type: FieldType.output, key: 'asuransi', format: 'currency'),
     RowDef(label: 'Extra Premi', type: FieldType.output, key: 'extra_premi', format: 'currency'),
     RowDef(label: 'BLOKIR AMOUNT', type: FieldType.output, key: 'amount_blokir_angsuran', format: 'currency'),
+    RowDef(label: 'Ext Tata Laksana (%)', type: FieldType.number, key: 'tata_laksana_plus_percent_override', mantapAdminOnly: true),
     RowDef(label: 'TATA LAKSANA', type: FieldType.output, key: 'tata_laksana', format: 'currency'),
     RowDef(label: 'PELUNASAN', type: FieldType.integer, key: 'pelunasan'),
     RowDef(label: 'Nama Marketing', type: FieldType.text, key: 'nama_marketing'),
@@ -182,6 +186,11 @@ class _SimulationPageState extends State<SimulationPage> {
 
   bool get _isAdmin => _loggedInEmail.toLowerCase() == _adminEmail;
   bool get _isLoggedIn => _loggedInEmail.isNotEmpty;
+  bool get _isMantap => '${_form['bank_tujuan'] ?? ''}'.trim().toUpperCase() == 'MANTAP';
+  bool get _canEditTataLaksanaPlus => _isAdmin && _isMantap;
+  List<RowDef> get _visibleRows => _rows
+      .where((row) => !row.mantapAdminOnly || _canEditTataLaksanaPlus)
+      .toList();
 
   @override
   void initState() {
@@ -271,7 +280,7 @@ class _SimulationPageState extends State<SimulationPage> {
       SnackBar(
         content: Text(message, style: const TextStyle(color: Colors.white)),
         backgroundColor: backgroundColor,
-        behavior: SnackBarBehavior.fixed,
+        behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 3),
         margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -664,6 +673,9 @@ class _SimulationPageState extends State<SimulationPage> {
       'blokir_angsuran': _toInt(_form['blokir_angsuran']) ?? 1,
       'rate_percent_override': _toNullableNum(_form['rate_percent_override']),
       'admin_angsuran_percent_override': _toNullableNum(_form['admin_angsuran_percent_override']),
+      'tata_laksana_plus_percent_override': _canEditTataLaksanaPlus
+          ? _toNullableNum(_form['tata_laksana_plus_percent_override'])
+          : null,
       'tenor': _toNullableInt(_form['tenor']),
       'plafond': _toNullableNum(_form['plafond']),
       'pelunasan': _toNum(_form['pelunasan']),
@@ -1126,7 +1138,7 @@ class _SimulationPageState extends State<SimulationPage> {
                     border: Border.all(color: const Color(0xFFD0D7DE)),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Column(children: _rows.map(_buildRow).toList()),
+                  child: Column(children: _visibleRows.map(_buildRow).toList()),
                 ),
               ),
               const SizedBox(height: 12),

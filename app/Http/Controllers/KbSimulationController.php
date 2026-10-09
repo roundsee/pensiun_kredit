@@ -39,6 +39,7 @@ class KbSimulationController extends Controller
                 'simpanan_pokok',
                 'blokir_angsuran',
                 'plafond_max',
+                'tata_laksana',
             ])
             ->mapWithKeys(function (ProductStruct $item) {
                 return [
@@ -55,6 +56,7 @@ class KbSimulationController extends Controller
                         'simpanan_pokok' => (float) ($item->simpanan_pokok ?? 0),
                         'blokir_angsuran' => (int) ($item->blokir_angsuran ?? 0),
                         'plafond_max' => (float) ($item->plafond_max ?? 0),
+                        'tata_laksana' => (float) ($item->tata_laksana ?? 0),
                     ],
                 ];
             })
@@ -93,6 +95,7 @@ class KbSimulationController extends Controller
                     'plafond' => $record->plafond,
                     'pelunasan' => $record->pelunasan,
                     'ext_tatalaksana' => $record->ext_tatalaksana,
+                    'tata_laksana_plus_percent_override' => $record->tata_laksana_plus_percent_override,
                     'nama_marketing' => $record->nama_marketing,
                     'kode_area' => $record->kode_area,
                     'rate_percent_override' => $record->rate_percent_override,
@@ -123,6 +126,7 @@ class KbSimulationController extends Controller
                 'simpanan_pokok',
                 'blokir_angsuran',
                 'plafond_max',
+                'tata_laksana',
             ])
             ->mapWithKeys(function (ProductStruct $item) {
                 return [
@@ -139,6 +143,7 @@ class KbSimulationController extends Controller
                         'simpanan_pokok' => (float) ($item->simpanan_pokok ?? 0),
                         'blokir_angsuran' => (int) ($item->blokir_angsuran ?? 0),
                         'plafond_max' => (float) ($item->plafond_max ?? 0),
+                        'tata_laksana' => (float) ($item->tata_laksana ?? 0),
                     ],
                 ];
             })
@@ -177,6 +182,7 @@ class KbSimulationController extends Controller
                     'plafond' => $record->plafond,
                     'pelunasan' => $record->pelunasan,
                     'ext_tatalaksana' => $record->ext_tatalaksana,
+                    'tata_laksana_plus_percent_override' => $record->tata_laksana_plus_percent_override,
                     'nama_marketing' => $record->nama_marketing,
                     'kode_area' => $record->kode_area,
                     'rate_percent_override' => $record->rate_percent_override,
@@ -207,6 +213,7 @@ class KbSimulationController extends Controller
                 'simpanan_pokok',
                 'blokir_angsuran',
                 'plafond_max',
+                'tata_laksana',
             ])
             ->mapWithKeys(function (ProductStruct $item) {
                 return [
@@ -223,6 +230,7 @@ class KbSimulationController extends Controller
                         'simpanan_pokok' => (float) ($item->simpanan_pokok ?? 0),
                         'blokir_angsuran' => (int) ($item->blokir_angsuran ?? 0),
                         'plafond_max' => (float) ($item->plafond_max ?? 0),
+                        'tata_laksana' => (float) ($item->tata_laksana ?? 0),
                     ],
                 ];
             })
@@ -257,6 +265,7 @@ class KbSimulationController extends Controller
                 'simpanan_pokok',
                 'blokir_angsuran',
                 'plafond_max',
+                'tata_laksana',
             ])
             ->mapWithKeys(function (ProductStruct $item) {
                 return [
@@ -273,6 +282,7 @@ class KbSimulationController extends Controller
                         'simpanan_pokok' => (float) ($item->simpanan_pokok ?? 0),
                         'blokir_angsuran' => (int) ($item->blokir_angsuran ?? 0),
                         'plafond_max' => (float) ($item->plafond_max ?? 0),
+                        'tata_laksana' => (float) ($item->tata_laksana ?? 0),
                     ],
                 ];
             })
@@ -292,6 +302,7 @@ class KbSimulationController extends Controller
         if ($this->hasPricingOverrideInput($request)) {
             $this->ensurePricingOverridesAuthorized($request);
         }
+        $this->ensureTataLaksanaPlusOverrideAuthorized($request);
 
         $input = $request->validate($this->goalSeekerRules());
 
@@ -517,6 +528,7 @@ class KbSimulationController extends Controller
         if ($this->hasPricingOverrideInput($request)) {
             $this->ensurePricingOverridesAuthorized($request);
         }
+        $this->ensureTataLaksanaPlusOverrideAuthorized($request);
         Log::info('Calculating KB simulation data...');
         $input = $request->validate($this->calculateRules());
 Log::info('calculateRules');
@@ -690,11 +702,12 @@ Log::info('cacheKey');
 
     public function previewSimulation(Request $request): JsonResponse
     {
-        try {
-            if ($this->hasPricingOverrideInput($request)) {
-                $this->ensurePricingOverridesAuthorized($request);
-            }
+        if ($this->hasPricingOverrideInput($request)) {
+            $this->ensurePricingOverridesAuthorized($request);
+        }
+        $this->ensureTataLaksanaPlusOverrideAuthorized($request);
 
+        try {
             $validated = $request->validate($this->calculateRules());
             $input = array_merge([
                 'produk' => 'Platinum',
@@ -754,16 +767,17 @@ Log::info('cacheKey');
 
     public function calculate(Request $request): JsonResponse
     {
+        if ($this->hasPricingOverrideInput($request)) {
+            $this->ensurePricingOverridesAuthorized($request);
+        }
+        $this->ensureTataLaksanaPlusOverrideAuthorized($request);
+
         try {
             Log::info('KB calculate request debug', [
                 'method' => $request->method(),
                 'content_type' => $request->header('Content-Type'),
                 'all' => $request->all(),
             ]);
-
-            if ($this->hasPricingOverrideInput($request)) {
-                $this->ensurePricingOverridesAuthorized($request);
-            }
 
             $input = $request->validate($this->calculateRules());
 
@@ -823,6 +837,8 @@ Log::info('cacheKey');
     }
 public function store(Request $request): JsonResponse
     {
+        $this->ensureTataLaksanaPlusOverrideAuthorized($request);
+
         try {
             Log::info('Storing KB simulation data...');
             $isClientSide = $request->boolean('client_side_calculation');
@@ -882,6 +898,7 @@ public function store(Request $request): JsonResponse
 
     public function storesimulasi(Request $request): JsonResponse
     {
+        $this->ensureTataLaksanaPlusOverrideAuthorized($request);
         Log::info('Storing KB simulation data...');
         $isClientSide = $request->boolean('client_side_calculation');
         Log::info('Client side calculation: ' . ($isClientSide ? 'true' : 'false'));
@@ -1207,8 +1224,10 @@ public function downloadPdfSImulasi(Request $request)
             $adminRatio = max(0.0, $biayaAdmAngs / $angsuranPokok);
         }
 
-        // Jenis pensiun "Sendiri": DBR adalah batas TOTAL angsuran (pokok + adm), tanpa cap 120000.
-        // Jenis lain tetap memakai sisa_gaji - 120000.
+        // DBR membatasi TOTAL angsuran (pokok + adm angsuran).
+        // Sendiri     : batas total angsuran = sisa gaji * DBR.
+        // Non-Sendiri : tanpa DBR; batas total angsuran = sisa gaji - 110.000
+        //               (sisa gaji akhir minimal 110.000).
         // Perhitungan angsuran aktual menambahkan komponen tetap +10000,
         // sehingga validasi perlu allowance agar nilai di titik plafond_max tidak false reject.
         if ($this->kbSimulationExcelService->isJenisPensiunSendiri($input['jenis_pensiun'] ?? null)) {
@@ -1221,7 +1240,7 @@ public function downloadPdfSImulasi(Request $request)
                 ? max(0.0, $sisaGajiSaatPengajuan * $dbrRatio)
                 : max(0.0, $sisaGajiSaatPengajuan - 120000.0);
         } else {
-            $angsuranMax = max(0.0, $sisaGajiSaatPengajuan - 120000.0);
+            $angsuranMax = max(0.0, $sisaGajiSaatPengajuan - 110000.0);
         }
 
         $fixedInstallmentAllowance = 10000.0 * (1 + $adminRatio);
@@ -1230,7 +1249,9 @@ public function downloadPdfSImulasi(Request $request)
 
         $sisaGajiAkhir = (float) ($result['sisa_gaji_akhir'] ?? 0);
         $sisaGajiAkhirMin = 110000.0;
-        $sisaGajiAkhirValid = $sisaGajiAkhir >= $sisaGajiAkhirMin;
+        // Toleransi 1 rupiah untuk mengakomodasi pembulatan tampilan plafond max,
+        // agar nilai tepat di batas minimum (Rp 110.000) tidak false reject.
+        $sisaGajiAkhirValid = $sisaGajiAkhir >= ($sisaGajiAkhirMin - 1.0);
 
         $terimaBersih = (float) ($result['terima_bersih'] ?? 0);
         // Temporary business rule: allow negative terima bersih (do not invalidate simulation).
@@ -1341,6 +1362,7 @@ public function downloadPdfSImulasi(Request $request)
             'pelunasan' => ['nullable', 'numeric', 'min:0'],
             'rate_percent_override' => ['nullable', 'numeric', 'min:0'],
             'admin_angsuran_percent_override' => ['nullable', 'numeric', 'min:0'],
+            'tata_laksana_plus_percent_override' => ['nullable', 'numeric', 'min:0'],
             'tenor' => ['nullable', 'integer', 'min:1'],
             'plafond' => ['nullable', 'numeric', 'min:0'],
             'nama_marketing' => ['nullable', 'string', 'max:255'],
@@ -1402,6 +1424,7 @@ public function downloadPdfSImulasi(Request $request)
             'ext_tatalaksana' => ['nullable', 'numeric', 'min:0'],
             'rate_percent_override' => ['nullable', 'numeric', 'min:0'],
             'admin_angsuran_percent_override' => ['nullable', 'numeric', 'min:0'],
+            'tata_laksana_plus_percent_override' => ['nullable', 'numeric', 'min:0'],
             'tenor' => ['required', 'integer', 'min:1'],
             'plafond' => ['required', 'numeric', 'min:0'],
             'nama_marketing' => ['nullable', 'string', 'max:255'],
@@ -1456,6 +1479,7 @@ public function downloadPdfSImulasi(Request $request)
             'pelunasan' => ['nullable', 'numeric', 'min:0'],
             'rate_percent_override' => ['nullable', 'numeric', 'min:0'],
             'admin_angsuran_percent_override' => ['nullable', 'numeric', 'min:0'],
+            'tata_laksana_plus_percent_override' => ['nullable', 'numeric', 'min:0'],
             'tenor' => ['nullable', 'integer', 'min:1'],
             'plafond' => ['nullable', 'numeric', 'min:0'],
             'tenor_min' => ['nullable', 'integer', 'min:1'],
@@ -1539,6 +1563,23 @@ public function downloadPdfSImulasi(Request $request)
         abort_unless($user?->canEditKbPricing(), 403, 'Anda tidak memiliki akses untuk mengubah override pricing.');
     }
 
+    private function ensureTataLaksanaPlusOverrideAuthorized(Request $request): void
+    {
+        if ($request->is('api/mobile/*')) {
+            return;
+        }
+
+        $value = $request->input('tata_laksana_plus_percent_override');
+        if ($value === null || $value === '') {
+            return;
+        }
+
+        /** @var User|null $user */
+        $user = $request->user();
+
+        abort_unless($user?->hasAnyRole([User::ROLE_ADMIN]), 403, 'Hanya admin yang dapat mengubah override tata laksana plus.');
+    }
+
     private function hasPricingOverrideInput(Request $request): bool
     {
         $rateValue = $request->input('rate_percent_override');
@@ -1583,12 +1624,14 @@ public function downloadPdfSImulasi(Request $request)
 
     private function applyExtTataLaksanaForPdf(DataSimulasi $sim): void
     {
+        // Kolom lama `ext_tatalaksana` (nominal manual): belum termasuk pada total/terima tersimpan,
+        // sehingga ditambahkan ke tata laksana dan dikurangi dari terima bersih saat render PDF.
+        // Ext tata laksana dari persen tidak perlu ditambahkan lagi: sudah ditotal ke tata_laksana
+        // saat kalkulasi (lihat KbSimulationExcelService), sehingga tersimpan bersama tata_laksana.
         $extTataLaksana = (float) ($sim->ext_tatalaksana ?? 0);
-        if ($extTataLaksana <= 0) {
-            return;
+        if ($extTataLaksana > 0) {
+            $sim->tata_laksana = (float) ($sim->tata_laksana ?? 0) + $extTataLaksana;
+            $sim->terima_bersih = (float) ($sim->terima_bersih ?? 0) - $extTataLaksana;
         }
-
-        $sim->tata_laksana = (float) ($sim->tata_laksana ?? 0) + $extTataLaksana;
-        $sim->terima_bersih = (float) ($sim->terima_bersih ?? 0) - $extTataLaksana;
     }
 }

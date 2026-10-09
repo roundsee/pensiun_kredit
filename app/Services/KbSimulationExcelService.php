@@ -291,8 +291,29 @@ class KbSimulationExcelService
             $flagging = (float) ($struct?->asabri ?? 0.0);
         }
 
+        // Tata laksana (baris TATA LAKSANA) = (tata_laksana% * plafond) + flagging (taspen/asabri)
+        // + materai + (tata_laksana_plus_percent% * plafond). product_struct.tata_laksana diartikan
+        // sebagai PERSEN (bukan nominal). Boleh dikirim persen (mis. 3) atau desimal (mis. 0.03);
+        // 1 diperlakukan sebagai 1%. Ext plus bukan baris terpisah: langsung ditotal ke tata_laksana
+        // agar tampil di PDF (termasuk dari mobile yang tidak mengirim override). Persen ext memakai
+        // override data_simulasi bila diisi; jika tidak, jatuh ke default
+        // product_struct.tata_laksana_plus_percent.
+        $tataLaksanaSource = (float) ($struct?->tata_laksana ?? 0.0);
+        $tataLaksanaPercent = $tataLaksanaSource >= 1.0
+            ? $tataLaksanaSource / 100
+            : $tataLaksanaSource;
+        $tataLaksanaBase = $plafond * $tataLaksanaPercent;
+        $tataLaksanaPlusSource = $input['tata_laksana_plus_percent_override'] ?? null;
+        if ($tataLaksanaPlusSource === null || $tataLaksanaPlusSource === '') {
+            $tataLaksanaPlusSource = $struct?->tata_laksana_plus_percent ?? 0.0;
+        }
+        $tataLaksanaPlusSource = (float) $tataLaksanaPlusSource;
+        $tataLaksanaPlusPercent = $tataLaksanaPlusSource >= 1.0
+            ? $tataLaksanaPlusSource / 100
+            : $tataLaksanaPlusSource;
+        $tataLaksanaPlus = $plafond * $tataLaksanaPlusPercent;
         $materai = 80000.0;
-        $tataLaksana = $flagging + $materai;
+        $tataLaksana = $tataLaksanaBase + $flagging + $materai + $tataLaksanaPlus;
 
         $totalBiaya = $provisi + $administrasi + $asuransi + $extraPremi + $amountBlokirAngsuran + $tataLaksana + $pelunasan + $simpananPokok;
         $sisaGajiAkhir = $sisaGajiSaatPengajuan - $totalAngsuran;
@@ -344,6 +365,7 @@ class KbSimulationExcelService
             'sisa_gaji_akhir' => $sisaGajiAkhir,
             'extra_premi' => $extraPremi,
             'tata_laksana' => $tataLaksana,
+            'tata_laksana_plus' => $tataLaksanaPlus,
             'terima_bersih' => $terimaBersih,
             'usia_lunas_text' => $usiaLunasText,
             'usia_lunas' => $usiaLunas,
@@ -417,26 +439,30 @@ class KbSimulationExcelService
         $ratioGajiMax = $this->normalizePercent((float) ($struct->dbr_percent ?? 0));
         $adminAngsuran = $this->normalizePercent($adminAngsuranSource);
 
-        if ($rateTahunan <= 0 || $ratioGajiMax <= 0) {
+        if ($rateTahunan <= 0) {
             return null;
         }
 
-        // Excel formula reference (jenis pensiun selain "Sendiri"):
-        // =PV(C21/12, E29, -MIN(E25*C20, (E25-120000-(10000*D35*5))/(1+D35)))
-        // Jenis pensiun "Sendiri": DBR adalah batas TOTAL angsuran (pokok + adm),
-        // tanpa cap 120000, sehingga basis pokok = (E25*C20) / (1+D35) - 10000.
-        // (-10000 karena angsuran aktual = PMT + 10000 + data_maintenance)
-        // =PV(C21/12, E29, -((E25*C20)/(1+D35) - 10000))
+        if ($this->isJenisPensiunSendiri($jenisPensiun) && $ratioGajiMax <= 0) {
+            return null;
+        }
+
+        // DBR membatasi TOTAL angsuran (pokok + adm angsuran).
+        // total_angsuran aktual = (PMT + 10000 + data_maintenance) * (1 + admin_angsuran),
+        // sehingga basis pokok (=PMT) = total_angsuran_max / (1 + admin_angsuran) - 10000.
+        //
+        // Sendiri     : total_angsuran_max = sisa gaji * DBR.
+        // Non-Sendiri : tidak memakai DBR; batas total angsuran = sisa gaji - 110.000,
+        //               sehingga sisa gaji akhir minimal 110.000.
         $monthlyRate = $rateTahunan / 12;
-        $kandidatPertama = $sisaGajiSaatPengajuan * $ratioGajiMax;
 
         if ($this->isJenisPensiunSendiri($jenisPensiun)) {
-            $basisAngsuran = ($kandidatPertama / (1 + $adminAngsuran)) - 10000.0;
+            $totalAngsuranMax = $sisaGajiSaatPengajuan * $ratioGajiMax;
         } else {
-            $adminPenalty = 10000.0 * $adminAngsuran * 5.0;
-            $kandidatKedua = ($sisaGajiSaatPengajuan - 120000.0 - $adminPenalty) / (1 + $adminAngsuran);
-            $basisAngsuran = min($kandidatPertama, $kandidatKedua);
+            $totalAngsuranMax = max(0.0, $sisaGajiSaatPengajuan - 110000.0);
         }
+
+        $basisAngsuran = ($totalAngsuranMax / (1 + $adminAngsuran)) - 10000.0;
         $dataMaintenance = (float) ($struct->data_maintenance ?? 0.0);
         $basisAngsuranNetto = max(0.0, $basisAngsuran - $dataMaintenance);
 

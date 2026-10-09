@@ -159,6 +159,7 @@
     $kbInitialData = $initialData ?? null;
     $kbPermissions = [
         'role' => $userRole ?? 'marketing',
+        'is_admin' => ($userRole ?? 'marketing') === 'admin',
         'can_edit_pricing' => (bool) ($canEditPricing ?? false),
     ];
     $kbSimulasiRoutes = [
@@ -218,6 +219,7 @@ function kbSimulasiForm() {
             plafond: '',
             pelunasan: '',
             ext_tatalaksana: '',
+            tata_laksana_plus_percent_override: '',
             nama_marketing: '',
             kode_area: '',
         },
@@ -262,8 +264,8 @@ function kbSimulasiForm() {
             { cell: 'E39', label: 'BLOKIR AMOUNT', type: 'output', key: 'amount_blokir_angsuran', format: 'currency' },
             { cell: 'E39A', label: 'SIMPANAN POKOK', type: 'number', key: 'simpanan_pokok' },
             { cell: 'E40', label: '', type: 'blank' },
+            { cell: 'E41B', label: 'Ext Tata Laksana (%)', type: 'number', key: 'tata_laksana_plus_percent_override' },
             { cell: 'E41', label: 'TATA LAKSANA', type: 'output', key: 'tata_laksana', format: 'currency' },
-            { cell: 'E41A', label: 'EXT TATA LAKSANA', type: 'integer', key: 'ext_tatalaksana' },
             { cell: 'E42', label: 'PELUNASAN', type: 'integer', key: 'pelunasan' },
             { cell: 'E43', label: 'Nama Marketing', type: 'text', key: 'nama_marketing' },
             { cell: 'E44', label: 'Kode Area', type: 'select', key: 'kode_area', optionsKey: 'area', allowEmpty: true },
@@ -315,6 +317,7 @@ function kbSimulasiForm() {
                 'form.nomor_pensiun', 'form.instansi', 'form.gaji_pensiun',
                 'form.angsuran_lainnya', 'form.simpanan_pokok', 'form.blokir_angsuran', 'form.rate_percent_override',
                 'form.admin_angsuran_percent_override', 'form.tenor', 'form.plafond',
+                'form.tata_laksana_plus_percent_override',
                 'form.pelunasan', 'form.nama_marketing', 'form.kode_area',
                 'form.keterangan',
             ];
@@ -1027,6 +1030,9 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
                         tenor: this.form.tenor,
                         rate_percent_override: this.form.rate_percent_override,
                         admin_angsuran_percent_override: this.form.admin_angsuran_percent_override,
+                        tata_laksana_plus_percent_override: (this.permissions.is_admin && String(this.form.bank_tujuan || '').trim().toUpperCase() === 'MANTAP')
+                            ? this.form.tata_laksana_plus_percent_override
+                            : '',
                         tanggal_lahir: this.form.tanggal_lahir,
                         tanggal_simulasi: this.form.tanggal_simulasi,
                         nomor_hp: this.form.nomor_hp,
@@ -1132,6 +1138,9 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
             bank_tujuan: this.form.bank_tujuan,
             bank_asal: this.form.bank_asal,
             instansi: this.form.instansi,
+            tata_laksana_plus_percent_override: (this.permissions.is_admin && String(this.form.bank_tujuan || '').trim().toUpperCase() === 'MANTAP')
+                ? this.form.tata_laksana_plus_percent_override
+                : '',
             nama_debitur: this.form.nama_debitur,
             nomor_pensiun: this.form.nomor_pensiun,
             id: this.editDataSimulasiId || null
@@ -1255,7 +1264,12 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
         
         getRenderableRows() { 
             return this.excelRows.filter((row) => {
-                if (row.key === 'ext_tatalaksana') {
+                if (row.key === 'tata_laksana_plus_percent_override') {
+                    return String(this.form.bank_tujuan || '').trim().toUpperCase() === 'MANTAP'
+                        && Boolean(this.permissions.is_admin);
+                }
+
+                if (row.mantapOnly) {
                     return String(this.form.bank_tujuan || '').trim().toUpperCase() === 'MANTAP';
                 }
 
@@ -1286,9 +1300,6 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
         },
         
         getRowDisplayValue(row) {
-            const extTataLaksana = Number(this.form.ext_tatalaksana || 0);
-            const extTataLaksanaValue = Number.isFinite(extTataLaksana) ? extTataLaksana : 0;
-
             if (row.key === 'umur_text') {
                 if (this.umurRealtimeText && this.umurRealtimeText !== '-') {
                     return this.umurRealtimeText;
@@ -1322,9 +1333,6 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
             if (row.staticValue) return row.staticValue;
             if (this.hasil && this.hasil[row.key] !== undefined) {
                 let val = this.hasil[row.key];
-                if (row.key === 'terima_bersih') {
-                    val = Number(val || 0) - extTataLaksanaValue;
-                }
                 if (row.format === 'currency' && typeof val === 'number') {
                     return 'Rp ' + Math.round(val).toLocaleString('id-ID');
                 }

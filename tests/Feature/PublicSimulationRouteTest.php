@@ -3,10 +3,13 @@
 namespace Tests\Feature;
 
 use App\Models\ProductStruct;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class PublicSimulationRouteTest extends TestCase
 {
+    use RefreshDatabase;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -193,6 +196,40 @@ class PublicSimulationRouteTest extends TestCase
         $monthlyRate = 0.16 / 12;
         $expectedPlafondMax = ((($sisaGaji * 0.90) / (1 + $adminAngsuran)) - 10000.0) * ((1 - (1 + $monthlyRate) ** -60) / $monthlyRate);
         $this->assertEqualsWithDelta($expectedPlafondMax, $response->json('data.plafond_max'), 1.0);
+    }
+
+    public function test_mobile_config_exposes_tata_laksana_fields(): void
+    {
+        ProductStruct::query()->updateOrCreate(
+            ['produk' => 'KB-Platinum-Sendiri'],
+            [
+                'tenor_max' => 144,
+                'usia_max' => 80,
+                'rate_percent' => '0.160000',
+                'dbr_percent' => '0.900000',
+                'admin_angsuran_percent' => '0.100000',
+                'provisi_percent' => '0.010000',
+                'admin_percent' => '0.020000',
+                'blokir_angsuran' => 1,
+                'plafond_max' => 250000000,
+                'tata_laksana' => 1750000,
+                'sort_order' => 1,
+            ]
+        );
+
+        $response = $this->getJson('/api/mobile/kb-simulasi/config');
+
+        $response->assertOk();
+        $this->assertEqualsWithDelta(
+            1750000.0,
+            (float) $response->json('product_structs.KB-Platinum-Sendiri.tata_laksana'),
+            0.01
+        );
+        $this->assertEqualsWithDelta(
+            250000000.0,
+            (float) $response->json('product_structs.KB-Platinum-Sendiri.plafond_max'),
+            0.01
+        );
     }
 
     public function test_mobile_preview_api_is_available(): void
