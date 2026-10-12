@@ -553,6 +553,14 @@ function kbSimulasiForm() {
             this.clampExtFeeOverride();
         },
 
+        isExtTataLaksanaAllowed() {
+            if (!this.permissions.is_admin) return false;
+
+            const bankTujuan = String(this.form.bank_tujuan || '').trim().toUpperCase();
+
+            return bankTujuan === 'MANTAP' || bankTujuan === 'BRI';
+        },
+
         getMaxExtFeePercent() {
             const productKey = `${this.form.bank_tujuan}-${this.form.produk}-${this.form.jenis_pensiun}`;
             const struct = this.productStructs ? this.productStructs[productKey] : null;
@@ -1070,7 +1078,7 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
                         tenor: this.form.tenor,
                         rate_percent_override: this.form.rate_percent_override,
                         admin_angsuran_percent_override: this.form.admin_angsuran_percent_override,
-                        tata_laksana_plus_percent_override: (this.permissions.is_admin && String(this.form.bank_tujuan || '').trim().toUpperCase() === 'MANTAP')
+                        tata_laksana_plus_percent_override: this.isExtTataLaksanaAllowed()
                             ? this.form.tata_laksana_plus_percent_override
                             : '',
                         tanggal_lahir: this.form.tanggal_lahir,
@@ -1178,7 +1186,7 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
             bank_tujuan: this.form.bank_tujuan,
             bank_asal: this.form.bank_asal,
             instansi: this.form.instansi,
-            tata_laksana_plus_percent_override: (this.permissions.is_admin && String(this.form.bank_tujuan || '').trim().toUpperCase() === 'MANTAP')
+            tata_laksana_plus_percent_override: this.isExtTataLaksanaAllowed()
                 ? this.form.tata_laksana_plus_percent_override
                 : '',
             nama_debitur: this.form.nama_debitur,
@@ -1305,8 +1313,7 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
         getRenderableRows() { 
             return this.excelRows.filter((row) => {
                 if (row.key === 'tata_laksana_plus_percent_override') {
-                    return String(this.form.bank_tujuan || '').trim().toUpperCase() === 'MANTAP'
-                        && Boolean(this.permissions.is_admin);
+                    return this.isExtTataLaksanaAllowed();
                 }
 
                 if (row.mantapOnly) {
