@@ -40,6 +40,7 @@ class KbSimulationController extends Controller
                 'blokir_angsuran',
                 'plafond_max',
                 'tata_laksana',
+                'max_ext_fee',
             ])
             ->mapWithKeys(function (ProductStruct $item) {
                 return [
@@ -57,6 +58,7 @@ class KbSimulationController extends Controller
                         'blokir_angsuran' => (int) ($item->blokir_angsuran ?? 0),
                         'plafond_max' => (float) ($item->plafond_max ?? 0),
                         'tata_laksana' => (float) ($item->tata_laksana ?? 0),
+                        'max_ext_fee' => (float) ($item->max_ext_fee ?? 0),
                     ],
                 ];
             })
@@ -127,6 +129,7 @@ class KbSimulationController extends Controller
                 'blokir_angsuran',
                 'plafond_max',
                 'tata_laksana',
+                'max_ext_fee',
             ])
             ->mapWithKeys(function (ProductStruct $item) {
                 return [
@@ -144,6 +147,7 @@ class KbSimulationController extends Controller
                         'blokir_angsuran' => (int) ($item->blokir_angsuran ?? 0),
                         'plafond_max' => (float) ($item->plafond_max ?? 0),
                         'tata_laksana' => (float) ($item->tata_laksana ?? 0),
+                        'max_ext_fee' => (float) ($item->max_ext_fee ?? 0),
                     ],
                 ];
             })
@@ -214,6 +218,7 @@ class KbSimulationController extends Controller
                 'blokir_angsuran',
                 'plafond_max',
                 'tata_laksana',
+                'max_ext_fee',
             ])
             ->mapWithKeys(function (ProductStruct $item) {
                 return [
@@ -231,6 +236,7 @@ class KbSimulationController extends Controller
                         'blokir_angsuran' => (int) ($item->blokir_angsuran ?? 0),
                         'plafond_max' => (float) ($item->plafond_max ?? 0),
                         'tata_laksana' => (float) ($item->tata_laksana ?? 0),
+                        'max_ext_fee' => (float) ($item->max_ext_fee ?? 0),
                     ],
                 ];
             })
@@ -266,6 +272,7 @@ class KbSimulationController extends Controller
                 'blokir_angsuran',
                 'plafond_max',
                 'tata_laksana',
+                'max_ext_fee',
             ])
             ->mapWithKeys(function (ProductStruct $item) {
                 return [
@@ -283,6 +290,7 @@ class KbSimulationController extends Controller
                         'blokir_angsuran' => (int) ($item->blokir_angsuran ?? 0),
                         'plafond_max' => (float) ($item->plafond_max ?? 0),
                         'tata_laksana' => (float) ($item->tata_laksana ?? 0),
+                        'max_ext_fee' => (float) ($item->max_ext_fee ?? 0),
                     ],
                 ];
             })

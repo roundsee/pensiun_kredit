@@ -311,6 +311,20 @@ class KbSimulationExcelService
         $tataLaksanaPlusPercent = $tataLaksanaPlusSource >= 1.0
             ? $tataLaksanaPlusSource / 100
             : $tataLaksanaPlusSource;
+
+        // Batasi ext fee sesuai product_struct.max_ext_fee bila diisi. Nilai sama-sama
+        // diterima sebagai persen (mis. 3) atau desimal (mis. 0.03); keduanya dinormalkan
+        // ke desimal sebelum dibandingkan agar konsisten dengan tata_laksana_plus_percent.
+        $maxExtFeeSource = $struct?->max_ext_fee;
+        if ($maxExtFeeSource !== null && $maxExtFeeSource !== '') {
+            $maxExtFeePercent = (float) $maxExtFeeSource >= 1.0
+                ? (float) $maxExtFeeSource / 100
+                : (float) $maxExtFeeSource;
+            if ($tataLaksanaPlusPercent > $maxExtFeePercent) {
+                $tataLaksanaPlusPercent = $maxExtFeePercent;
+            }
+        }
+
         $tataLaksanaPlus = $plafond * $tataLaksanaPlusPercent;
         $materai = 80000.0;
         $tataLaksana = $tataLaksanaBase + $flagging + $materai + $tataLaksanaPlus;

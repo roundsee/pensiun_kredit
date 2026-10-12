@@ -70,6 +70,10 @@
                 <input type="number" step="0.000001" name="tata_laksana_plus_percent" class="form-control" value="{{ old('tata_laksana_plus_percent', $productStruct->tata_laksana_plus_percent) }}">
             </div>
             <div class="col-md-3">
+                <label class="form-label">Max Ext Fee (%)</label>
+                <input type="number" step="0.000001" name="max_ext_fee" class="form-control" value="{{ old('max_ext_fee', $productStruct->max_ext_fee) }}">
+            </div>
+            <div class="col-md-3">
                 <label class="form-label">Admin Angsuran %</label>
                 <input type="number" step="0.000001" name="admin_angsuran_percent" class="form-control" value="{{ old('admin_angsuran_percent', $productStruct->admin_angsuran_percent) }}">
             </div>

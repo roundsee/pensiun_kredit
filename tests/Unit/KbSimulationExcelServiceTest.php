@@ -666,6 +666,62 @@ class KbSimulationExcelServiceTest extends TestCase
         $this->assertSame(1000000.0, (float) $overrideResult['tata_laksana_plus']);
     }
 
+    public function test_max_ext_fee_caps_tata_laksana_plus_percent_override(): void
+    {
+        ProductStruct::query()->create([
+            'produk' => 'Platinum-Sendiri',
+            'kantor_bayar' => 'MANTAP',
+            'plafond_min' => 1000000,
+            'plafond_max' => 500000000,
+            'tenor_max' => 120,
+            'rate_percent' => 0.14,
+            'provisi_percent' => 0.01,
+            'usia_masuk_min' => 55,
+            'usia_max' => 80,
+            'admin_percent' => 0.05,
+            'blokir_angsuran' => 2,
+            'taspen' => 850000,
+            'tata_laksana' => 0,
+            'tata_laksana_plus_percent' => 0.03,
+            'max_ext_fee' => 0.02,
+            'admin_angsuran_percent' => 0.10,
+            'dbr_percent' => 0.90,
+            'asabri' => 350000,
+            'usia_masuk_max' => 80,
+            'sort_order' => 1,
+        ]);
+
+        $service = new KbSimulationExcelService();
+        $baseInput = [
+            'produk' => 'Platinum',
+            'jenis_pensiun' => 'Sendiri',
+            'bank_tujuan' => 'MANTAP',
+            'instansi' => 'TASPEN',
+            'tanggal_simulasi' => '2026-08-27',
+            'tanggal_lahir' => '1956-06-02',
+            'gaji_pensiun' => 5000000,
+            'angsuran_lainnya' => 1500000,
+            'tenor' => 60,
+            'plafond' => 100000000,
+        ];
+
+        // Override 5% melebihi max_ext_fee 2%, sehingga di-cap menjadi 2%.
+        $capped = $service->calculate(array_merge($baseInput, [
+            'tata_laksana_plus_percent_override' => 5,
+        ]));
+        $this->assertSame(2000000.0, (float) $capped['tata_laksana_plus']);
+
+        // Override 1% masih di bawah cap, dipakai apa adanya.
+        $allowed = $service->calculate(array_merge($baseInput, [
+            'tata_laksana_plus_percent_override' => 1,
+        ]));
+        $this->assertSame(1000000.0, (float) $allowed['tata_laksana_plus']);
+
+        // Tanpa override: default 3% juga di-cap ke max_ext_fee 2%.
+        $default = $service->calculate($baseInput);
+        $this->assertSame(2000000.0, (float) $default['tata_laksana_plus']);
+    }
+
     public function test_it_adds_data_maintenance_to_angsuran_when_defined_on_product_struct(): void
     {
         ProductStruct::query()->create([

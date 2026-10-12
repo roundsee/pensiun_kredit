@@ -121,6 +121,9 @@
                                             <template x-if="getFieldError(row.key)">
                                                 <div class="text-danger small mt-1" x-text="getFieldError(row.key)"></div>
                                             </template>
+                                            <template x-if="row.key === 'tata_laksana_plus_percent_override' && getMaxExtFeePercent() !== null">
+                                                <div class="form-text small">Maksimal ext fee: <span x-text="getMaxExtFeePercent()"></span>%</div>
+                                            </template>
                                         </td>
                                     </tr>
                                 </template>
@@ -525,6 +528,8 @@ function kbSimulasiForm() {
                     this.form.simpanan_pokok = Number(struct.simpanan_pokok || 0);
                 }
             }
+
+            this.clampExtFeeOverride();
         },
 
         updateRateDefaults() {
@@ -543,6 +548,38 @@ function kbSimulasiForm() {
                 if ((this.form.simpanan_pokok === null || this.form.simpanan_pokok === '' || typeof this.form.simpanan_pokok === 'undefined') && struct.simpanan_pokok !== undefined) {
                     this.form.simpanan_pokok = Number(struct.simpanan_pokok || 0);
                 }
+            }
+
+            this.clampExtFeeOverride();
+        },
+
+        getMaxExtFeePercent() {
+            const productKey = `${this.form.bank_tujuan}-${this.form.produk}-${this.form.jenis_pensiun}`;
+            const struct = this.productStructs ? this.productStructs[productKey] : null;
+            if (!struct) return null;
+
+            const raw = struct.max_ext_fee;
+            if (raw === null || raw === undefined || raw === '') return null;
+
+            const value = Number(raw);
+            if (!Number.isFinite(value)) return null;
+
+            return value >= 1 ? value : value * 100;
+        },
+
+        clampExtFeeOverride() {
+            const maxPercent = this.getMaxExtFeePercent();
+            if (maxPercent === null) return;
+
+            const current = this.form.tata_laksana_plus_percent_override;
+            if (current === null || current === undefined || current === '') return;
+
+            const numeric = Number(current);
+            if (!Number.isFinite(numeric)) return;
+
+            const currentPercent = numeric >= 1 ? numeric : numeric * 100;
+            if (currentPercent > maxPercent) {
+                this.form.tata_laksana_plus_percent_override = maxPercent;
             }
         },
 
@@ -755,6 +792,7 @@ function kbSimulasiForm() {
             this.recalculateRealtimeAge();
             this.recalculateRealtimeTenorMax();
             this.recalculateRealtimePlafondMax();
+            this.clampExtFeeOverride();
         },
 
         onInputCommit(row, event) {
@@ -765,6 +803,7 @@ function kbSimulasiForm() {
                     this.form[row.key] = event?.target?.value ?? this.form[row.key];
                 }
             }
+            this.clampExtFeeOverride();
             this.onFormChanged();
         },
 

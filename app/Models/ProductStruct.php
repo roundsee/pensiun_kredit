@@ -23,6 +23,7 @@ class ProductStruct extends Model
         'taspen',
         'tata_laksana',
         'tata_laksana_plus_percent',
+        'max_ext_fee',
         'admin_angsuran_percent',
         'dbr_percent',
         'asabri',
