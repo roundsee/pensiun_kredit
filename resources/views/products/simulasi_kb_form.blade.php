@@ -256,7 +256,6 @@ function kbSimulasiForm() {
             { cell: 'E29', label: 'Plafond', type: 'integer', key: 'plafond' },
             { cell: 'E30', label: 'Blokir', type: 'select', key: 'blokir_angsuran', optionsKey: 'blokir' },
             { cell: 'E31', label: 'ANGSURAN', type: 'output', key: 'angsuran', format: 'currency' },
-            { cell: 'E31A', label: 'DATA MAINTENANCE', type: 'output', key: 'data_maintenance', format: 'currency', onlyRoleCanEditPricing: true },
             { cell: 'E32', label: 'Biaya Adm Angs', type: 'output', key: 'biaya_adm_angs', format: 'currency' },
             { cell: 'E33', label: 'Total Angsuran', type: 'output', key: 'total_angsuran', format: 'currency' },
             { cell: 'E34', label: 'RINCIAN PEMBIAYAAN', type: 'section' },
@@ -1318,10 +1317,6 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
 
                 if (row.mantapOnly) {
                     return String(this.form.bank_tujuan || '').trim().toUpperCase() === 'MANTAP';
-                }
-
-                if (row.key === 'data_maintenance') {
-                    return Boolean(this.permissions.can_edit_pricing);
                 }
 
                 return true;
