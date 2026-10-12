@@ -267,10 +267,15 @@ class KbSimulationExcelService
         $asuransiPercent = $this->resolveInsurancePercent((string) $input['bank_tujuan'],(string) $input['produk'], $tenor,$umurTahun); 
         Log::Info("Resolved insurance percent: {$asuransiPercent} for bank_tujuan={$input['bank_tujuan']}, product={$input['produk']}, tenor={$tenor}, usia={$umurTahun}");
         $dataMaintenance = (float) ($struct?->data_maintenance ?? 0.0);
-        $angsuran = $tenor > 0 && $plafond > 0
-            ? abs($this->excelPmt($monthlyRate, $tenor, $plafond)) + 10000.0 + $dataMaintenance
+        $hasAngsuran = $tenor > 0 && $plafond > 0;
+        $angsuran = $hasAngsuran
+            ? abs($this->excelPmt($monthlyRate, $tenor, $plafond)) + 10000.0
             : 0.0;
-        $biayaAdmAngs = $angsuran * $adminAngsuranPercent;
+        // Admin angsuran = angsuran * adm angsuran% + data_maintenance (biaya tetap per bulan).
+        // data_maintenance tidak lagi ikut ke angsuran (PMT) agar tidak terhitung ganda.
+        $biayaAdmAngs = $hasAngsuran
+            ? ($angsuran * $adminAngsuranPercent) + $dataMaintenance
+            : 0.0;
         $totalAngsuran = $angsuran + $biayaAdmAngs;
         
         $provisi = $plafond * $provisiPercent;
@@ -462,8 +467,8 @@ class KbSimulationExcelService
         }
 
         // DBR membatasi TOTAL angsuran (pokok + adm angsuran).
-        // total_angsuran aktual = (PMT + 10000 + data_maintenance) * (1 + admin_angsuran),
-        // sehingga basis pokok (=PMT) = total_angsuran_max / (1 + admin_angsuran) - 10000.
+        // total_angsuran aktual = (PMT + 10000) * (1 + admin_angsuran) + data_maintenance,
+        // sehingga basis pokok (=PMT) = (total_angsuran_max - data_maintenance) / (1 + admin_angsuran) - 10000.
         //
         // Sendiri     : total_angsuran_max = sisa gaji * DBR.
         // Non-Sendiri : tidak memakai DBR; batas total angsuran = sisa gaji - 110.000,
@@ -476,9 +481,9 @@ class KbSimulationExcelService
             $totalAngsuranMax = max(0.0, $sisaGajiSaatPengajuan - 110000.0);
         }
 
-        $basisAngsuran = ($totalAngsuranMax / (1 + $adminAngsuran)) - 10000.0;
         $dataMaintenance = (float) ($struct->data_maintenance ?? 0.0);
-        $basisAngsuranNetto = max(0.0, $basisAngsuran - $dataMaintenance);
+        $basisAngsuran = (($totalAngsuranMax - $dataMaintenance) / (1 + $adminAngsuran)) - 10000.0;
+        $basisAngsuranNetto = max(0.0, $basisAngsuran);
 
         if ($basisAngsuranNetto <= 0) {
             return 0.0;

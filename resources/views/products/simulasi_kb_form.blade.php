@@ -969,6 +969,7 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
                 : (struct.admin_angsuran_percent ? Number(struct.admin_angsuran_percent) * 100 : 0);
 
             const dbrToUse = struct.dbr_percent ? Number(struct.dbr_percent) : 0;
+            const dataMaintenance = struct.data_maintenance ? Number(struct.data_maintenance) : 0;
 
             const rateBulanan = (rateToUse / 100) / 12;
             const adminAngsuran = adminAngsuranToUse / 100;
@@ -980,16 +981,16 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
             }
 
             // Samakan dengan Excel/backend:
-            // "Sendiri": DBR = batas TOTAL angsuran, basis pokok = (E25*C20)/(1+D35) - 10000.
-            // Selain itu: basis = MIN(E25*C20, (E25-120000-(10000*D35*5))/(1+D35)).
+            // "Sendiri": DBR = batas TOTAL angsuran, basis pokok = ((E25*C20) - data_maintenance)/(1+D35) - 10000.
+            // Selain itu: basis = MIN(E25*C20, ((E25-120000-adminPenalty) - data_maintenance)/(1+D35)).
             const kandidatPertama = sisaGaji * ratioGajiMax;
             const isSendiri = String(this.form.jenis_pensiun || '').trim().toLowerCase() === 'sendiri';
             let basisAngsuran;
             if (isSendiri) {
-                basisAngsuran = (kandidatPertama / (1 + adminAngsuran)) - 10000;
+                basisAngsuran = ((kandidatPertama - dataMaintenance) / (1 + adminAngsuran)) - 10000;
             } else {
                 const adminPenalty = 10000 * adminAngsuran * 5;
-                const kandidatKedua = (sisaGaji - 120000 - adminPenalty) / (1 + adminAngsuran);
+                const kandidatKedua = ((sisaGaji - 120000 - adminPenalty - dataMaintenance) / (1 + adminAngsuran));
                 basisAngsuran = Math.min(kandidatPertama, kandidatKedua);
             }
 

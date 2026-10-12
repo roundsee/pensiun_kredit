@@ -722,7 +722,7 @@ class KbSimulationExcelServiceTest extends TestCase
         $this->assertSame(2000000.0, (float) $default['tata_laksana_plus']);
     }
 
-    public function test_it_adds_data_maintenance_to_angsuran_when_defined_on_product_struct(): void
+    public function test_it_adds_data_maintenance_to_admin_angsuran_when_defined_on_product_struct(): void
     {
         ProductStruct::query()->create([
             'produk' => 'Platinum',
@@ -776,8 +776,12 @@ class KbSimulationExcelServiceTest extends TestCase
         ]);
 
         $this->assertSame(50000.0, (float) $result['data_maintenance']);
-        $this->assertEqualsWithDelta(50000.0, (float) $result['angsuran'] - (float) $baseResult['angsuran'], 0.01);
-        $this->assertEqualsWithDelta(55000.0, (float) $result['total_angsuran'] - (float) $baseResult['total_angsuran'], 0.01);
+        // Angsuran (PMT) tidak lagi terpengaruh data_maintenance.
+        $this->assertEqualsWithDelta(0.0, (float) $result['angsuran'] - (float) $baseResult['angsuran'], 0.01);
+        // Biaya adm angsuran naik tepat sebesar data_maintenance (fixed fee).
+        $this->assertEqualsWithDelta(50000.0, (float) $result['biaya_adm_angs'] - (float) $baseResult['biaya_adm_angs'], 0.01);
+        // Total angsuran naik sebesar data_maintenance.
+        $this->assertEqualsWithDelta(50000.0, (float) $result['total_angsuran'] - (float) $baseResult['total_angsuran'], 0.01);
     }
 
     public function test_it_reduces_plafond_max_when_data_maintenance_is_present(): void

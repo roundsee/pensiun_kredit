@@ -41,6 +41,7 @@ class KbSimulationController extends Controller
                 'plafond_max',
                 'tata_laksana',
                 'max_ext_fee',
+                'data_maintenance',
             ])
             ->mapWithKeys(function (ProductStruct $item) {
                 return [
@@ -59,6 +60,7 @@ class KbSimulationController extends Controller
                         'plafond_max' => (float) ($item->plafond_max ?? 0),
                         'tata_laksana' => (float) ($item->tata_laksana ?? 0),
                         'max_ext_fee' => (float) ($item->max_ext_fee ?? 0),
+                        'data_maintenance' => (float) ($item->data_maintenance ?? 0),
                     ],
                 ];
             })
@@ -130,6 +132,7 @@ class KbSimulationController extends Controller
                 'plafond_max',
                 'tata_laksana',
                 'max_ext_fee',
+                'data_maintenance',
             ])
             ->mapWithKeys(function (ProductStruct $item) {
                 return [
@@ -148,6 +151,7 @@ class KbSimulationController extends Controller
                         'plafond_max' => (float) ($item->plafond_max ?? 0),
                         'tata_laksana' => (float) ($item->tata_laksana ?? 0),
                         'max_ext_fee' => (float) ($item->max_ext_fee ?? 0),
+                        'data_maintenance' => (float) ($item->data_maintenance ?? 0),
                     ],
                 ];
             })
@@ -219,6 +223,7 @@ class KbSimulationController extends Controller
                 'plafond_max',
                 'tata_laksana',
                 'max_ext_fee',
+                'data_maintenance',
             ])
             ->mapWithKeys(function (ProductStruct $item) {
                 return [
@@ -237,6 +242,7 @@ class KbSimulationController extends Controller
                         'plafond_max' => (float) ($item->plafond_max ?? 0),
                         'tata_laksana' => (float) ($item->tata_laksana ?? 0),
                         'max_ext_fee' => (float) ($item->max_ext_fee ?? 0),
+                        'data_maintenance' => (float) ($item->data_maintenance ?? 0),
                     ],
                 ];
             })
@@ -273,6 +279,7 @@ class KbSimulationController extends Controller
                 'plafond_max',
                 'tata_laksana',
                 'max_ext_fee',
+                'data_maintenance',
             ])
             ->mapWithKeys(function (ProductStruct $item) {
                 return [
@@ -291,6 +298,7 @@ class KbSimulationController extends Controller
                         'plafond_max' => (float) ($item->plafond_max ?? 0),
                         'tata_laksana' => (float) ($item->tata_laksana ?? 0),
                         'max_ext_fee' => (float) ($item->max_ext_fee ?? 0),
+                        'data_maintenance' => (float) ($item->data_maintenance ?? 0),
                     ],
                 ];
             })
