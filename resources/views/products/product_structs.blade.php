@@ -83,7 +83,6 @@
                     <th>Simpanan Pokok</th>
                     <th>Taspen</th>
                     <th>Tata Laksana</th>
-                    <th>Tata Laksana + %</th>
                     <th>Max Ext Fee</th>
                     <th>Admin Angsuran %</th>
                     <th>DBR %</th>
@@ -111,7 +110,6 @@
                         <td>{{ $item->simpanan_pokok }}</td>
                         <td>{{ $item->taspen }}</td>
                         <td>{{ $item->tata_laksana }}</td>
-                        <td>{{ $item->tata_laksana_plus_percent }}</td>
                         <td>{{ $item->max_ext_fee }}</td>
                         <td>{{ $item->admin_angsuran_percent }}</td>
                         <td>{{ $item->dbr_percent }}</td>
@@ -133,7 +131,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="23" class="text-center">Belum ada data Product Struct.</td>
+                        <td colspan="22" class="text-center">Belum ada data Product Struct.</td>
                     </tr>
                 @endforelse
             </tbody>
