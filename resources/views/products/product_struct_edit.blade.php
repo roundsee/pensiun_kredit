@@ -63,7 +63,7 @@
             </div>
             <div class="col-md-3">
                 <label class="form-label">Tata Laksana</label>
-                <input type="number" step="0.01" name="tata_laksana" class="form-control" value="{{ old('tata_laksana', $productStruct->tata_laksana) }}">
+                <input type="number" step="0.001" name="tata_laksana" class="form-control" value="{{ old('tata_laksana', $productStruct->tata_laksana) }}">
             </div>
             <div class="col-md-3">
                 <label class="form-label">Tata Laksana + %</label>
