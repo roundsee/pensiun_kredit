@@ -449,7 +449,11 @@ function kbGoalSeeker() {
             const platinumOption = produkOptions.find((item) => String(item).trim().toLowerCase() === 'platinum') || 'Platinum';
 
             const ageYears = this.getCurrentAgeYears();
-            const nextProduk = ageYears !== null && ageYears < 68 ? regularOption : platinumOption;
+            const bankTujuan = String(this.form.bank_tujuan || '').trim().toUpperCase();
+            // BRI tidak menyediakan produk Regular, sehingga selalu memakai Platinum.
+            const nextProduk = bankTujuan === 'BRI'
+                ? platinumOption
+                : (ageYears !== null && ageYears < 68 ? regularOption : platinumOption);
 
             if (this.form.produk !== nextProduk) {
                 this.form.produk = nextProduk;

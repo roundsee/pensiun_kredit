@@ -363,6 +363,11 @@ class KbSimulationController extends Controller
             'kode_area' => '-',
         ], $input);
 
+        $baseInput['produk'] = $this->kbSimulationExcelService->resolveEffectiveProduct(
+            (string) ($baseInput['bank_tujuan'] ?? ''),
+            (string) ($baseInput['produk'] ?? '')
+        );
+
         $probeInput = array_merge($baseInput, [
             'tenor' => null,
             'plafond' => null,

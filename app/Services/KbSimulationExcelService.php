@@ -78,6 +78,13 @@ class KbSimulationExcelService
             'kode_area' => '-',
         ], $input);
 
+        // BRI hanya tersedia produk Platinum (tidak ada Regular), sehingga
+        // produk Regular tetap diperlakukan sebagai Platinum.
+        $input['produk'] = $this->resolveEffectiveProduct(
+            (string) ($input['bank_tujuan'] ?? ''),
+            (string) ($input['produk'] ?? '')
+        );
+
         //$ioFactoryClass = 'PhpOffice\\PhpSpreadsheet\\IOFactory';
         Log::info('Starting calculation without spreadsheet...');
         return $this->calculateWithoutSpreadsheet($input);
@@ -516,6 +523,18 @@ class KbSimulationExcelService
         }
 
         return $this->normalizePercent((float) ($struct->dbr_percent ?? 0));
+    }
+
+    public function resolveEffectiveProduct(string $bankTujuan, string $produk): string
+    {
+        $bank = strtoupper(trim($bankTujuan));
+        $product = trim($produk);
+
+        if ($bank === 'BRI' && strcasecmp($product, 'Regular') === 0) {
+            return 'Platinum';
+        }
+
+        return $product;
     }
 
     private function resolveProductStructKeys(string $bankTujuan, string $produk, string $jenisPensiun): array
