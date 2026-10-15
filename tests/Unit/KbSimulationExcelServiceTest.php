@@ -602,7 +602,7 @@ class KbSimulationExcelServiceTest extends TestCase
         $this->assertSame(2000000.0, (float) $overrideResult['tata_laksana_plus']);
     }
 
-    public function test_tata_laksana_plus_defaults_to_product_struct_when_no_override(): void
+    public function test_tata_laksana_plus_is_ignored_when_no_override_is_provided(): void
     {
         ProductStruct::query()->create([
             'produk' => 'Platinum-Sendiri',
@@ -628,7 +628,8 @@ class KbSimulationExcelServiceTest extends TestCase
 
         $service = new KbSimulationExcelService();
 
-        // Tanpa override (mis. dari mobile): persen ext jatuh ke default product_struct (0.03).
+        // Tanpa override (mis. dari mobile): product_struct.tata_laksana_plus_percent
+        // tidak dipakai, sehingga ext = 0.
         $result = $service->calculate([
             'produk' => 'Platinum',
             'jenis_pensiun' => 'Sendiri',
@@ -642,12 +643,12 @@ class KbSimulationExcelServiceTest extends TestCase
             'plafond' => 100000000,
         ]);
 
-        // Ext: 100.000.000 * 0.03 = 3.000.000
-        $this->assertSame(3000000.0, (float) $result['tata_laksana_plus']);
-        // Baris TATA LAKSANA: (0 + 850.000 + 80.000) + 3.000.000 = 3.930.000
-        $this->assertSame(3930000.0, (float) $result['tata_laksana']);
+        // Ext: 0 karena tidak ada input simulasi.
+        $this->assertSame(0.0, (float) $result['tata_laksana_plus']);
+        // Baris TATA LAKSANA: 0 + 850.000 + 80.000 = 930.000
+        $this->assertSame(930000.0, (float) $result['tata_laksana']);
 
-        // Override persen tetap menang atas default product_struct.
+        // Override persen dari input simulasi tetap dipakai bila diisi.
         $overrideResult = $service->calculate([
             'produk' => 'Platinum',
             'jenis_pensiun' => 'Sendiri',
@@ -717,9 +718,9 @@ class KbSimulationExcelServiceTest extends TestCase
         ]));
         $this->assertSame(1000000.0, (float) $allowed['tata_laksana_plus']);
 
-        // Tanpa override: default 3% juga di-cap ke max_ext_fee 2%.
+        // Tanpa override: product_struct.tata_laksana_plus_percent tidak dipakai (ext = 0).
         $default = $service->calculate($baseInput);
-        $this->assertSame(2000000.0, (float) $default['tata_laksana_plus']);
+        $this->assertSame(0.0, (float) $default['tata_laksana_plus']);
     }
 
     public function test_it_adds_data_maintenance_to_admin_angsuran_when_defined_on_product_struct(): void

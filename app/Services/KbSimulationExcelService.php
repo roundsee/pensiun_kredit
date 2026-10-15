@@ -304,22 +304,19 @@ class KbSimulationExcelService
         }
 
         // Tata laksana (baris TATA LAKSANA) = (tata_laksana% * plafond) + flagging (taspen/asabri)
-        // + materai + (tata_laksana_plus_percent% * plafond). product_struct.tata_laksana diartikan
-        // sebagai PERSEN (bukan nominal). Boleh dikirim persen (mis. 3) atau desimal (mis. 0.03);
-        // 1 diperlakukan sebagai 1%. Ext plus bukan baris terpisah: langsung ditotal ke tata_laksana
-        // agar tampil di PDF (termasuk dari mobile yang tidak mengirim override). Persen ext memakai
-        // override data_simulasi bila diisi; jika tidak, jatuh ke default
-        // product_struct.tata_laksana_plus_percent.
+        // + materai + ext tata laksana. product_struct.tata_laksana diartikan sebagai PERSEN
+        // (bukan nominal). Boleh dikirim persen (mis. 3) atau desimal (mis. 0.03); 1 diperlakukan
+        // sebagai 1%. Ext tata laksana murni berasal dari input simulasi
+        // (tata_laksana_plus_percent_override). product_struct.tata_laksana_plus_percent tidak lagi
+        // dipakai agar nilai lama di master tidak ikut menambah tata laksana (mis. KB Platinum yang
+        // tata_laksana-nya 0). Ext bukan baris terpisah: langsung ditotal ke tata_laksana agar
+        // tampil di PDF.
         $tataLaksanaSource = (float) ($struct?->tata_laksana ?? 0.0);
         $tataLaksanaPercent = $tataLaksanaSource >= 1.0
             ? $tataLaksanaSource / 100
             : $tataLaksanaSource;
         $tataLaksanaBase = $plafond * $tataLaksanaPercent;
-        $tataLaksanaPlusSource = $input['tata_laksana_plus_percent_override'] ?? null;
-        if ($tataLaksanaPlusSource === null || $tataLaksanaPlusSource === '') {
-            $tataLaksanaPlusSource = $struct?->tata_laksana_plus_percent ?? 0.0;
-        }
-        $tataLaksanaPlusSource = (float) $tataLaksanaPlusSource;
+        $tataLaksanaPlusSource = (float) ($input['tata_laksana_plus_percent_override'] ?? 0.0);
         $tataLaksanaPlusPercent = $tataLaksanaPlusSource >= 1.0
             ? $tataLaksanaPlusSource / 100
             : $tataLaksanaPlusSource;
