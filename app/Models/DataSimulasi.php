@@ -61,6 +61,7 @@ class DataSimulasi extends Model
         'terima_bersih',
         'simpanan_pokok',
         'angsuran_lain',
+        'detail_rumus',
     ];
 
     protected $casts = [
@@ -97,6 +98,7 @@ class DataSimulasi extends Model
         'terima_bersih' => 'float',
         'simpanan_pokok' => 'float',
         'angsuran_lain' => 'float',
+        'detail_rumus' => 'array',
     ];
 
     public function getUsiaLunasTextAttribute(): string

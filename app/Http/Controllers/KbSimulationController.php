@@ -7,6 +7,7 @@ use App\Models\ProductStruct;
 use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Services\KbSimulationExcelService;
+use App\Services\SimulasiDetailRumusService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\JsonResponse;
@@ -1417,6 +1418,10 @@ public function downloadPdfSImulasi(Request $request)
 
         if (empty($filtered['status'] ?? null)) {
             $filtered['status'] = 'trial';
+        }
+
+        if (empty($filtered['detail_rumus'] ?? null)) {
+            $filtered['detail_rumus'] = app(SimulasiDetailRumusService::class)->build($persistPayload);
         }
 
         return $filtered;

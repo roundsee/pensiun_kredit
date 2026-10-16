@@ -132,6 +132,14 @@
                                                 @if(filled($row->nomor_pensiun))
                                                     <a href="{{ route('debitur.edit', ['nopen' => $row->nomor_pensiun]) }}" class="btn btn-sm btn-info">Debitur Info</a>
                                                 @endif
+                                                <button type="button"
+                                                        class="btn btn-sm btn-outline-primary"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#detailRumusModal"
+                                                        data-detail-rumus="{{ json_encode($row->detail_rumus ?? [], JSON_HEX_APOS | JSON_HEX_QUOT) }}"
+                                                        data-detail-title="Detail Rumus Simulasi #{{ $row->id }}{{ $row->nama_debitur ? ' - ' . $row->nama_debitur : '' }}">
+                                                    Detail Rumus
+                                                </button>
                                                 <form action="{{ route('kb_simulasi.download_pdf') }}" method="POST" target="_blank">
                                                     @csrf
                                                     <input type="hidden" name="id" value="{{ $row->id }}">
@@ -234,4 +242,104 @@
         </div>
     @endif
 </div>
+
+@if($isTrialList ?? false)
+    <div class="modal fade" id="detailRumusModal" tabindex="-1" aria-labelledby="detailRumusModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="detailRumusModalLabel">Detail Rumus</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small mb-2">Rincian asal-usul nilai simulasi. Nilai perhitungan mengikuti pembulatan ke rupiah penuh.</p>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 22%;">Komponen</th>
+                                    <th style="width: 20%;" class="text-end">Nilai</th>
+                                    <th>Rumus</th>
+                                </tr>
+                            </thead>
+                            <tbody id="detailRumusModalBody">
+                                <tr>
+                                    <td colspan="3" class="text-muted">Tidak ada rincian.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var modalEl = document.getElementById('detailRumusModal');
+            if (!modalEl) {
+                return;
+            }
+
+            var numberFormat = new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 });
+
+            modalEl.addEventListener('show.bs.modal', function (event) {
+                var button = event.relatedTarget;
+                if (!button) {
+                    return;
+                }
+
+                var title = button.getAttribute('data-detail-title') || 'Detail Rumus';
+                var labelEl = document.getElementById('detailRumusModalLabel');
+                if (labelEl) {
+                    labelEl.textContent = title;
+                }
+
+                var rows = [];
+                try {
+                    rows = JSON.parse(button.getAttribute('data-detail-rumus') || '[]');
+                } catch (e) {
+                    rows = [];
+                }
+
+                var tbody = document.getElementById('detailRumusModalBody');
+                tbody.innerHTML = '';
+
+                if (!Array.isArray(rows) || rows.length === 0) {
+                    var emptyRow = document.createElement('tr');
+                    var emptyCell = document.createElement('td');
+                    emptyCell.colSpan = 3;
+                    emptyCell.className = 'text-muted';
+                    emptyCell.textContent = 'Tidak ada rincian.';
+                    emptyRow.appendChild(emptyCell);
+                    tbody.appendChild(emptyRow);
+                    return;
+                }
+
+                rows.forEach(function (row) {
+                    var tr = document.createElement('tr');
+
+                    var cellKomponen = document.createElement('td');
+                    cellKomponen.textContent = row.komponen || '-';
+                    tr.appendChild(cellKomponen);
+
+                    var cellNilai = document.createElement('td');
+                    cellNilai.className = 'text-end';
+                    var nilai = Number(row.nilai);
+                    cellNilai.textContent = isNaN(nilai) ? '-' : 'Rp ' + numberFormat.format(nilai);
+                    tr.appendChild(cellNilai);
+
+                    var cellRumus = document.createElement('td');
+                    cellRumus.textContent = row.rumus || '-';
+                    tr.appendChild(cellRumus);
+
+                    tbody.appendChild(tr);
+                });
+            });
+        });
+    </script>
+@endif
 @endsection

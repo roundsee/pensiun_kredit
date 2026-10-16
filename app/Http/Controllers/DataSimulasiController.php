@@ -74,6 +74,15 @@ class DataSimulasiController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'document_type']);
 
+        $detailRumusService = app(\App\Services\SimulasiDetailRumusService::class);
+        $dataSimulasi->getCollection()->transform(function (DataSimulasi $row) use ($detailRumusService) {
+            if (empty($row->detail_rumus)) {
+                $row->detail_rumus = $detailRumusService->build($row->getAttributes());
+            }
+
+            return $row;
+        });
+
         $listTitle = 'Trial Data Simulasi';
         $isTrialList = true;
 
