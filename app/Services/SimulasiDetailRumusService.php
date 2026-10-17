@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\ProductStruct;
 use Carbon\Carbon;
 
 class SimulasiDetailRumusService
@@ -9,6 +10,13 @@ class SimulasiDetailRumusService
     public const IURAN_TETAP = 10000.0;
 
     public const MATERAI = 80000.0;
+
+    public const SISA_GAJI_MINIMAL = 110000.0;
+
+    /** @var array<string, ProductStruct|null> */
+    private array $structCache = [];
+
+    public function __construct(private readonly KbSimulationExcelService $simulationService) {}
 
     /**
      * Susun rincian asal-usul nilai simulasi (komponen, nilai, rumus).
@@ -143,25 +151,50 @@ class SimulasiDetailRumusService
             'rumus' => 'Plafond ('.$this->rp($plafond).') − Total Biaya ('.$this->rp($totalBiaya).')',
         ];
 
+        $struct = $this->resolveStruct($data);
+        $usiaMaxProduct = (int) ($struct->usia_max ?? 0);
+        $tenorMaxProduct = (int) ($struct->tenor_max ?? 0);
+        $plafondMaxProduct = (float) ($struct->plafond_max ?? 0.0);
+        $dbrPercent = $this->toPercentValue((float) ($struct->dbr_percent ?? 0.0));
+        $sisaGaji = $sisaGajiSaatPengajuan > 0
+            ? $sisaGajiSaatPengajuan
+            : max(0.0, $this->num($data, 'gaji_pensiun') - $this->num($data, 'angsuran_lain'));
+        $tanggalSimulasi = $data['tgl_permohonan'] ?? $data['tanggal_simulasi'] ?? null;
+
         $rows[] = [
             'komponen' => 'Tenor Max',
             'nilai' => $tenorMax,
             'nilai_text' => $tenorMax > 0 ? number_format($tenorMax, 0, ',', '.').' bulan' : '-',
-            'rumus' => 'Batas tenor dari sisa masa s/d usia_max, dibatasi tenor_max product struct',
+            'rumus' => sprintf(
+                'Batas tenor dari sisa masa (%s) s/d (%d) usia_max, dibatasi tenor_max (%d) product struct',
+                $this->ageText($data['tanggal_lahir'] ?? null, $tanggalSimulasi),
+                $usiaMaxProduct,
+                $tenorMaxProduct
+            ),
         ];
 
         $rows[] = [
             'komponen' => 'Plafond Max',
             'nilai' => $plafondMax,
             'nilai_text' => $this->rp($plafondMax),
-            'rumus' => 'PV dari basis angsuran (DBR / sisa gaji) pada tenor, dibatasi plafond_max product struct',
+            'rumus' => sprintf(
+                'PV dari basis angsuran (DBR (%s x %s) / sisa gaji (%s)) pada tenor, dibatasi plafond_max (%s) product struct',
+                $this->pct($dbrPercent),
+                $this->rp($sisaGaji),
+                $this->rp(self::SISA_GAJI_MINIMAL),
+                $this->rp($plafondMaxProduct)
+            ),
         ];
 
         $rows[] = [
             'komponen' => 'Usia Lunas',
             'nilai' => $this->num($data, 'usia_lunas'),
             'nilai_text' => $this->usiaLunasText($data),
-            'rumus' => 'Usia pada tanggal lunas (tgl_permohonan + tenor)',
+            'rumus' => sprintf(
+                'Usia pada tanggal lunas (tgl_permohonan (%s) + tenor (%d))',
+                $tanggalSimulasi !== null ? Carbon::parse($tanggalSimulasi)->toDateString() : '-',
+                $tenor
+            ),
         ];
 
         return $rows;
@@ -191,6 +224,47 @@ class SimulasiDetailRumusService
         }
 
         return false;
+    }
+
+    private function resolveStruct(array $data): ?ProductStruct
+    {
+        $bankTujuan = (string) ($data['bank_tujuan'] ?? '');
+        $produk = (string) ($data['produk'] ?? '');
+        $jenisPensiun = (string) ($data['jenis_pensiun'] ?? '');
+
+        if ($bankTujuan === '' && $produk === '') {
+            return null;
+        }
+
+        $cacheKey = strtolower($bankTujuan.'|'.$produk.'|'.$jenisPensiun);
+
+        if (! array_key_exists($cacheKey, $this->structCache)) {
+            $this->structCache[$cacheKey] = $this->simulationService->resolveProductStruct($bankTujuan, $produk, $jenisPensiun);
+        }
+
+        return $this->structCache[$cacheKey];
+    }
+
+    private function ageText(mixed $tanggalLahir, mixed $tanggalAcuan): string
+    {
+        if (empty($tanggalLahir) || empty($tanggalAcuan)) {
+            return '-';
+        }
+
+        $diff = rescue(function () use ($tanggalLahir, $tanggalAcuan) {
+            return Carbon::parse($tanggalLahir)->diff(Carbon::parse($tanggalAcuan));
+        }, null, false);
+
+        if ($diff === null) {
+            return '-';
+        }
+
+        return sprintf('%d thn %d bln', $diff->y, $diff->m);
+    }
+
+    private function toPercentValue(float $value): float
+    {
+        return $value > 0 && $value <= 1 ? $value * 100 : $value;
     }
 
     private function usiaLunasText(array $data): string

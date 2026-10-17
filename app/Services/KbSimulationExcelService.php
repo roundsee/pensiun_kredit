@@ -522,6 +522,11 @@ class KbSimulationExcelService
         return $this->normalizePercent((float) ($struct->dbr_percent ?? 0));
     }
 
+    public function resolveProductStruct(string $bankTujuan, string $produk, string $jenisPensiun): ?ProductStruct
+    {
+        return $this->firstProductStructForKeys($this->resolveProductStructKeys($bankTujuan, $produk, $jenisPensiun));
+    }
+
     public function resolveEffectiveProduct(string $bankTujuan, string $produk): string
     {
         $bank = strtoupper(trim($bankTujuan));
