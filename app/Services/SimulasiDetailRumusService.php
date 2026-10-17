@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use Carbon\Carbon;
+
 class SimulasiDetailRumusService
 {
     public const IURAN_TETAP = 10000.0;
@@ -12,12 +14,14 @@ class SimulasiDetailRumusService
      * Susun rincian asal-usul nilai simulasi (komponen, nilai, rumus).
      *
      * @param  array<string, mixed>  $data
-     * @return array<int, array{komponen: string, nilai: float, rumus: string}>
+     * @return array<int, array{komponen: string, nilai: float, nilai_text?: string, rumus: string}>
      */
     public function build(array $data): array
     {
         $plafond = $this->num($data, 'plafond');
         $tenor = (int) $this->num($data, 'tenor');
+        $tenorMax = (int) $this->num($data, 'tenor_max');
+        $plafondMax = $this->num($data, 'plafond_max');
         $angsuran = $this->num($data, 'angsuran');
         $biayaAdmAngs = $this->num($data, 'biaya_adm_angs');
         $totalAngsuran = $this->num($data, 'total_angsuran');
@@ -139,7 +143,79 @@ class SimulasiDetailRumusService
             'rumus' => 'Plafond ('.$this->rp($plafond).') − Total Biaya ('.$this->rp($totalBiaya).')',
         ];
 
+        $rows[] = [
+            'komponen' => 'Tenor Max',
+            'nilai' => $tenorMax,
+            'nilai_text' => $tenorMax > 0 ? number_format($tenorMax, 0, ',', '.').' bulan' : '-',
+            'rumus' => 'Batas tenor dari sisa masa s/d usia_max, dibatasi tenor_max product struct',
+        ];
+
+        $rows[] = [
+            'komponen' => 'Plafond Max',
+            'nilai' => $plafondMax,
+            'nilai_text' => $this->rp($plafondMax),
+            'rumus' => 'PV dari basis angsuran (DBR / sisa gaji) pada tenor, dibatasi plafond_max product struct',
+        ];
+
+        $rows[] = [
+            'komponen' => 'Usia Lunas',
+            'nilai' => $this->num($data, 'usia_lunas'),
+            'nilai_text' => $this->usiaLunasText($data),
+            'rumus' => 'Usia pada tanggal lunas (tgl_permohonan + tenor)',
+        ];
+
         return $rows;
+    }
+
+    /**
+     * Cek apakah rincian tersimpan belum memuat komponen terbaru (Tenor Max,
+     * Plafond Max, Usia Lunas) sehingga perlu disusun ulang saat ditampilkan.
+     *
+     * @param  array<int, mixed>  $detail
+     */
+    public function isOutdated(array $detail): bool
+    {
+        if (empty($detail)) {
+            return true;
+        }
+
+        $komponen = array_map(
+            static fn ($row) => is_array($row) ? ($row['komponen'] ?? null) : null,
+            $detail
+        );
+
+        foreach (['Tenor Max', 'Plafond Max', 'Usia Lunas'] as $required) {
+            if (! in_array($required, $komponen, true)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function usiaLunasText(array $data): string
+    {
+        $text = trim((string) ($data['usia_lunas_text'] ?? ''));
+        if ($text !== '' && $text !== '-') {
+            return $text;
+        }
+
+        $tanggalLahir = $data['tanggal_lahir'] ?? null;
+        $tanggalLunas = $data['tgl_lunas'] ?? null;
+
+        if (! empty($tanggalLahir) && ! empty($tanggalLunas)) {
+            $diff = rescue(function () use ($tanggalLahir, $tanggalLunas) {
+                return Carbon::parse($tanggalLahir)->diff(Carbon::parse($tanggalLunas));
+            }, null, false);
+
+            if ($diff !== null) {
+                return sprintf('%d thn %d bln', $diff->y, $diff->m);
+            }
+        }
+
+        $usia = $this->num($data, 'usia_lunas');
+
+        return $usia > 0 ? number_format($usia, 0, ',', '.').' thn' : '-';
     }
 
     private function num(array $data, string $key): float

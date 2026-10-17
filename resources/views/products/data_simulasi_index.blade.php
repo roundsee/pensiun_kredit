@@ -328,8 +328,12 @@
 
                     var cellNilai = document.createElement('td');
                     cellNilai.className = 'text-end';
-                    var nilai = Number(row.nilai);
-                    cellNilai.textContent = isNaN(nilai) ? '-' : 'Rp ' + numberFormat.format(nilai);
+                    if (row.nilai_text !== undefined && row.nilai_text !== null && row.nilai_text !== '') {
+                        cellNilai.textContent = row.nilai_text;
+                    } else {
+                        var nilai = Number(row.nilai);
+                        cellNilai.textContent = isNaN(nilai) ? '-' : 'Rp ' + numberFormat.format(nilai);
+                    }
                     tr.appendChild(cellNilai);
 
                     var cellRumus = document.createElement('td');

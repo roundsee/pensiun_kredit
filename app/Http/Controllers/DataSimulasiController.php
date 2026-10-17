@@ -76,7 +76,7 @@ class DataSimulasiController extends Controller
 
         $detailRumusService = app(\App\Services\SimulasiDetailRumusService::class);
         $dataSimulasi->getCollection()->transform(function (DataSimulasi $row) use ($detailRumusService) {
-            if (empty($row->detail_rumus)) {
+            if ($detailRumusService->isOutdated((array) ($row->detail_rumus ?? []))) {
                 $row->detail_rumus = $detailRumusService->build($row->getAttributes());
             }
 
