@@ -43,11 +43,16 @@ class SimulasiDetailRumusService
         $pelunasan = $this->num($data, 'pelunasan');
         $simpananPokok = $this->num($data, 'simpanan_pokok');
         $tataLaksana = $this->num($data, 'tata_laksana');
-        $extTataLaksana = $this->num($data, 'ext_tatalaksana');
         $totalBiaya = $this->num($data, 'total_biaya');
         $sisaGajiSaatPengajuan = $this->num($data, 'sisa_gaji_saat_pengajuan');
         $sisaGajiAkhir = $this->num($data, 'sisa_gaji_akhir');
         $terimaBersih = $this->num($data, 'terima_bersih');
+
+        $struct = $this->resolveStruct($data);
+        $instansi = trim((string) ($data['instansi'] ?? ''));
+        $tataLaksanaPercent = $this->toFraction((float) ($struct?->tata_laksana ?? 0.0)) * 100;
+        $tataLaksanaPlusPercent = $this->toFraction((float) ($this->num($data, 'tata_laksana_plus_percent_override'))) * 100;
+        $flagging = $this->resolveFlagging($struct, $instansi);
 
         $pmt = max(0.0, $angsuran - self::IURAN_TETAP);
         $admPercent = $angsuran > 0
@@ -114,7 +119,16 @@ class SimulasiDetailRumusService
         $rows[] = [
             'komponen' => 'Tata Laksana',
             'nilai' => $tataLaksana,
-            'rumus' => 'Plafond × tarif tata laksana + flagging (Taspen/Asabri) + materai ('.$this->rp(self::MATERAI).')'.($extTataLaksana > 0 ? ' + ext tata laksana ('.$this->rp($extTataLaksana).')' : ''),
+            'rumus' => sprintf(
+                'Plafond (%s) × tarif tata laksana (%s) + flagging (%s: %s) + materai (%s) + Plafond (%s) × ext tata laksana (%s)',
+                $this->rp($plafond),
+                $this->pct($tataLaksanaPercent),
+                $instansi !== '' ? ucfirst(strtolower($instansi)) : '-',
+                $this->rp($flagging),
+                $this->rp(self::MATERAI),
+                $this->rp($plafond),
+                $this->pct($tataLaksanaPlusPercent)
+            ),
         ];
 
         if ($pelunasan > 0) {
@@ -151,11 +165,10 @@ class SimulasiDetailRumusService
             'rumus' => 'Plafond ('.$this->rp($plafond).') − Total Biaya ('.$this->rp($totalBiaya).')',
         ];
 
-        $struct = $this->resolveStruct($data);
-        $usiaMaxProduct = (int) ($struct->usia_max ?? 0);
-        $tenorMaxProduct = (int) ($struct->tenor_max ?? 0);
-        $plafondMaxProduct = (float) ($struct->plafond_max ?? 0.0);
-        $dbrPercent = $this->toPercentValue((float) ($struct->dbr_percent ?? 0.0));
+        $usiaMaxProduct = (int) ($struct?->usia_max ?? 0);
+        $tenorMaxProduct = (int) ($struct?->tenor_max ?? 0);
+        $plafondMaxProduct = (float) ($struct?->plafond_max ?? 0.0);
+        $dbrPercent = $this->toFraction((float) ($struct?->dbr_percent ?? 0.0)) * 100;
         $sisaGaji = $sisaGajiSaatPengajuan > 0
             ? $sisaGajiSaatPengajuan
             : max(0.0, $this->num($data, 'gaji_pensiun') - $this->num($data, 'angsuran_lain'));
@@ -201,8 +214,9 @@ class SimulasiDetailRumusService
     }
 
     /**
-     * Cek apakah rincian tersimpan belum memuat komponen terbaru (Tenor Max,
-     * Plafond Max, Usia Lunas) sehingga perlu disusun ulang saat ditampilkan.
+     * Cek apakah rincian tersimpan belum memakai format terkini (komponen
+     * Tenor Max/Plafond Max/Usia Lunas dan rumus Tata Laksana berparameter)
+     * sehingga perlu disusun ulang saat ditampilkan.
      *
      * @param  array<int, mixed>  $detail
      */
@@ -219,6 +233,16 @@ class SimulasiDetailRumusService
 
         foreach (['Tenor Max', 'Plafond Max', 'Usia Lunas'] as $required) {
             if (! in_array($required, $komponen, true)) {
+                return true;
+            }
+        }
+
+        foreach ($detail as $row) {
+            if (! is_array($row) || ($row['komponen'] ?? null) !== 'Tata Laksana') {
+                continue;
+            }
+
+            if (! str_contains((string) ($row['rumus'] ?? ''), 'tarif tata laksana (')) {
                 return true;
             }
         }
@@ -262,9 +286,22 @@ class SimulasiDetailRumusService
         return sprintf('%d thn %d bln', $diff->y, $diff->m);
     }
 
-    private function toPercentValue(float $value): float
+    private function toFraction(float $value): float
     {
-        return $value > 0 && $value <= 1 ? $value * 100 : $value;
+        return $value >= 1.0 ? $value / 100 : $value;
+    }
+
+    private function resolveFlagging(?ProductStruct $struct, string $instansi): float
+    {
+        if (strcasecmp($instansi, 'taspen') === 0) {
+            return (float) ($struct?->taspen ?? 0.0);
+        }
+
+        if (strcasecmp($instansi, 'asabri') === 0) {
+            return (float) ($struct?->asabri ?? 0.0);
+        }
+
+        return 0.0;
     }
 
     private function usiaLunasText(array $data): string
