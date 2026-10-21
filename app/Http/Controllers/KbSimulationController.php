@@ -1224,11 +1224,15 @@ public function downloadPdfSImulasi(Request $request)
         $plafondMax = (float) ($result['plafond_max'] ?? 0);
         $plafondMaxDisplayed = round($plafondMax);
         $plafondTolerance = 1000.0;
+        $plafondMin = $struct?->plafond_min !== null ? (float) $struct->plafond_min : 0.0;
 
         $tenorValid = $tenorInput === null ? true : ($tenorInput <= $tenorMax);
         $plafondValid = $plafondInput === null
             ? true
             : ($plafondInput <= ($plafondMaxDisplayed + $plafondTolerance));
+        $plafondMinValid = $plafondInput === null
+            ? true
+            : ($plafondMin <= 0 || $plafondInput >= ($plafondMin - 1.0));
 
         $usiaMinValid = $usiaMasukMin === null || $usia === null ? true : ($usia >= $usiaMasukMin);
         $tanggalLahirForMaxCheck = $result['tanggal_lahir'] ?? null;
@@ -1296,9 +1300,11 @@ public function downloadPdfSImulasi(Request $request)
             'tenor_max' => $tenorMax,
             'tenor_valid' => $tenorValid,
             'plafond_input' => $plafondInput,
+            'plafond_min' => $plafondMin,
             'plafond_max' => $plafondMax,
             'plafond_max_displayed' => $plafondMaxDisplayed,
             'plafond_valid' => $plafondValid,
+            'plafond_min_valid' => $plafondMinValid,
             'total_angsuran' => $totalAngsuran,
             'angsuran_max' => $angsuranMax,
             'total_angsuran_valid' => $totalAngsuranValid,
@@ -1311,6 +1317,7 @@ public function downloadPdfSImulasi(Request $request)
                 && $usiaMaxValid
                 && $tenorValid
                 && $plafondValid
+                && $plafondMinValid
                 && $totalAngsuranValid
                 && $sisaGajiAkhirValid,
         ];

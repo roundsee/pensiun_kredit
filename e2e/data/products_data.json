@@ -1,0 +1,24 @@
+[
+  {
+    "id": 1,
+    "product_name": "Platinum-Sendiri",
+    "expected_produk": "Platinum",
+    "jenis_pensiun": "Sendiri",
+    "tanggal_lahir": "1955-01-01",
+    "tanggal_simulasi": "2026-10-20",
+    "gaji_pensiun": 5000000,
+    "angsuran_lainnya": 0,
+    "instansi": "TASPEN"
+  },
+  {
+    "id": 2,
+    "product_name": "Regular-Sendiri",
+    "expected_produk": "Regular",
+    "jenis_pensiun": "Sendiri",
+    "tanggal_lahir": "1965-01-01",
+    "tanggal_simulasi": "2026-10-20",
+    "gaji_pensiun": 5000000,
+    "angsuran_lainnya": 0,
+    "instansi": "TASPEN"
+  }
+]

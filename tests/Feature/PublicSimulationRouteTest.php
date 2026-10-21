@@ -82,6 +82,51 @@ class PublicSimulationRouteTest extends TestCase
         $this->assertNotSame(302, $response->status());
     }
 
+    public function test_kb_calculate_flags_plafond_below_product_minimum(): void
+    {
+        ProductStruct::query()->updateOrCreate(
+            ['produk' => 'KB-Platinum-Sendiri'],
+            [
+                'plafond_min' => 5000000,
+                'plafond_max' => 300000000,
+                'tenor_max' => 144,
+                'usia_max' => 80,
+                'usia_masuk_min' => 18,
+                'rate_percent' => '0.160000',
+                'dbr_percent' => '0.900000',
+                'admin_angsuran_percent' => '0.100000',
+                'provisi_percent' => '0.010000',
+                'admin_percent' => '0.020000',
+                'blokir_angsuran' => 1,
+                'sort_order' => 1,
+            ]
+        );
+
+        $base = [
+            'produk' => 'Platinum',
+            'jenis_pensiun' => 'Sendiri',
+            'bank_tujuan' => 'KB',
+            'tanggal_lahir' => '1960-06-02',
+            'tanggal_simulasi' => '2026-08-26',
+            'instansi' => 'TASPEN',
+            'gaji_pensiun' => 5000000,
+            'angsuran_lainnya' => 0,
+            'tenor' => 60,
+            'blokir_angsuran' => 1,
+            'pelunasan' => 0,
+        ];
+
+        $below = $this->postJson('/simulasi-kb/calculate', $base + ['plafond' => 1000000]);
+        $below->assertOk();
+        $below->assertJsonPath('limits.plafond_min', 5000000);
+        $below->assertJsonPath('limits.plafond_min_valid', false);
+        $below->assertJsonPath('limits.is_valid', false);
+
+        $within = $this->postJson('/simulasi-kb/calculate', $base + ['plafond' => 5000000]);
+        $within->assertOk();
+        $within->assertJsonPath('limits.plafond_min_valid', true);
+    }
+
     public function test_kb_save_endpoint_can_persist_simulation_data(): void
     {
         $response = $this->postJson('/simulasi-kb/store', [

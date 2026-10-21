@@ -718,6 +718,11 @@ function kbSimulasiForm() {
                 fieldMessages.plafond = 'Plafond melebihi batas maksimal';
             }
 
+            if (limits.plafond_min_valid === false) {
+                warnings.push(`Plafond input di bawah plafond min`);
+                fieldMessages.plafond = 'Plafond di bawah batas minimal';
+            }
+
             if (limits.total_angsuran_valid === false) {
                 warnings.push(`Total angsuran melebihi batas kemampuan bayar`);
                 fieldMessages.tenor = fieldMessages.tenor || 'Total angsuran terlalu besar';
