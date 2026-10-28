@@ -1454,6 +1454,7 @@ public function downloadPdfSImulasi(Request $request)
             'simpanan_pokok' => ['nullable', 'numeric', 'min:0'],
             'blokir_angsuran' => ['nullable', 'integer', 'in:1,2,3,4,5'],
             'pelunasan' => ['nullable', 'numeric', 'min:0'],
+            'extra_premi' => ['nullable', 'numeric', 'min:0'],
             'ext_tatalaksana' => ['nullable', 'numeric', 'min:0'],
             'rate_percent_override' => ['nullable', 'numeric', 'min:0'],
             'admin_angsuran_percent_override' => ['nullable', 'numeric', 'min:0'],
