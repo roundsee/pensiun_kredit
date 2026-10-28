@@ -289,7 +289,8 @@ class KbSimulationExcelService
         Log::info("Provisi calculated: {$provisi}");
         $administrasi = $plafond * $administrasiPercent;
         $asuransi = $plafond * $asuransiPercent;
-        $extraPremi = (float) ($input['extra_premi'] ?? 0.0);
+        $extraPremi = (float) ($input['extra_premi'] ?? $input['extraPremi'] ?? $input['ext_premi'] ?? 0.0);
+        Log::info('[KB_CALC_SVC] extra_premi keys: ' . json_encode(['extra_premi' => $input['extra_premi'] ?? null, 'extraPremi' => $input['extraPremi'] ?? null, 'ext_premi' => $input['ext_premi'] ?? null]) . ' -> parsed=' . $extraPremi);
         $blokirAngsuranCount = $this->resolveBlokirAngsuranCount($input);
         $amountBlokirAngsuran = $blokirAngsuranCount * $totalAngsuran;
         $pelunasan = max(0.0, (float) ($input['pelunasan'] ?? 0));

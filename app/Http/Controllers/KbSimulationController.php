@@ -553,7 +553,7 @@ class KbSimulationController extends Controller
         $this->ensureTataLaksanaPlusOverrideAuthorized($request);
         Log::info('Calculating KB simulation data...');
         $input = $request->validate($this->calculateRules());
-Log::info('calculateRules');
+Log::info('[KB_CTRL2] extra_premi validated: ' . ($input['extra_premi'] ?? 'MISSING'));
         $input = array_merge([
             'produk' => 'Platinum',
             'jenis_pensiun' => 'Sendiri',
@@ -572,6 +572,13 @@ Log::info('calculateRules');
             'nama_marketing' => '-',
             'kode_area' => '-',
         ], $input);
+        if ($request->has('extra_premi')) {
+            $input['extra_premi'] = $request->input('extra_premi');
+        } elseif ($request->has('extraPremi')) {
+            $input['extra_premi'] = $request->input('extraPremi');
+        } elseif ($request->has('ext_premi')) {
+            $input['extra_premi'] = $request->input('ext_premi');
+        }
 Log::info('calculateRules');
         $cacheKey = 'kb_simulasi_calc_' . sha1(json_encode($input));
 Log::info('cacheKey');
@@ -802,6 +809,12 @@ Log::info('cacheKey');
             ]);
 
             $input = $request->validate($this->calculateRules());
+            Log::info('[KB_CTRL] after validate keys: ' . implode(',', array_keys($input)));
+            if (array_key_exists('extra_premi', $input)) {
+                Log::info('[KB_CTRL] extra_premi from validated: ' . $input['extra_premi']);
+            } else {
+                Log::info('[KB_CTRL] extra_premi NOT in validated, request has: ' . (isset($request->all()['extra_premi']) ? $request->all()['extra_premi'] : 'MISSING'));
+            }
 
             $input = array_merge([
                 'produk' => 'Platinum',
@@ -822,6 +835,13 @@ Log::info('cacheKey');
                 'nama_marketing' => '-',
                 'kode_area' => '-',
             ], $input);
+            if (isset($request->all()['extra_premi']) && !array_key_exists('extra_premi', $input)) {
+                $input['extra_premi'] = $request->input('extra_premi');
+                Log::info('[KB_CTRL] forced extra_premi from request: ' . $input['extra_premi']);
+            } elseif (isset($request->all()['extra_premi']) && array_key_exists('extra_premi', $input)) {
+                $input['extra_premi'] = $request->input('extra_premi');
+                Log::info('[KB_CTRL] overridden extra_premi from request: ' . $input['extra_premi']);
+            }
 
             $cacheKey = 'kb_simulasi_calc_' . sha1(json_encode($input));
 
@@ -881,7 +901,12 @@ public function store(Request $request): JsonResponse
             if ($isClientSide) {
                 Log::info('Validating client result data...');
                 $clientResult = $request->validate($this->clientResultRules());
-                $result = array_merge($input, $clientResult);
+                if (isset($input['extra_premi']) && (float)$input['extra_premi'] != 0) {
+                    Log::info('[KB_CTRL] extra_premi detected, recalculating on server for client-side flow');
+                    $result = $this->kbSimulationExcelService->calculate(array_merge($input, $clientResult));
+                } else {
+                    $result = array_merge($input, $clientResult);
+                }
             } else {
                 Log::info('Calculating KB simulation data...');
                 $result = $this->kbSimulationExcelService->calculate($input);
@@ -936,7 +961,12 @@ public function store(Request $request): JsonResponse
         if ($isClientSide) {
             Log::info('Validating client result data...');
             $clientResult = $request->validate($this->clientResultRules());
-            $result = array_merge($input, $clientResult);
+            if (isset($input['extra_premi']) && (float)$input['extra_premi'] != 0) {
+                Log::info('[KB_CTRL] extra_premi detected, recalculating on server for client-side flow (storesimulasi)');
+                $result = $this->kbSimulationExcelService->calculate(array_merge($input, $clientResult));
+            } else {
+                $result = array_merge($input, $clientResult);
+            }
         } else {
             Log::info('Calculating KB simulation data...');
             try {
