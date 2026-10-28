@@ -262,7 +262,7 @@ function kbSimulasiForm() {
             { cell: 'E35', label: 'PROVISI', type: 'output', key: 'provisi', format: 'currency' },
             { cell: 'E36', label: 'ADMINISTRASI', type: 'output', key: 'administrasi', format: 'currency' },
             { cell: 'E37', label: 'ASURANSI', type: 'output', key: 'asuransi', format: 'currency' },
-            { cell: 'E38', label: 'Extra Premi', type: 'output', key: 'extra_premi', format: 'currency' },
+            { cell: 'E38', label: 'Extra Premi', type: 'integer', key: 'extra_premi', format: 'currency' },
             { cell: 'E39', label: 'BLOKIR AMOUNT', type: 'output', key: 'amount_blokir_angsuran', format: 'currency' },
             { cell: 'E39A', label: 'SIMPANAN POKOK', type: 'number', key: 'simpanan_pokok' },
             { cell: 'E40', label: '', type: 'blank' },
