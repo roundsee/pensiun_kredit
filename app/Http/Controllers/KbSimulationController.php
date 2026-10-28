@@ -1346,6 +1346,7 @@ public function downloadPdfSImulasi(Request $request)
             ['label' => 'E35 - Provisi', 'value' => $this->formatCurrency((float) ($result['provisi'] ?? 0))],
             ['label' => 'E36 - Administrasi', 'value' => $this->formatCurrency((float) ($result['administrasi'] ?? 0))],
             ['label' => 'E37 - Asuransi', 'value' => $this->formatCurrency((float) ($result['asuransi'] ?? 0))],
+            ['label' => 'E38 - Extra Premi', 'value' => $this->formatCurrency((float) ($result['extra_premi'] ?? 0))],
             ['label' => 'E39 - Pelunasan', 'value' => $this->formatCurrency((float) ($result['pelunasan'] ?? 0))],
             ['label' => 'E39 - Blokir Amount', 'value' => $this->formatCurrency((float) ($result['amount_blokir_angsuran'] ?? 0))],
             ['label' => 'E39A - Simpanan Pokok', 'value' => $this->formatCurrency((float) ($result['simpanan_pokok'] ?? 0))],
