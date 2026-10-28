@@ -1392,6 +1392,7 @@ public function downloadPdfSImulasi(Request $request)
             'rate_percent_override' => ['nullable', 'numeric', 'min:0'],
             'admin_angsuran_percent_override' => ['nullable', 'numeric', 'min:0'],
             'tata_laksana_plus_percent_override' => ['nullable', 'numeric', 'min:0'],
+            'extra_premi' => ['nullable', 'numeric', 'min:0'],
             'tenor' => ['nullable', 'integer', 'min:1'],
             'plafond' => ['nullable', 'numeric', 'min:0'],
             'nama_marketing' => ['nullable', 'string', 'max:255'],
