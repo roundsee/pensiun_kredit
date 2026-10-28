@@ -289,7 +289,7 @@ class KbSimulationExcelService
         Log::info("Provisi calculated: {$provisi}");
         $administrasi = $plafond * $administrasiPercent;
         $asuransi = $plafond * $asuransiPercent;
-        $extraPremi = 0.0;
+        $extraPremi = (float) ($input['extra_premi'] ?? 0.0);
         $blokirAngsuranCount = $this->resolveBlokirAngsuranCount($input);
         $amountBlokirAngsuran = $blokirAngsuranCount * $totalAngsuran;
         $pelunasan = max(0.0, (float) ($input['pelunasan'] ?? 0));
