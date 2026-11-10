@@ -50,9 +50,24 @@ class SimulasiDetailRumusService
 
         $struct = $this->resolveStruct($data);
         $instansi = trim((string) ($data['instansi'] ?? ''));
+        $bankTujuan = trim((string) ($data['bank_tujuan'] ?? ''));
         $tataLaksanaPercent = $this->toFraction((float) ($struct?->tata_laksana ?? 0.0)) * 100;
         $tataLaksanaPlusPercent = $this->toFraction((float) ($this->num($data, 'tata_laksana_plus_percent_override'))) * 100;
         $flagging = $this->resolveFlagging($struct, $instansi);
+
+        // Rate kredit dipakai sebagai bunga anuitas (PMT) untuk menghitung angsuran
+        // dan sebagai discount rate (PV) saat menghitung Plafond Max.
+        $rateOverride = $data['rate_percent_override'] ?? null;
+        $hasRateOverride = $rateOverride !== null && $rateOverride !== '';
+        $rateSource = $hasRateOverride
+            ? (float) $rateOverride
+            : (float) ($struct?->rate_percent ?? 0.0);
+        $rateAnnualPercent = $this->toFraction($rateSource) * 100;
+        $rateMonthlyPercent = $rateAnnualPercent / 12;
+        $rateSourceLabel = $hasRateOverride
+            ? 'input simulasi (override)'
+            : 'product struct';
+        $bankLabel = $bankTujuan !== '' ? $bankTujuan : '-';
 
         $pmt = max(0.0, $angsuran - self::IURAN_TETAP);
         $admPercent = $angsuran > 0
@@ -65,10 +80,30 @@ class SimulasiDetailRumusService
         $rows = [];
 
         $rows[] = [
+            'komponen' => 'Rate Kredit',
+            'nilai' => $rateAnnualPercent,
+            'nilai_text' => $this->pct($rateAnnualPercent).' / tahun',
+            'rumus' => sprintf(
+                'Rate %s (%s: %s) → bunga per bulan %s (rate tahunan ÷ 12). Dipakai untuk menghitung pokok angsuran (anuitas/PMT) dan Plafond Max (PV).',
+                $this->pct($rateAnnualPercent),
+                $bankLabel,
+                $rateSourceLabel,
+                $this->pct($rateMonthlyPercent)
+            ),
+        ];
+
+        $rows[] = [
             'komponen' => 'Angsuran',
             'nilai' => $angsuran,
             'rumus' => $tenor > 0 && $plafond > 0
-                ? 'Pokok angsuran (anuitas) '.$this->rp($pmt).' + iuran tetap '.$this->rp(self::IURAN_TETAP)
+                ? sprintf(
+                    'Pokok angsuran (anuitas) %s + iuran tetap %s. Anuitas dihitung dari plafond %s, bunga %s/bulan, tenor %d bulan.',
+                    $this->rp($pmt),
+                    $this->rp(self::IURAN_TETAP),
+                    $this->rp($plafond),
+                    $this->pct($rateMonthlyPercent),
+                    $tenor
+                )
                 : '-',
         ];
 
@@ -191,10 +226,12 @@ class SimulasiDetailRumusService
             'nilai' => $plafondMax,
             'nilai_text' => $this->rp($plafondMax),
             'rumus' => sprintf(
-                'PV dari basis angsuran (DBR (%s x %s) / sisa gaji (%s)) pada tenor, dibatasi plafond_max (%s) product struct',
+                'PV (bunga %s/bulan) dari basis angsuran (DBR (%s x %s) / sisa gaji (%s)) pada tenor (%d bulan), dibatasi plafond_max (%s) product struct',
+                $this->pct($rateMonthlyPercent),
                 $this->pct($dbrPercent),
                 $this->rp($sisaGaji),
                 $this->rp(self::SISA_GAJI_MINIMAL),
+                $tenor > 0 ? $tenor : $tenorMax,
                 $this->rp($plafondMaxProduct)
             ),
         ];
@@ -215,8 +252,8 @@ class SimulasiDetailRumusService
 
     /**
      * Cek apakah rincian tersimpan belum memakai format terkini (komponen
-     * Tenor Max/Plafond Max/Usia Lunas dan rumus Tata Laksana berparameter)
-     * sehingga perlu disusun ulang saat ditampilkan.
+     * Rate Kredit/Tenor Max/Plafond Max/Usia Lunas dan rumus Tata Laksana
+     * berparameter) sehingga perlu disusun ulang saat ditampilkan.
      *
      * @param  array<int, mixed>  $detail
      */
@@ -231,7 +268,7 @@ class SimulasiDetailRumusService
             $detail
         );
 
-        foreach (['Tenor Max', 'Plafond Max', 'Usia Lunas'] as $required) {
+        foreach (['Rate Kredit', 'Tenor Max', 'Plafond Max', 'Usia Lunas'] as $required) {
             if (! in_array($required, $komponen, true)) {
                 return true;
             }

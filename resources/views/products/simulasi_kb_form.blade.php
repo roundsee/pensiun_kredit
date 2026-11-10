@@ -221,6 +221,7 @@ function kbSimulasiForm() {
             tenor: '',
             plafond: '',
             pelunasan: '',
+            extra_premi: '',
             ext_tatalaksana: '',
             tata_laksana_plus_percent_override: '',
             nama_marketing: '',
@@ -320,7 +321,7 @@ function kbSimulasiForm() {
                 'form.angsuran_lainnya', 'form.simpanan_pokok', 'form.blokir_angsuran', 'form.rate_percent_override',
                 'form.admin_angsuran_percent_override', 'form.tenor', 'form.plafond',
                 'form.tata_laksana_plus_percent_override',
-                'form.pelunasan', 'form.nama_marketing', 'form.kode_area',
+                'form.pelunasan', 'form.extra_premi', 'form.nama_marketing', 'form.kode_area',
                 'form.keterangan',
             ];
 
@@ -366,6 +367,9 @@ function kbSimulasiForm() {
                         this.hitung(true);
                     }, 500);
                 }
+            });
+            this.$watch('form.extra_premi', () => {
+                this.scheduleAutoCalculate();
             });
 
             this.$nextTick(() => {
@@ -1097,7 +1101,8 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
                         angsuran_lainnya: this.form.angsuran_lainnya,
                         simpanan_pokok: this.form.simpanan_pokok,
                         blokir_angsuran: this.form.blokir_angsuran,
-                        pelunasan: this.form.pelunasan
+                        pelunasan: this.form.pelunasan,
+                        extra_premi: this.form.extra_premi
                     })
                 });
 
@@ -1136,8 +1141,21 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
                 this.fieldMessages = {};
 
                 if (data.data) {
-                    this.hasil = data.data;
-                    this.hasilDisplay = Object.entries(data.data).map(([key, value]) => ({ key, value }));
+                    let h = JSON.parse(JSON.stringify(data.data));
+                    const extraPremi = Number(h.extra_premi ?? this.form.extra_premi ?? 0);
+                    h.extra_premi = extraPremi;
+                    const provisi = Number(h.provisi || 0);
+                    const administrasi = Number(h.administrasi || 0);
+                    const asuransi = Number(h.asurasi || h.asuransi || 0);
+                    const amountBlokirAngsuran = Number(h.amount_blokir_angsuran || 0);
+                    const tataLaksana = Number(h.tata_laksana || 0);
+                    const pelunasan = Number(h.pelunasan || 0);
+                    const simpananPokok = Number(h.simpanan_pokok || 0);
+                    const plafond = Number(h.plafond || 0);
+                    h.total_biaya = provisi + administrasi + asuransi + extraPremi + amountBlokirAngsuran + tataLaksana + pelunasan + simpananPokok;
+                    h.terima_bersih = plafond - h.total_biaya;
+                    this.hasil = h;
+                    this.hasilDisplay = Object.entries(h).map(([key, value]) => ({ key, value }));
                 }
                 if (data.limits) {
                     this.isValidForm = data.limits.is_valid;
@@ -1198,6 +1216,7 @@ console.log('=== recalculateRealtimeTenorMax() Dipicu ===', {
                 ? this.form.tata_laksana_plus_percent_override
                 : '',
             nama_debitur: this.form.nama_debitur,
+            extra_premi: this.form.extra_premi || this.hasil.extra_premi || 0,
             nomor_pensiun: this.form.nomor_pensiun,
             id: this.editDataSimulasiId || null
         };
