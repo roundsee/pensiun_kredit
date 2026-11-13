@@ -82,6 +82,31 @@
                 $mappedAnyCount++;
             }
         }
+        $fieldGroups = [
+            'Alamat & Identitas' => ['alamat', 'alamat_2', 'kota', 'kec', 'kel', 'rt', 'rw', 'kode_pos', 'no_hp', 'no_ktp', 'npwp', 'nama_ibu_kandung', 'status_kawin', 'agama', 'jenis_kelamin', 'pendidikan'],
+            'Pasangan' => ['nama_pasangan', 'ktp_pasangan', 'tgl_lahir_pasangan'],
+            'SPPK & Dokumen' => ['tgl_sppk', 'no_sppk', 'no_pk', 'tanggal_pk', 'no_skep', 'tanggal_skep', 'no_si', 'tgl_surat_pernyataan_kuasa_potong_gaji', 'no_surat_kuasa_substitusi', 'tanggal_surat_kuasa_substitusi'],
+            'Perwakilan & Kantor' => ['nama_perwakilan_kb', 'jabatan', 'cabang_kb', 'cabang', 'kantor_bayar', 'nama_ao', 'kode_ao', 'jenis_kredit', 'ket'],
+            'Rekening & Fasilitas' => ['norek', 'tanggal_dropping', 'due_date_pertama', 'suku_bunga', 'jenis_fasilitas', 'bentuk_fasilitas', 'prosentase_provisi', 'prosentase_administrasi', 'prosentase_admin_bank', 'asuransi', 'materai', 'angsuran_dibayar_dimuka'],
+        ];
+        $groupedFields = [];
+        $usedFields = [];
+        foreach ($fieldGroups as $groupTitle => $groupKeys) {
+            $groupItems = [];
+            foreach ($groupKeys as $key) {
+                if (isset($fields[$key])) {
+                    $groupItems[$key] = $fields[$key];
+                    $usedFields[$key] = true;
+                }
+            }
+            if ($groupItems) {
+                $groupedFields[$groupTitle] = $groupItems;
+            }
+        }
+        $otherFields = array_diff_key($fields, $usedFields);
+        if ($otherFields) {
+            $groupedFields['Lainnya'] = $otherFields;
+        }
     @endphp
 
     <div class="card mb-3 d-none">
@@ -137,38 +162,41 @@
         <div class="card">
             <div class="card-body">
 
-                <div class="row g-3">
-                    @foreach($fields as $field => $label)
-                        @php
-                            $isDateField = isset($dateFields[$field]);
-                            $isNumericField = isset($numericFields[$field]);
-                            $inputValue = old($field, $pelengkap?->{$field});
+                @foreach($groupedFields as $groupTitle => $groupItems)
+                    <h2 class="h6 fw-semibold border-bottom pb-2 mb-3 {{ $loop->first ? '' : 'mt-4' }}">{{ $groupTitle }}</h2>
+                    <div class="row g-3">
+                        @foreach($groupItems as $field => $label)
+                            @php
+                                $isDateField = isset($dateFields[$field]);
+                                $isNumericField = isset($numericFields[$field]);
+                                $inputValue = old($field, $pelengkap?->{$field});
 
-                            if ($isDateField) {
-                                $inputValue = $formatDateInputValue($inputValue);
-                            } elseif ($isNumericField) {
-                                $inputValue = $formatNumericInputValue($inputValue);
-                            }
-                        @endphp
-                        <div class="col-md-6">
-                            <label for="{{ $field }}" class="form-label">{{ $label }}</label>
-                            <input
-                                type="{{ $isDateField ? 'date' : ($isNumericField ? 'number' : 'text') }}"
-                                class="form-control @error($field) is-invalid @enderror"
-                                id="{{ $field }}"
-                                name="{{ $field }}"
-                                value="{{ $inputValue }}"
-                                @if($isNumericField)
-                                    step="any"
-                                    inputmode="decimal"
-                                @endif
-                            >
-                            @error($field)
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                    @endforeach
-                </div>
+                                if ($isDateField) {
+                                    $inputValue = $formatDateInputValue($inputValue);
+                                } elseif ($isNumericField) {
+                                    $inputValue = $formatNumericInputValue($inputValue);
+                                }
+                            @endphp
+                            <div class="col-md-6">
+                                <label for="{{ $field }}" class="form-label">{{ $label }}</label>
+                                <input
+                                    type="{{ $isDateField ? 'date' : ($isNumericField ? 'number' : 'text') }}"
+                                    class="form-control @error($field) is-invalid @enderror"
+                                    id="{{ $field }}"
+                                    name="{{ $field }}"
+                                    value="{{ $inputValue }}"
+                                    @if($isNumericField)
+                                        step="any"
+                                        inputmode="decimal"
+                                    @endif
+                                >
+                                @error($field)
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        @endforeach
+                    </div>
+                @endforeach
             </div>
             <div class="card-footer d-flex justify-content-end gap-2">
                 <a href="{{ route('data_simulasi.list') }}" class="btn btn-outline-secondary">Batal</a>

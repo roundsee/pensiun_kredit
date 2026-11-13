@@ -177,6 +177,7 @@
                                         <td>{{ $row->provisi !== null ? number_format((float) $row->provisi, 0, ',', '.') : '-' }}</td>
                                         <td>{{ $row->asuransi !== null ? number_format((float) $row->asuransi, 0, ',', '.') : '-' }}</td>
                                         <td>{{ $row->blokir_angsuran !== null ? $row->blokir_angsuran : '-' }}</td>
+                                        <td>{{ $row->ext_tatalaksana !== null ? number_format((float) $row->ext_tatalaksana, 0, ',', '.') : '-' }}</td>
                                         <td>{{ $row->sisa_gaji_akhir !== null ? number_format((float) $row->sisa_gaji_akhir, 0, ',', '.') : '-' }}</td>
                                         <td>{{ $row->terima_bersih !== null ? number_format((float) $row->terima_bersih, 0, ',', '.') : '-' }}</td>
                                     @else
