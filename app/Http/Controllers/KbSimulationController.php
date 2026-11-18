@@ -1313,11 +1313,9 @@ public function downloadPdfSImulasi(Request $request)
         // Temporary business rule: allow negative terima bersih (do not invalidate simulation).
         $terimaBersihValid = true;
 
-        // Plafond max adalah angka turunan/estimasi. Jika hasil aktual masih lolos batas angsuran,
-        // sisa gaji akhir, dan terima bersih, jangan blokir hanya karena selisih tipis pada plafond max.
-        if (! $plafondValid && $totalAngsuranValid && $sisaGajiAkhirValid && $terimaBersihValid) {
-            $plafondValid = true;
-        }
+        // Plafond input tidak boleh melebihi plafond max (baik batas DBR maupun batas
+        // plafond_max pada product struct). Jangan override menjadi valid meskipun
+        // batasan angsuran/sisa gaji/terima bersih masih lolos.
 
         return [
             'usia' => $usia,
