@@ -470,7 +470,7 @@ function kbGoalSeeker() {
                 }
 
                 if ((this.form.admin_angsuran_percent_override === null || this.form.admin_angsuran_percent_override === '' || typeof this.form.admin_angsuran_percent_override === 'undefined') && struct.admin_angsuran_percent !== undefined) {
-                    this.form.admin_angsuran_percent_override = Math.round(Number(struct.admin_angsuran_percent * 100));
+                    this.form.admin_angsuran_percent_override = Number((Number(struct.admin_angsuran_percent || 0) * 100).toFixed(2));
                 }
             }
         },

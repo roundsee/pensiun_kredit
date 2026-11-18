@@ -93,6 +93,8 @@ class DataSimulasi extends Model
         'pelunasan' => 'float',
         'ext_tatalaksana' => 'float',
         'tata_laksana_plus_percent_override' => 'float',
+        'rate_percent_override' => 'float',
+        'admin_angsuran_percent_override' => 'float',
         'total_biaya' => 'float',
         'sisa_gaji_akhir' => 'float',
         'terima_bersih' => 'float',

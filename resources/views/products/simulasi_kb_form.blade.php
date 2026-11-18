@@ -251,7 +251,7 @@ function kbSimulasiForm() {
             { cell: 'E25', label: 'Sisa Gaji saat pengajuan', type: 'output', key: 'sisa_gaji_saat_pengajuan', format: 'currency' },
             { cell: 'E26', label: 'Tenor Max', type: 'output', key: 'tenor_max', format: 'months' },
             { cell: 'E26A', label: 'Rate (%) Override', type: 'number', key: 'rate_percent_override', onlyRoleCanEditPricing: true },
-            { cell: 'E26B', label: 'Adm Angsuran (%) Override', type: 'integer', key: 'admin_angsuran_percent_override', onlyRoleCanEditPricing: true },
+            { cell: 'E26B', label: 'Adm Angsuran (%) Override', type: 'number', key: 'admin_angsuran_percent_override', onlyRoleCanEditPricing: true },
             { cell: 'E28', label: 'Tenor', type: 'integer', key: 'tenor' },
             { cell: 'E27', label: 'Plafond Max', type: 'output', key: 'plafond_max', format: 'currency' },
             { cell: 'E29', label: 'Plafond', type: 'integer', key: 'plafond' },
@@ -398,7 +398,7 @@ function kbSimulasiForm() {
 
             Object.keys(this.form).forEach((key) => {
                 if (Object.prototype.hasOwnProperty.call(initialData, key) && initialData[key] !== null && initialData[key] !== undefined) {
-                    const integerFields = ['gaji_pensiun', 'angsuran_lainnya', 'plafond', 'pelunasan', 'ext_tatalaksana', 'tenor', 'rate_percent_override', 'admin_angsuran_percent_override'];
+                    const integerFields = ['gaji_pensiun', 'angsuran_lainnya', 'plafond', 'pelunasan', 'ext_tatalaksana', 'tenor', 'rate_percent_override'];
                     if (integerFields.includes(key)) {
                         this.form[key] = Math.round(Number(initialData[key]));
                     } else {
@@ -524,7 +524,7 @@ function kbSimulasiForm() {
                 }
                 
                 if ((this.form.admin_angsuran_percent_override === '' || this.form.admin_angsuran_percent_override === null) && struct.admin_angsuran_percent !== undefined) {
-                    this.form.admin_angsuran_percent_override = Math.round(Number(struct.admin_angsuran_percent * 100));
+                    this.form.admin_angsuran_percent_override = Number((Number(struct.admin_angsuran_percent || 0) * 100).toFixed(2));
                 }
 
                 if ((this.form.simpanan_pokok === '' || this.form.simpanan_pokok === null || typeof this.form.simpanan_pokok === 'undefined') && struct.simpanan_pokok !== undefined) {
@@ -545,7 +545,7 @@ function kbSimulasiForm() {
                 }
                 
                 if ((this.form.admin_angsuran_percent_override === null || this.form.admin_angsuran_percent_override === '' || typeof this.form.admin_angsuran_percent_override === 'undefined') && struct.admin_angsuran_percent !== undefined) {
-                    this.form.admin_angsuran_percent_override = Math.round(Number(struct.admin_angsuran_percent * 100));
+                    this.form.admin_angsuran_percent_override = Number((Number(struct.admin_angsuran_percent || 0) * 100).toFixed(2));
                 }
 
                 if ((this.form.simpanan_pokok === null || this.form.simpanan_pokok === '' || typeof this.form.simpanan_pokok === 'undefined') && struct.simpanan_pokok !== undefined) {
