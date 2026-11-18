@@ -1253,7 +1253,7 @@ public function downloadPdfSImulasi(Request $request)
         $tenorMax = (int) ($result['tenor_max'] ?? 0);
         $plafondMax = (float) ($result['plafond_max'] ?? 0);
         $plafondMaxDisplayed = round($plafondMax);
-        $plafondTolerance = 1000.0;
+        $plafondTolerance = 0.0;
         $plafondMin = $struct?->plafond_min !== null ? (float) $struct->plafond_min : 0.0;
 
         $tenorValid = $tenorInput === null ? true : ($tenorInput <= $tenorMax);
